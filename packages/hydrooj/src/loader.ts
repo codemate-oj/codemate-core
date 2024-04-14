@@ -17,7 +17,7 @@ import './lib/i18n';
 import { Logger } from './logger';
 import { Context } from './context';
 // eslint-disable-next-line import/no-duplicates
-import { sleep, unwrapExports } from './utils';
+import { unwrapExports } from './utils';
 import { PRIV } from './model/builtin';
 
 const argv = cac().parse();
