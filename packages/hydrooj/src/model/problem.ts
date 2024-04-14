@@ -125,11 +125,10 @@ export class ProblemModel {
         const [doc] = await ProblemModel.getMulti(domainId, {})
             .sort({ docId: -1 }).limit(1).project({ docId: 1 })
             .toArray();
-        const result = await ProblemModel.addWithId(
+        return await ProblemModel.addWithId(
             domainId, (doc?.docId || 0) + 1, pid,
             title, content, owner, tag, meta,
         );
-        return result;
     }
 
     static async addWithId(
@@ -481,8 +480,7 @@ export class ProblemModel {
 
                 const isValidPid = async (id: string) => {
                     if (!(/^[A-Za-z]+[0-9A-Za-z]*$/.test(id))) return false;
-                    if (await ProblemModel.get(domainId, id)) return false;
-                    return true;
+                    return !await ProblemModel.get(domainId, id);
                 };
 
                 if (pid) {

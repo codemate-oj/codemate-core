@@ -9,11 +9,26 @@ import sanitize from 'sanitize-filename';
 import parser from '@hydrooj/utils/lib/search';
 import { sortFiles, streamToBuffer } from '@hydrooj/utils/lib/utils';
 import {
-    BadRequestError, ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
-    FileLimitExceededError, HackFailedError, NoProblemError, NotFoundError,
-    PermissionError, ProblemAlreadyExistError, ProblemAlreadyUsedByContestError, ProblemConfigError,
-    ProblemIsReferencedError, ProblemNotAllowLanguageError, ProblemNotAllowPretestError, ProblemNotFoundError,
-    RecordNotFoundError, SolutionNotFoundError, ValidationError,
+    BadRequestError,
+    ContestNotAttendedError,
+    ContestNotEndedError,
+    ContestNotFoundError,
+    ContestNotLiveError,
+    FileLimitExceededError,
+    HackFailedError,
+    NoProblemError,
+    NotFoundError,
+    PermissionError,
+    ProblemAlreadyExistError,
+    ProblemAlreadyUsedByContestError,
+    ProblemConfigError,
+    ProblemIsReferencedError,
+    ProblemNotAllowLanguageError,
+    ProblemNotAllowPretestError,
+    ProblemNotFoundError,
+    RecordNotFoundError,
+    SolutionNotFoundError,
+    ValidationError,
 } from '../error';
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
@@ -487,10 +502,9 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
 
     async get() {
         this.response.template = 'problem_submit.html';
-        const langRange = (typeof this.pdoc.config === 'object' && this.pdoc.config.langs)
+        this.response.body.langRange = (typeof this.pdoc.config === 'object' && this.pdoc.config.langs)
             ? Object.fromEntries(this.pdoc.config.langs.map((i) => [i, setting.langs[i]?.display || i]))
             : setting.SETTINGS_BY_KEY.codeLang.range;
-        this.response.body.langRange = langRange;
         this.response.body.page_name = this.tdoc
             ? this.tdoc.rule === 'homework'
                 ? 'homework_detail_problem_submit'
