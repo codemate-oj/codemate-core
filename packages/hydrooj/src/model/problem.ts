@@ -3,6 +3,7 @@ import child from 'child_process';
 import os from 'os';
 import path from 'path';
 import AdmZip from 'adm-zip';
+import { GroupModel } from 'codemate-plugin';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 import { escapeRegExp, pick } from 'lodash';
@@ -433,12 +434,13 @@ export class ProblemModel {
         return document.setStatus(domainId, document.TYPE_PROBLEM, pid, uid, { star });
     }
 
-    static canViewBy(pdoc: ProblemDoc, udoc: User) {
+    static async canViewBy(pdoc: ProblemDoc, udoc: User) {
         if (!udoc.hasPerm(PERM.PERM_VIEW_PROBLEM)) return false;
         if (udoc.own(pdoc)) return true;
         if (udoc.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN)) return true;
         if (pdoc.hidden) return false;
-        return true;
+        if (!pdoc.assign || pdoc.assign.length === 0) return true;
+        return (await Promise.all(pdoc.assign.map((i) => GroupModel.has(pdoc.domainId, udoc._id, i)))).some((x) => x);
     }
 
     static async import(domainId: string, filepath: string, operator = 1, preferredPrefix?: string) {
