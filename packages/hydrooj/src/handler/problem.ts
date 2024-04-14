@@ -186,7 +186,7 @@ export class ProblemMainHandler extends Handler {
         if (sort) pdocs = pdocs.sort((a, b) => sort.indexOf(`${a.domainId}/${a.docId}`) - sort.indexOf(`${b.domainId}/${b.docId}`));
         if (q && page === 1) {
             const pdoc = await problem.get(domainId, +q || q, problem.PROJECTION_LIST);
-            if (pdoc && problem.canViewBy(pdoc, this.user)) {
+            if (pdoc && await problem.canViewBy(pdoc, this.user)) {
                 const count = pdocs.length;
                 pdocs = pdocs.filter((doc) => doc.docId !== pdoc.docId);
                 pdocs.unshift(pdoc);
@@ -334,7 +334,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             delete this.pdoc.nSubmit;
             delete this.pdoc.difficulty;
             delete this.pdoc.stats;
-        } else if (!problem.canViewBy(this.pdoc, this.user)) {
+        } else if (!await problem.canViewBy(this.pdoc, this.user)) {
             throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
         }
         let ddoc = this.domain;
