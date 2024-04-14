@@ -1,7 +1,7 @@
 import { ObjectId, UpdateResult } from 'mongodb';
 import {
-    Context,
-    db, Err, GDoc, HydroGlobal, NotFoundError,
+    type Context,
+    db, Err, GDoc, NotFoundError,
 } from 'hydrooj';
 
 declare module 'hydrooj' {
@@ -9,8 +9,9 @@ declare module 'hydrooj' {
         parent?: ObjectId,
         children?: ObjectId[],
     }
+
     interface HydroGlobal {
-        GroupModel: typeof GroupModel,
+        GroupModel: GroupModel;
     }
 }
 
@@ -83,6 +84,6 @@ export class GroupModel {
 }
 
 export function apply(ctx: Context) {
-    (global.Hydro as HydroGlobal).GroupModel = GroupModel;
+    global.Hydro.GroupModel = GroupModel;
     deleteUserCache = (domainId: string) => { ctx.emit('user/delcache', domainId); };
 }
