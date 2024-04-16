@@ -36,7 +36,7 @@ export async function getWithChildren(domainId: string, tid: ObjectId): Promise<
 export async function add(
     domainId: string, title: string, content: string, owner: number,
     rule = 'homework', beginAt = new Date(), endAt = new Date(), pids: number[] = [],
-    rated = false, data: Partial<SystemPList> = {}, parent: ObjectId = null,
+    rated = false, data: Partial<SystemPList> = {}, parent: ObjectId | undefined = undefined,
 ) {
     Object.assign(data, {
         content, owner, title, rule, beginAt, endAt, pids, attend: 0,

@@ -4,7 +4,7 @@ import {
     PermissionError,
     PRIV, ProblemModel as problem, SettingModel,
     Time,
-    Types, yaml,
+    Types, ValidationError, yaml,
 } from 'hydrooj';
 import { GroupModel } from '../privilege-group/model';
 import * as plist from './model';
@@ -19,7 +19,7 @@ export class SystemProblemListMainHandler extends Handler {
             this.parseTree(tdoc, all);
             _children.push(tdoc);
         }
-        root.children = _children;
+        root.children = _children.map((_) => _._id);
     }
 
     @param('page', Types.PositiveInt, true)
@@ -36,7 +36,7 @@ export class SystemProblemListMainHandler extends Handler {
 }
 
 export class SystemProblemListDetailHandler extends Handler {
-    tdoc: plist.SystemPList;
+    tdoc: plist.SystemPList | undefined;
     @param('tid', Types.ObjectId)
     async prepare(domainId: string, tid: ObjectId) {
         const tdoc = await plist.getWithChildren(domainId, tid);
@@ -46,6 +46,7 @@ export class SystemProblemListDetailHandler extends Handler {
     }
 
     async get(domainId: string) {
+        if (!this.tdoc) throw new Error('tdoc is null');
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, false, problem.PROJECTION_CONTEST_LIST);
         const hasPermission = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN)
       || this.user.own(this.tdoc)
@@ -63,18 +64,27 @@ export class SystemProblemListEditHandler extends Handler {
 
     @param('tid', Types.ObjectId, true)
     async get(domainId: string, tid: ObjectId) {
-        const tdoc = tid ? await plist.get(domainId, tid) : null;
-        const extensionDays = tid
-            ? Math.round(
-                (tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100),
-            ) / 100
-            : 1;
-        const beginAt = tid
-            ? moment(tdoc.beginAt).tz(this.user.timeZone)
-            : moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
-        const penaltySince = tid
-            ? moment(tdoc.penaltySince).tz(this.user.timeZone)
-            : beginAt.clone().add(7, 'days').tz(this.user.timeZone).hour(23).minute(59).millisecond(0);
+        if (!tid) {
+            const beginAt = moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
+            const penaltySince = beginAt.clone().add(7, 'days').tz(this.user.timeZone).hour(23).minute(59).millisecond(0);
+            this.response.body = {
+                dateBeginText: beginAt.format('YYYY-M-D'),
+                timeBeginText: beginAt.format('H:mm'),
+                datePenaltyText: penaltySince.format('YYYY-M-D'),
+                timePenaltyText: penaltySince.format('H:mm'),
+                extensionDays: 1,
+                pids: '',
+                page_name: 'homework_create',
+            };
+            return;
+        }
+        const tdoc = await plist.get(domainId, tid);
+        if (!tdoc.penaltySince) throw new ValidationError();
+        const extensionDays: number = Math.round(
+            (tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100),
+        ) / 100;
+        const beginAt = moment(tdoc.beginAt).tz(this.user.timeZone);
+        const penaltySince = moment(tdoc.penaltySince).tz(this.user.timeZone);
         this.response.template = 'system_plist_edit.html';
         this.response.body = {
             tdoc,
@@ -83,9 +93,9 @@ export class SystemProblemListEditHandler extends Handler {
             datePenaltyText: penaltySince.format('YYYY-M-D'),
             timePenaltyText: penaltySince.format('H:mm'),
             extensionDays,
-            penaltyRules: tid ? yaml.dump(tdoc.penaltyRules) : null,
-            pids: tid ? tdoc.pids.join(',') : '',
-            page_name: tid ? 'homework_edit' : 'homework_create',
+            penaltyRules: yaml.dump(tdoc.penaltyRules),
+            pids: tdoc.pids.join(','),
+            page_name: 'homework_edit',
         };
     }
 
