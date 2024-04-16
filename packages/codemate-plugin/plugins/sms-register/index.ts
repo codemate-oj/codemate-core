@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import {
     BlacklistedError, BlackListModel,
-    Context, Handler, param, PERM, PRIV, SettingModel, superagent, SystemModel, TokenModel, Types, UserAlreadyExistError, UserModel,
+    Context, Handler, param, PERM, PRIV, SettingModel, superagent, SystemModel, TokenModel, Types, UserModel,
 } from 'hydrooj';
 import { logger } from './lib';
 
