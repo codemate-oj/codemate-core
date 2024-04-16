@@ -1,6 +1,7 @@
 import {
     ContestNotFoundError, DocumentModel as document, Filter,
     ObjectId,
+    Projection,
     Tdoc,
 } from 'hydrooj';
 
@@ -12,20 +13,20 @@ export interface SystemPList extends Omit<Tdoc, 'docType'> {
     children?: ObjectId[];
 }
 
-export async function get(domainId: string, tid: ObjectId): Promise<SystemPList> {
-    const tdoc = await document.get(domainId, TYPE_SYSTEM_PLIST, tid);
+export async function get(domainId: string, tid: ObjectId, projection?: Projection<SystemPList>): Promise<SystemPList> {
+    const tdoc = await document.get(domainId, TYPE_SYSTEM_PLIST, tid, projection);
     if (!tdoc) throw new ContestNotFoundError(tid);
     return tdoc;
 }
 
 export function getMulti(
-    domainId: string, query: Filter<document.DocType['32']> = {},
+    domainId: string, query: Filter<document.DocType['32']> = {}, projection?: Projection<SystemPList>,
 ) {
-    return document.getMulti(domainId, TYPE_SYSTEM_PLIST, query).sort({ beginAt: -1 });
+    return document.getMulti(domainId, TYPE_SYSTEM_PLIST, query, projection).sort({ beginAt: -1 });
 }
 
-export async function getWithChildren(domainId: string, tid: ObjectId): Promise<SystemPList> {
-    const root = await get(domainId, tid);
+export async function getWithChildren(domainId: string, tid: ObjectId, projection?: Projection<SystemPList>): Promise<SystemPList> {
+    const root = await get(domainId, tid, projection);
     if (root.children?.length) {
         const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c)).pids));
         root.pids.push(...Array.from(new Set(subPids.flat())));

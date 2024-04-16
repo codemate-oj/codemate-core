@@ -10,47 +10,60 @@ import { GroupModel } from '../privilege-group/model';
 import * as plist from './model';
 
 export class SystemProblemListMainHandler extends Handler {
-    parseTree(root: plist.SystemPList, all: plist.SystemPList[]) {
-        if (!root.children?.length) return;
-        const _children = [];
-        for (const child of root.children) {
-            const tdoc = all.find((d) => d._id === child);
-            if (!tdoc) continue;
-            this.parseTree(tdoc, all);
-            _children.push(tdoc);
-        }
-        root.children = _children;
-    }
-
     @param('page', Types.PositiveInt, true)
     async get(domainId: string) {
-        const tdocs = await plist.getMulti(domainId).toArray();
-        const roots = tdocs
-            .filter((d) => d.parent === null)
-            .map((d) => {
-                this.parseTree(d, tdocs);
-                return d;
-            });
+        const tdocs = await plist.getMulti(domainId, {}, ['docId', 'title', 'content', 'parent', 'children']).toArray();
+
+        const extractChildren = (tdoc: plist.SystemPList) => {
+            if (!tdoc) throw new Error();
+            if (tdoc.children?.length) {
+                return {
+                    ...tdoc,
+                    children: tdoc.children.map((id) => {
+                        const _tdoc = tdocs.find((doc) => doc.docId.equals(id));
+                        return extractChildren(_tdoc);
+                    }),
+                };
+            }
+            return { ...tdoc, children: [] };
+        };
+
+        const roots = tdocs.filter((item) => !item.parent).map(extractChildren);
         this.response.body = { roots };
     }
 }
 
 export class SystemProblemListDetailHandler extends Handler {
     tdoc: plist.SystemPList;
+    pageCount = 0;
+
     @param('tid', Types.ObjectId)
-    async prepare(domainId: string, tid: ObjectId) {
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async prepare(domainId: string, tid: ObjectId, page = 1, pageSize = 15) {
         const tdoc = await plist.getWithChildren(domainId, tid);
+        this.pageCount = Math.floor((tdoc.pids.length + pageSize - 1) / pageSize);
+        tdoc.pids = tdoc.pids.filter((_, index) => index > (page - 1) * pageSize && index < page * pageSize);
         if (!tdoc) throw new ContestNotFoundError(tid, 'not found');
         if (tdoc.rule !== 'homework') throw new ContestNotFoundError(tid, 'not homework');
         this.tdoc = tdoc;
     }
 
-    async get(domainId: string) {
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, page = 1, pageSize = 15) {
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, false, problem.PROJECTION_CONTEST_LIST);
         const hasPermission = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN)
       || this.user.own(this.tdoc)
       || this.tdoc.assign?.map((g) => GroupModel.has(domainId, this.user._id, g)).some(Boolean);
-        this.response.body = { tdoc: this.tdoc, pdict, hasPermission };
+        this.response.body = {
+            tdoc: this.tdoc,
+            pdict,
+            hasPermission,
+            page,
+            pageSize,
+            pageCount: this.pageCount,
+        };
     }
 }
 
