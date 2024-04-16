@@ -36,7 +36,7 @@ export class SystemProblemListMainHandler extends Handler {
 }
 
 export class SystemProblemListDetailHandler extends Handler {
-    tdoc: plist.SystemPList | undefined;
+    tdoc?: plist.SystemPList;
     @param('tid', Types.ObjectId)
     async prepare(domainId: string, tid: ObjectId) {
         const tdoc = await plist.getWithChildren(domainId, tid);
@@ -76,6 +76,7 @@ export class SystemProblemListEditHandler extends Handler {
                 pids: '',
                 page_name: 'homework_create',
             };
+            this.response.template = 'system_plist_edit.html';
             return;
         }
         const tdoc = await plist.get(domainId, tid);

@@ -9,7 +9,7 @@ const TYPE_SYSTEM_PLIST = document.TYPE_SYSTEM_PLIST;
 export interface SystemPList extends Omit<Tdoc, 'docType'> {
     docType: typeof TYPE_SYSTEM_PLIST;
     parent: ObjectId;
-    children?: ObjectId[];
+    children?: ObjectId[] | this[];
 }
 
 export async function get(domainId: string, tid: ObjectId): Promise<SystemPList> {
@@ -27,7 +27,7 @@ export function getMulti(
 export async function getWithChildren(domainId: string, tid: ObjectId): Promise<SystemPList> {
     const root = await get(domainId, tid);
     if (root.children?.length) {
-        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c)).pids));
+        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c as unknown as ObjectId)).pids));
         root.pids.push(...Array.from(new Set(subPids.flat())));
     }
     return root;
