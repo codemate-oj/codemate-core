@@ -1,11 +1,12 @@
 root: true
 extends:
   - '@hydrooj/eslint-config'
+  - 'plugin:prettier/recommended'
 ignorePatterns:
   - public/**/*.js
   - packages/ui-default
 overrides:
-  - files: 
+  - files:
       - '**/{public,frontend}/**/*.{ts,tsx,page.js}'
     rules:
       github/array-foreach: 0
@@ -17,7 +18,7 @@ overrides:
       browser: true
       es6: true
       jquery: true
-    globals: 
+    globals:
       UiContext: true
       UserContext: true
       externalModules: true
@@ -29,7 +30,7 @@ rules:
    - warn
    - groups:
      - ["^\\u0000"]
-     - 
+     -
       - "^(assert|buffer|child_process|cluster|console|constants|crypto|dgram|dns|domain|events|fs|http|https|module|net|os|path|punycode|querystring|readline|repl|stream|string_decoder|sys|timers|tls|tty|url|util|vm|zlib|freelist|v8|process|async_hooks|http2|perf_hooks)(/.*|$)"
       - "^(?!@?hydrooj)(@?\\w.+)"
       - "^@?hydrooj"
@@ -46,6 +47,6 @@ settings:
       alwaysTryTypes: true
 parserOptions:
   sourceType: module
-#   project:
-#     - './tsconfig.json'
-#     - './packages/**/tsconfig.json'
+  project:
+    - './tsconfig.json'
+    - './packages/**/tsconfig.json'
