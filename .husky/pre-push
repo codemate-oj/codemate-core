@@ -1,0 +1,2 @@
+yarn lint:ci
+yarn test
