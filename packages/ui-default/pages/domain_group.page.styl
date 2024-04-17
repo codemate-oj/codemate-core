@@ -4,3 +4,46 @@
 
   .col--group
     width: 150px
+
+  .col--user
+    width: 100%
+
+  tr.activation-row
+    background-color: transparent
+
+    .activation-codes
+      width: 100%
+
+      .activation-codes__header
+        color: grey
+        font-size: 16px
+        padding: 5px 0 10px
+        display: flex
+        align-items: center
+        gap: 20px
+
+        .activation-codes__tools
+          display: flex
+          gap: 10px
+          button
+            border: 0.5px solid grey
+            padding: 8px 15px
+            font-size: 14px
+            border-radius: 5px
+
+            &.activation-codes__save
+              color: white
+              background: #5f9fd6
+              border: none
+
+      .activation-codes__body .activation-codes__table
+        thead tr th, tbody tr td
+          padding: 0 5px
+
+        td input
+          border: 1px solid grey
+          padding: 5px
+
+        td .activation-codes__delete
+          padding: 0 10px
+          color: red

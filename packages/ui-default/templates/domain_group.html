@@ -35,7 +35,58 @@
             </label>
           </td>
           <td class="col--group">{{ gdoc.name }}</td>
-          <td class="col--user"><input type="text" value="{{ gdoc.uids.join(',') }}" data-gid="{{ gdoc.name }}"></input></td>
+          <td class="col--user">
+            <input type="text" value="{{ gdoc.uids.join(',') }}" data-gid="{{ gdoc.name }}"></input>
+          </td>
+          <td></td>
+        </tr>
+        <tr data-gid="{{ gdoc.name }}" class="activation-row">
+          <td></td>
+          <td colspan="2">
+            <div class="activation-codes">
+              <div class="activation-codes__header">
+                <h4>小组激活码</h4>
+                <div class="activation-codes__tools">
+                  <button name="add_code" class="activation-codes__add">添加</button>
+                  <button name="save_code" class="activation-codes__save">保存</button>
+                </div>
+              </div>
+              <div class="activation-codes__body">
+                <table class="activation-codes__table">
+                  <thead>
+                    <tr>
+                      <th>激活码</th>
+                      <th>所属机构</th>
+                      <th>过期时间</th>
+                      <th>可用次数</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {%- for activation in gdoc.activation -%}
+                    <tr>
+                      <td>
+                        <input type="text" value="{{ activation.code }}" data-activation-code="{{ activation.code }}">
+                      </td>
+                      <td>
+                        <input type="text" value="{{ activation.owner }}" data-activation-owner="{{ activation.owner }}">
+                      </td>
+                      <td>
+                        <input type="text" value="{{ activation.expiredAt }}" data-activation-expiredat="{{ activation.expiredAt }}">
+                      </td>
+                      <td>
+                        <input type="number" min="0" value="{{ activation.remaining }}" data-activation-remaining="{{ activation.remaining }}">
+                      </td>
+                      <td>
+                        <button name="remove_code" class="activation-codes__delete">删除</button>
+                      </td>
+                    </tr>
+                    {%- endfor -%}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
         </tr>
         {%- endfor -%}
       </tbody>
@@ -43,7 +94,7 @@
   </div>
   <div class="section__body">
     <button class="rounded button" name="remove_selected">{{ _('Remove Selected Group') }}</button>
-    <button class="rounded button" name="save_all">{{ _('Save All Changes') }}</button>
+    <button class="rounded button" name="save_all">{{ _('Save All Changes') }}（不含激活码）</button>
   </div>
 </div>
 {% endblock %}
