@@ -1,5 +1,4 @@
-import { ObjectId, UpdateResult } from 'mongodb';
-import { db, GDoc } from 'hydrooj';
+import { db, GDoc, ObjectId } from 'hydrooj';
 import { GroupNotFoundError } from './lib';
 
 export const collGroup = db.collection('user.group');
@@ -66,7 +65,7 @@ export class GroupModel {
         return groups;
     }
 
-    static async update(domainId: string, name: string, uids: number[], parent?: ObjectId): Promise<UpdateResult> {
+    static async update(domainId: string, name: string, uids: number[], parent?: ObjectId): ReturnType<typeof collGroup['updateOne']> {
         const gdoc = await this.coll.findOne({ domainId, name });
         if (!gdoc) {
             await this.add(domainId, name, parent);
