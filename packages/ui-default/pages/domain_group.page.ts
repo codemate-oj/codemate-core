@@ -136,8 +136,11 @@ const page = new NamedPage('domain_group', () => {
 
     function handleClickAddCode(gid: string) {
         const code = {
- code: '', owner: '', expiredAt: new Date(), remaining: 1,
-};
+            code: '',
+            owner: '',
+            expiredAt: new Date(),
+            remaining: 1,
+        };
         const tbody = $(`[data-gid="${gid}"] .activation-codes__table tbody`);
         tbody.append(
             `
@@ -190,7 +193,6 @@ const page = new NamedPage('domain_group', () => {
                 expiredAt: $(`[data-gid="${gid}"] [data-activation-expiredat]`).val(),
                 remaining: $(`[data-gid="${gid}"] [data-activation-remaining]`).val(),
             };
-            console.log(obj);
             data.push(obj);
         });
         if (data.length) handleSaveCodeChanges(gid, data);
