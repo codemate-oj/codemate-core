@@ -36,6 +36,10 @@ rules:
       - "^@?hydrooj"
       - "^"
       - "^\\."
+  'no-console': 
+    - error
+    - allow:
+      - error
 settings:
   import/parsers:
     '@typescript-eslint/parser':
