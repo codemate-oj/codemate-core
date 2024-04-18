@@ -75,8 +75,10 @@ export class RequestEmailCodeHandler extends Handler {
         ]);
 
         const verifyCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        await global.Hydro.lib.mail.sendMail(mail, 'Codemate 注册验证码', 'Codemate 注册验证码',
-            `同学，您好！您的验证码是：${verifyCode}。`);
+        const html = await this.renderHTML('user_register_mail.html', {
+            verifyCode,
+        });
+        await global.Hydro.lib.mail.sendMail(mail, 'Codemate 注册验证码', 'Codemate 注册验证码', html);
         const id = nanoid();
         await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { mail, verifyCode }, id);
 
