@@ -24,7 +24,7 @@ function del(name: string) {
 }
 
 const page = new NamedPage('domain_group', () => {
-    const createGroupDialogContent = $(tpl`
+    const createGroupDialogContent = $(tpl/* html */`
     <div>
       <div class="row"><div class="columns">
         <h1>${i18n('Create Group')}</h1>
@@ -42,8 +42,44 @@ const page = new NamedPage('domain_group', () => {
         </label>
       </div></div>
     </div>
-  `);
+    `);
+    const createGroupCodeDialogContent = $(tpl/* html */`
+    <div>
+        <div class="row">
+            <div class="columns">
+                <h1>添加激活码</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="columns">
+                <label>
+                    过期时间
+                    <input name="code_expire_at" type="date" class="textbox">
+                </label>
+            </div>
+            <div class="columns">
+                <label>
+                    所属机构/人员
+                    <input name="code_owner" type="text" class="textbox">
+                </label>
+            </div>
+            <div class="columns">
+                <label>
+                    可激活次数
+                    <input name="code_times" type="number" value="1" min="1" class="textbox">
+                </label>
+            </div>
+            <div class="columns">
+                <label>
+                    生成个数
+                    <input name="code_count" type="number" value="1" min="1" class="textbox">
+                </label>
+            </div>
+        </div>
+    </div>
+    `);
     createGroupDialogContent.appendTo(document.body);
+    createGroupCodeDialogContent.appendTo(document.body);
     const userSelect = UserSelectAutoComplete.getOrConstruct<UserSelectAutoComplete<true>>(createGroupDialogContent.find('[name="create_group_users"]'), {
         multi: true,
         height: 'auto',
@@ -82,6 +118,18 @@ const page = new NamedPage('domain_group', () => {
         createGroupDialog.$dom.find('[name="create_group_name"]').val('');
         return this;
     };
+
+    const createCodeDialog = new ActionDialog({
+        $body: createGroupCodeDialogContent,
+        onDispatch(action) {
+            const $expireAt = createCodeDialog.$dom.find('[name="code_expire_at"]');
+            if (action === 'ok' && $expireAt.val() === '') {
+                $expireAt.trigger('focus').trigger('select');
+                return false;
+            }
+            return true;
+        },
+    });
 
     function ensureAndGetSelectedGroups() {
         const groups = _.map($('.domain-group tbody [type="checkbox"]:checked'), (ch) => $(ch).closest('tr').attr('data-gid'));
@@ -134,76 +182,115 @@ const page = new NamedPage('domain_group', () => {
         Notification.success(i18n('Saved.'));
     }
 
-    function handleClickAddCode(gid: string) {
-        const code = {
-            code: '',
-            owner: '',
-            expiredAt: new Date(),
-            remaining: 1,
-        };
-        const tbody = $(`[data-gid="${gid}"] .activation-codes__table tbody`);
-        tbody.append(
-            `
-                <tr>
-                    <td>
-                        <input type="text" value="${code.code}" data-activation-code="${code.code}">
-                    </td>
-                    <td>
-                        <input type="text" value="${code.owner}" data-activation-owner="${code.owner}">
-                    </td>
-                    <td>
-                        <input type="date" value="${code.expiredAt}" data-activation-expiredat="${code.expiredAt}">
-                    </td>
-                    <td>
-                        <input type="number" value="${code.remaining}" data-activation-remaining="${code.remaining}">
-                    </td>
-                    <td>
-                        <button name="remove_code" class="activation-codes__delete">删除</button>
-                    </td>
-                </tr>
-            `,
-        );
-    }
-
-    async function handleSaveCodeChanges(group, data) {
+    async function handleClickAddCode(gid: string) {
+        const action = await createCodeDialog.open();
+        if (action !== 'ok') return;
+        const expireAt = new Date(createCodeDialog.$dom.find('[name="code_expire_at"]').val() as string);
+        const codeTimes = createCodeDialog.$dom.find('[name="code_times"]').val() as string;
+        const codeCount = createCodeDialog.$dom.find('[name="code_count"]').val() as string;
+        const owner = createCodeDialog.$dom.find('[name="code_owner"]').val() as string;
         try {
-            const resp = await request.post('/domain/group/code', { group, data: JSON.stringify(data) });
-            if (resp.success) {
-                Notification.success(`用户组 ${group} 的激活码已更新。`);
-                window.location.reload();
+            const { success, url } = await request.post(`/domain/group/${gid}/code`, {
+                operation: 'add',
+                expireAt,
+                owner,
+                times: codeTimes,
+                genNum: codeCount,
+            });
+            if (success) {
+                window.location.href = url ?? window.location.href;
             }
-        } catch (e) {
-            console.error(e);
-            if (e instanceof Error) Notification.error(e.message);
+        } catch (error) {
+            Notification.error(error.message);
         }
     }
 
-    $('[name="add_code"]').on('click', (ev) => {
-        const gid = $(ev.currentTarget).closest('tr').attr('data-gid');
-        handleClickAddCode(gid);
+    async function getGroupCode(group) {
+        const { tokens, error } = await request.get(`/domain/group/${group._id}/code`);
+        if (error) Promise.reject(error);
+        if (!Array.isArray(tokens)) return;
+        const $tr = $(`tr[data-gid="${group.name}"]`);
+        $tr.after(
+            $(/* html */ `
+                    <tr data-gid="${group.name}" class="activation-row">
+                        <td></td>
+                        <td colspan="2" class="activation-codes">
+                            <div class="activation-codes__header">
+                                <h4>所有激活码</h4>
+                                <button name="add_code" data-real-gid="${group._id}">添加</button>
+                            </div>
+                            <table>
+                                <colgroup>
+                                    <col style="width: 100px">
+                                    <col style="width: 150px">
+                                    <col style="width: 200px">
+                                    <col style="width: 100px">
+                                </colgroup>
+                                <tr>
+                                    <th>激活码</th>
+                                    <th>所属机构</th>
+                                    <th>过期时间</th>
+                                    <th>剩余次数</th>
+                                </tr>
+                                ${
+                                    tokens
+                                        .map(
+                                            (token) => /* html */ `
+                                    <tr>
+                                        <td>${token._id}</td>
+                                        <td>${token.owner}</td>
+                                        <td>${token.expireAt}</td>
+                                        <td>${token.remaining}</td>
+                                    </tr>
+                                `,
+                                        )
+                                        .join('')
+                                    /* html */ || `
+                                        <tr>
+                                            <td colspan="4">
+                                                暂无数据，请点击上方按钮添加
+                                            </td>
+                                        </tr>
+                                    `
+                                }
+                            </table>
+                        </td>
+                `),
+        );
+    }
+    $(document).on('click', (ev) => {
+        if ($(ev.target).is('[name="add_code"]')) {
+            const gid = $(ev.target).attr('data-real-gid');
+            handleClickAddCode(gid);
+        }
     });
-    $('[name="save_code"]').on('click', (ev) => {
-        const gid = $(ev.currentTarget).closest('tr').attr('data-gid');
-        const data = [];
-        $(`[data-gid="${gid}"] [data-activation-code]`).each((_, el) => {
-            const key = $(el);
-            const obj = {
-                code: key.val(),
-                owner: $(`[data-gid="${gid}"] [data-activation-owner]`).val(),
-                expiredAt: $(`[data-gid="${gid}"] [data-activation-expiredat]`).val(),
-                remaining: $(`[data-gid="${gid}"] [data-activation-remaining]`).val(),
-            };
-            data.push(obj);
-        });
-        if (data.length) handleSaveCodeChanges(gid, data);
-    });
-    $(document).on('click', async (ev) => {
-        if ($(ev.target).attr('name') !== 'remove_code') return;
-        const action = await new ConfirmDialog({
-            $body: tpl.typoMsg('你确定要删除这条激活码吗？'),
-        }).open();
-        if (action !== 'yes') return;
-        $(ev.target).closest('tr').remove();
+
+    const _showMap = {};
+    $('[name="show_code"]').on('click', async (ev) => {
+        const $btn = $(ev.currentTarget);
+        const $tr = $btn.closest('tr');
+        const gname = $tr.attr('data-gid');
+
+        if (_showMap[gname]) {
+            $btn.text('显示激活码');
+            $tr.siblings(`tr.activation-row[data-gid="${gname}"]`).remove();
+            _showMap[gname] = false;
+            return;
+        }
+
+        // 首次加载，获取数据并加载dom
+        if (!UiContext.gdocs?.length || !gname) {
+            Notification.error('获取激活码信息失败，请刷新后重试');
+            return;
+        }
+        const group = UiContext.gdocs.find((doc) => doc.name === gname);
+        if (!group) {
+            Notification.error('获取激活码信息失败，请刷新后重试');
+            return;
+        }
+        await getGroupCode(group);
+        $btn.text('隐藏激活码');
+        _showMap[gname] = true;
     });
     $('[name="create_group"]').click(() => handleClickCreateGroup());
     $('[name="remove_selected"]').click(() => handleClickDeleteSelected());

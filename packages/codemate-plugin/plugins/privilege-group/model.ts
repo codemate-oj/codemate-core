@@ -1,21 +1,13 @@
-import { db, GDoc, ObjectId } from 'hydrooj';
+import { db, GDoc, ObjectId, TokenModel } from 'hydrooj';
 import { ActivationCodeExpiredError, ActivationCodeNotFoundError, ActivationCodeUsedError, DuplicatedActivationError, GroupNotFoundError } from './lib';
 
 export const collGroup = db.collection('user.group');
-
-export interface ActivationCode {
-    code: string; // 对应字段：激活码
-    owner?: string; // 对应字段：机构名称
-    createdAt?: Date; // 对应字段：创建时间
-    expiredAt: Date; // 对应字段：过期时间
-    remaining: number; // 对应字段：剩余次数
-}
 
 declare module 'hydrooj' {
     interface GDoc {
         parent?: ObjectId;
         children?: ObjectId[];
-        activation?: ActivationCode[];
+        activation?: string[]; // 激活码存放在token coll中，这里是token._id
     }
     interface Model {
         group: GroupModel;
@@ -85,8 +77,12 @@ export class GroupModel {
      * @param name 组名
      * @returns 对应小组
      */
-    static async get(domainId: string, name: string) {
-        return await this.coll.findOne({ domainId, name });
+    static get(domainId: string, name: string) {
+        return this.coll.findOne({ domainId, name });
+    }
+
+    static getById(domainId: string, id: ObjectId) {
+        return this.coll.findOne({ domainId, _id: id });
     }
 
     /**
@@ -126,28 +122,5 @@ export class GroupModel {
             await this.coll.updateOne({ _id: parent }, { $addToSet: { children: gdoc._id } });
         }
         return await this.coll.updateOne({ _id: gdoc._id }, { $set: { uids, parent } });
-    }
-
-    static async activate(domainId: string, code: string, uid: number) {
-        const groups = await this.coll.find({ domainId, activation: { $elemMatch: { code } } }).toArray();
-        if (!groups.length) throw new ActivationCodeNotFoundError(code);
-
-        const group = groups[0];
-        if (group.uids.includes(uid)) throw new DuplicatedActivationError(group.name);
-        const codeObj = group.activation.find((i) => i.code === code);
-        if (!codeObj) throw new ActivationCodeNotFoundError(code);
-        if (codeObj.expiredAt < new Date()) throw new ActivationCodeExpiredError(code, codeObj.expiredAt);
-        if (codeObj.remaining <= 0) throw new ActivationCodeUsedError(code);
-
-        const _act = group.activation.map((i) => {
-            if (i.code !== code) return i;
-            return { ...i, remaining: i.remaining - 1 };
-        });
-        await this.coll.updateOne({ _id: group._id }, { $addToSet: { uids: uid }, $set: { activation: _act } });
-        return group;
-    }
-
-    static async setActivationCodes(gid: ObjectId, codes: ActivationCode[]) {
-        return this.coll.updateOne({ _id: gid }, { $set: { activation: codes } });
     }
 }
