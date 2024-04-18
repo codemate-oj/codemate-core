@@ -23,16 +23,16 @@ export class RequestSMSCodeHandler extends Handler {
     @param('phoneNumber', Types.String)
     @param('verifyToken', Types.String)
     async post(domainId: string, phoneNumber: string, verifyToken: string) {
-        await Promise.all([
-            this.limitRate('send_message_code', 600, 3, false),
-            this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false),
-        ]);
         const verifyResult = doVerifyToken(verifyToken);
         if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
         if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
         const verifyCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         const sendResult = await global.Hydro.lib.sms(`【codemate】您的验证码是${verifyCode}，600s内有效`, phoneNumber);
         if (!sendResult) throw new SendSMSFailedError();
+        await Promise.all([
+            this.limitRate('send_message_code', 600, 3, false),
+            this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false),
+        ]);
         const id = nanoid();
         await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { phoneNumber, verifyCode }, id);
         this.response.body = {
