@@ -17,6 +17,10 @@ export class RequestSMSCodeHandler extends Handler {
     @param('phoneNumber', Types.String)
     @param('verifyToken', Types.String)
     async post(domainId: string, phoneNumber: string, verifyToken: string) {
+        await Promise.all([
+            this.limitRate('send_message_code', 600, 3, false),
+            this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false),
+        ]);
         const verifyResult = doVerifyToken(verifyToken);
         if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
         if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
