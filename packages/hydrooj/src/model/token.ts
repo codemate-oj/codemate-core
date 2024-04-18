@@ -20,7 +20,7 @@ class TokenModel {
     static TYPE_EXPORT = 6;
     static TYPE_IMPORT = 7;
     static TYPE_WEBAUTHN = 8;
-    static TYPE_ACTIVATION = 9;
+    static TYPE_ACTIVATION = 10; // 设置10是为了兼容老版本9被占用的情况
     static TYPE_TEXTS = {
         [TokenModel.TYPE_SESSION]: 'Session',
         [TokenModel.TYPE_REGISTRATION]: 'Registration',
