@@ -70,8 +70,8 @@ export class GroupCodeEditHandler extends Handler {
         const tokens = await TokenModel.getMulti(TokenModel.TYPE_ACTIVATION, {
             _id: { $in: gdoc.activation ?? [] },
         }).toArray();
-        // 格式化时间
-        tokens.map((t) => ({ ...t, expireAt: moment(t.expireAt).format('YYYY年MM月DD日 HH:mm') }));
+        // 更新查询结果，删除无效的激活码
+        GroupModel.coll.updateOne({ _id: gdoc._id }, { $set: { activation: tokens.map((i) => i._id) } });
         this.response.body = { group: gdoc, tokens };
     }
 
