@@ -8,6 +8,12 @@ import {
     logger, SendSMSFailedError, VerifyCodeError, VerifyTokenCheckNotPassedError,
 } from './lib';
 
+declare module 'hydrooj' {
+    interface Lib {
+        sms: (msg: string, targetPhoneNumber: string) => Promise<boolean>;
+    }
+}
+
 export function doVerifyToken(verifyToken: string) {
     // 检查一个 token 是否合法（防止机器人注册）
     return !!verifyToken; // TODO implement this
@@ -25,7 +31,7 @@ export class RequestSMSCodeHandler extends Handler {
         if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
         if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
         const verifyCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const sendResult = await global.Hydro.lib.sms(verifyCode, phoneNumber);
+        const sendResult = await global.Hydro.lib.sms(`【codemate】您的验证码是${verifyCode}，600s内有效`, phoneNumber);
         if (!sendResult) throw new SendSMSFailedError();
         const id = nanoid();
         await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { phoneNumber, verifyCode }, id);
@@ -130,8 +136,7 @@ export function apply(ctx: Context) {
     ctx.Route('register_request_sms_code', '/user/register/sms/code', RequestSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
     ctx.Route('register_with_email_code', '/user/register/email', RegisterWithEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
     ctx.Route('request_email_code', '/user/register/email/code', RequestEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
-    global.Hydro.lib.sms = async (verifyCode: string, targetPhoneNumber: string) => {
-        const msg = `【codemate】您的验证码是${verifyCode}，600s内有效`;
+    global.Hydro.lib.sms = async (msg: string, targetPhoneNumber: string) => {
         const username: string = SystemModel.get('sms_username');
         const password: string = SystemModel.get('sms_password');
         const response = await superagent.get('https://api.smsbao.com/sms')
