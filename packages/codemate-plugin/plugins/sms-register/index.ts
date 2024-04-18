@@ -1,9 +1,12 @@
 import { nanoid } from 'nanoid';
 import {
     BlacklistedError, BlackListModel,
-    Context, Handler, param, PERM, PRIV, SettingModel, superagent, SystemModel, TokenModel, Types, UserModel,
+    Context, Handler, param, PERM, PRIV, SettingModel, superagent, SystemModel, TokenModel, Types,
+    UserAlreadyExistError, UserModel, ValidationError,
 } from 'hydrooj';
-import { logger } from './lib';
+import {
+    logger, SendSMSFailedError, VerifyCodeError, VerifyTokenCheckNotPassedError,
+} from './lib';
 
 export function doVerifyToken(verifyToken: string) {
     // 检查一个 token 是否合法（防止机器人注册）
@@ -15,34 +18,13 @@ export class RequestSMSCodeHandler extends Handler {
     @param('verifyToken', Types.String)
     async post(domainId: string, phoneNumber: string, verifyToken: string) {
         const verifyResult = doVerifyToken(verifyToken);
-        if (!verifyResult) {
-            this.response.body = {
-                success: false,
-                code: -1,
-            };
-            return;
-        }
-
-        if (await UserModel.getByPhone(domainId, phoneNumber)) {
-            this.response.body = {
-                success: false,
-                code: -3,
-            };
-            return;
-        }
+        if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
+        if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
         const verifyCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         const sendResult = await global.Hydro.lib.sms(verifyCode, phoneNumber);
-        if (!sendResult) {
-            this.response.body = {
-                success: false,
-                code: -2,
-            };
-            return;
-        }
-
+        if (!sendResult) throw new SendSMSFailedError();
         const id = nanoid();
         await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { phoneNumber, verifyCode }, id);
-
         this.response.body = {
             success: true,
             tokenId: id,
@@ -59,27 +41,9 @@ export class RegisterWithSMSCodeHandler extends Handler {
     @param('password', Types.String)
     async post(domainId: string, tokenId: string, verifyCode: string, phoneNumber: string, username: string, password: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
-        if (!token) {
-            this.response.body = {
-                success: false,
-                code: -1,
-            };
-            return;
-        }
-        if (token.phoneNumber !== phoneNumber) {
-            this.response.body = {
-                success: false,
-                code: -2,
-            };
-            return;
-        }
-        if (token.verifyCode !== verifyCode) {
-            this.response.body = {
-                success: false,
-                code: -3,
-            };
-            return;
-        }
+        if (!token) throw new VerifyCodeError();
+        if (token.phoneNumber !== phoneNumber) throw new ValidationError('phoneNumber');
+        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
         const mail = `${nanoid()}@local.aioj.net`;
         const uid = await UserModel.create(mail, username, password, undefined, this.request.ip);
         await UserModel.setById(uid, { phoneNumber });
@@ -101,21 +65,8 @@ export class RequestEmailCodeHandler extends Handler {
     @param('verifyToken', Types.String)
     async post(domainId: string, mail: string, verifyToken: string) {
         const verifyResult = doVerifyToken(verifyToken);
-        if (!verifyResult) {
-            this.response.body = {
-                success: false,
-                code: -1,
-            };
-            return;
-        }
-
-        if (await UserModel.getByEmail('system', mail)) {
-            this.response.body = {
-                success: false,
-                code: -3,
-            };
-            return;
-        }
+        if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
+        if (await UserModel.getByEmail('system', mail)) throw new UserAlreadyExistError(mail);
         const mailDomain = mail.split('@')[1];
         if (await BlackListModel.get(`mail::${mailDomain}`)) throw new BlacklistedError(mailDomain);
         await Promise.all([
@@ -145,27 +96,9 @@ export class RegisterWithEmailCodeHandler extends Handler {
     @param('password', Types.String)
     async post(domainId: string, tokenId: string, verifyCode: string, mail: string, username: string, password: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
-        if (!token) {
-            this.response.body = {
-                success: false,
-                code: -1,
-            };
-            return;
-        }
-        if (token.mail !== mail) {
-            this.response.body = {
-                success: false,
-                code: -2,
-            };
-            return;
-        }
-        if (token.verifyCode !== verifyCode) {
-            this.response.body = {
-                success: false,
-                code: -3,
-            };
-            return;
-        }
+        if (!token) throw new VerifyCodeError();
+        if (token.mail !== mail) throw new ValidationError('mail');
+        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
         const uid = await UserModel.create(mail, username, password, undefined, this.request.ip);
         await TokenModel.del(tokenId, TokenModel.TYPE_REGISTRATION);
         this.session.uid = uid;
