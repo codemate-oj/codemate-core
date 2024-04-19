@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 import $ from 'jquery';
 import _ from 'lodash';
+import moment from 'moment';
 import UserSelectAutoComplete from 'vj/components/autocomplete/UserSelectAutoComplete';
 import { ActionDialog, ConfirmDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
@@ -137,9 +138,7 @@ const page = new NamedPage('domain_group', () => {
   });
 
   function ensureAndGetSelectedGroups() {
-    const groups = _.map($('.domain-group tbody [type="checkbox"]:checked'), (ch) =>
-      $(ch).closest('tr').attr('data-gid'),
-    );
+    const groups = _.map($('.domain-group tbody [type="checkbox"]:checked'), (ch) => $(ch).closest('tr').attr('data-gid'));
     if (groups.length === 0) {
       Notification.error(i18n('Please select at least one group to perform this operation.'));
       return null;
@@ -210,6 +209,45 @@ const page = new NamedPage('domain_group', () => {
     } catch (error) {
       Notification.error(error.message);
     }
+  }
+
+  async function handleClickExportCode() {
+    const { groups, tokens, error } = await request.get('/domain/group/code');
+    if (!groups || !tokens) {
+      Notification.error(error?.message || '获取激活码信息失败，请稍后重试');
+      return;
+    }
+    const data = groups
+      .map(
+        (group) =>
+          group.activation.map((code) => ({
+            code,
+            group: group.name,
+          })) || [],
+      )
+      .flat()
+      .map(({ code, group }) => {
+        const token = tokens.find((t) => t._id === code);
+        if (!token) return null;
+        return {
+          code,
+          group,
+          owner: token.owner,
+          expireAt: moment(token.expireAt).format('YYYY-MM-DD'),
+          remaining: token.remaining,
+        };
+      })
+      .filter(Boolean);
+    if (!data.length) {
+      Notification.warn('还没有激活码，请先添加再导出吧！');
+    }
+    // eslint-disable-next-line max-len
+    const csvContent = `${Object.keys(data[0]).join(',')}\n${data.map((item) => Object.values(item).join(',')).join('\n')}`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+
+    const url = URL.createObjectURL(blob);
+    window.open(url);
   }
 
   async function getGroupCode(group) {
@@ -303,6 +341,7 @@ const page = new NamedPage('domain_group', () => {
   $('[name="create_group"]').click(() => handleClickCreateGroup());
   $('[name="remove_selected"]').click(() => handleClickDeleteSelected());
   $('[name="save_all"]').on('click', () => handleClickSaveAll());
+  $('[name="export_code"]').on('click', () => handleClickExportCode());
 });
 
 export default page;

@@ -1,5 +1,12 @@
-import { Context, ForbiddenError, Handler, ObjectID, param, PERM, PRIV, TokenModel, Types, moment } from 'hydrooj';
-import { ActivationCodeExpiredError, ActivationCodeNotFoundError, ActivationCodeUsedError, DuplicatedActivationError, GroupNotFoundError, logger } from './lib';
+import { Context, ForbiddenError, Handler, ObjectID, param, PERM, PRIV, TokenModel, Types } from 'hydrooj';
+import {
+    ActivationCodeExpiredError,
+    ActivationCodeNotFoundError,
+    ActivationCodeUsedError,
+    DuplicatedActivationError,
+    GroupNotFoundError,
+    logger,
+} from './lib';
 import { GroupModel } from './model';
 
 export class GroupOperationHandler extends Handler {
@@ -64,7 +71,8 @@ export class GroupCodeEditHandler extends Handler {
     }
 
     @param('gid', Types.ObjectId)
-    async get(domainId: string, gid: ObjectID) {
+    async get(domainId: string, gid?: ObjectID) {
+        // 有gid就查一组
         const gdoc = await GroupModel.getById(domainId, gid);
         if (!gdoc) throw new GroupNotFoundError(gid);
         const tokens = await TokenModel.getMulti(TokenModel.TYPE_ACTIVATION, {
@@ -90,6 +98,19 @@ export class GroupCodeEditHandler extends Handler {
     }
 }
 
+export class GroupCodeExportHandler extends Handler {
+    async prepare() {
+        this.checkPerm(PERM.PERM_EDIT_DOMAIN);
+    }
+
+    async get() {
+        const gdocs = await GroupModel.list(this.domain._id);
+        const codes = gdocs.map((i) => i.activation).flat();
+        const tdict = await TokenModel.getMulti(TokenModel.TYPE_ACTIVATION, { _id: { $in: codes } }).toArray();
+        this.response.body = { groups: gdocs, tokens: tdict };
+    }
+}
+
 export function apply(ctx: Context) {
     global.Hydro.model.group = GroupModel;
     /**
@@ -97,5 +118,6 @@ export function apply(ctx: Context) {
      * 实现基于user.group的树状结构，与domain.permission有本质区别，可以灵活地创建多个权限树
      */
     ctx.Route('privilege_group', '/priv', GroupOperationHandler);
+    ctx.Route('domain_group_code_export', '/domain/group/code', GroupCodeExportHandler);
     ctx.Route('domain_group_code_edit', '/domain/group/:gid/code', GroupCodeEditHandler);
 }
