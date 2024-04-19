@@ -184,8 +184,10 @@ export class LoginWithSMSCodeHandler extends Handler {
         this.session.scope = PERM.PERM_ALL.toString();
         this.session.save = rememberme;
         this.session.recreate = true;
-        this.response.redirect = ((this.request.referer || '/login').endsWith('/login')
-            ? this.url('homepage') : this.request.referer);
+        this.response.body = {
+            redirect: (this.request.referer || '/login').endsWith('/login')
+                ? this.url('homepage') : this.request.referer,
+        };
         await TokenModel.del(tokenId, TokenModel.TYPE_SMSLOGIN);
     }
 }
