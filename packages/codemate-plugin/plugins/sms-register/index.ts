@@ -203,8 +203,8 @@ export function apply(ctx: Context) {
     ctx.Route('register_request_sms_code', '/user/register/sms/code', RequestSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
     ctx.Route('register_with_email_code', '/user/register/email', RegisterWithEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
     ctx.Route('request_email_code', '/user/register/email/code', RequestEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
-    ctx.Route('login_with_sms_code', '/user/login/sms', LoginWithSMSCodeHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('request_login_sms_code', '/user/login/sms/code', RequestLoginSMSCodeHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('login_with_sms_code', '/user/login/sms', LoginWithSMSCodeHandler);
+    ctx.Route('request_login_sms_code', '/user/login/sms/code', RequestLoginSMSCodeHandler);
     global.Hydro.lib.sms = async (msg: string, targetPhoneNumber: string) => {
         const username: string = SystemModel.get('sms_username');
         const password: string = SystemModel.get('sms_password');
