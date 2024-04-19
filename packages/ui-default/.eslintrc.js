@@ -10,9 +10,7 @@ module.exports = {
     jquery: true,
     commonjs: true,
   },
-  extends: [
-    '@hydrooj/eslint-config',
-  ],
+  extends: ['@hydrooj/eslint-config'],
   parserOptions: {
     sourceType: 'module',
     ecmaVersion: 2020,
@@ -52,13 +50,9 @@ module.exports = {
   },
   rules: {
     // FIXME A bug with eslint-parser
-    // 'template-curly-spacing': 'off',
-
-    '@typescript-eslint/indent': [
-      'warn',
-      2,
-      { SwitchCase: 1 },
-    ],
+    'object-curly-newline': 'off', // styling should be prettier stuff
+    'template-tag-spacing': 'off',
+    '@typescript-eslint/indent': ['warn', 2, { SwitchCase: 1 }],
     'github/array-foreach': 'off',
     'function-paren-newline': 'off',
     'no-mixed-operators': 'off',
@@ -69,10 +63,7 @@ module.exports = {
     'simple-import-sort/imports': [
       'warn',
       {
-        groups: [
-          ['^\\u0000'],
-          ['^(?!vj)(@?\\w.+)', '^vj\\/', '^', '^\\.'],
-        ],
+        groups: [['^\\u0000'], ['^(?!vj)(@?\\w.+)', '^vj\\/', '^', '^\\.']],
       },
     ],
   },
