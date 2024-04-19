@@ -7,15 +7,16 @@ import {
     param,
     PenaltyRules,
     PERM,
-    PermissionError,
-    PRIV,
     ProblemModel as problem,
-    SettingModel,
+    ProblemNotFoundError,
+    query,
+    route,
     Time,
     Types,
     yaml,
 } from 'hydrooj';
 import { GroupModel } from '../privilege-group/model';
+import { ProblemNoNextError, ProblemNoPreviousError, ProblemNotFoundInListError } from './lib';
 import * as plist from './model';
 
 export class SystemProblemListMainHandler extends Handler {
@@ -44,13 +45,15 @@ export class SystemProblemListMainHandler extends Handler {
 
 export class SystemProblemListDetailHandler extends Handler {
     tdoc: plist.SystemPList;
+    allPids: number[] = [];
     pageCount = 0;
 
-    @param('tid', Types.ObjectId)
+    @route('tid', Types.ObjectId)
     @param('page', Types.PositiveInt, true)
     @param('pageSize', Types.PositiveInt, true)
     async prepare(domainId: string, tid: ObjectId, page = 1, pageSize = 15) {
         const tdoc = await plist.getWithChildren(domainId, tid);
+        this.allPids = tdoc.pids;
         this.pageCount = Math.floor((tdoc.pids.length + pageSize - 1) / pageSize);
         tdoc.pids = tdoc.pids.filter((_, index) => index > (page - 1) * pageSize && index < page * pageSize);
         if (!tdoc) throw new ContestNotFoundError(tid, 'not found');
@@ -58,8 +61,8 @@ export class SystemProblemListDetailHandler extends Handler {
         this.tdoc = tdoc;
     }
 
-    @param('page', Types.PositiveInt, true)
-    @param('pageSize', Types.PositiveInt, true)
+    @query('page', Types.PositiveInt, true)
+    @query('pageSize', Types.PositiveInt, true)
     async get(domainId: string, page = 1, pageSize = 15) {
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, false, problem.PROJECTION_CONTEST_LIST);
         const hasPermission =
@@ -74,6 +77,41 @@ export class SystemProblemListDetailHandler extends Handler {
             pageSize,
             pageCount: this.pageCount,
         };
+    }
+
+    async checkProblemPerm(pid: string | number) {
+        const pdoc = await problem.get(this.domain._id, pid);
+        if (!pdoc) throw new ProblemNotFoundError(pid);
+        return (
+            // 检查基础权限
+            problem.canViewBy(pdoc, this.user)
+            // 检查是否激活小组
+            // problem.canViewByGroup(pdoc, this.user, this.user.group)
+        );
+    }
+
+    async getProblemInListBy(anchorPid: string | number, offset: number) {
+        const pdoc = await problem.get(this.domain._id, anchorPid);
+        if (!pdoc) throw new ProblemNotFoundError(anchorPid);
+        const index = this.tdoc.pids.indexOf(pdoc.docId);
+        if (index === -1) throw new ProblemNotFoundInListError(anchorPid);
+
+        const targetIndex = index + offset;
+        if (targetIndex > this.tdoc.pids.length - 1 || targetIndex < 0)
+            throw new (offset > 0 ? ProblemNoNextError : ProblemNoPreviousError)(anchorPid, this.tdoc.docId);
+        const targetPid = this.tdoc.pids[targetIndex];
+        const _perm = await this.checkProblemPerm(targetPid);
+        return { pid: targetPid, access: _perm };
+    }
+
+    @param('curPid', Types.ProblemId)
+    async postNext(_, curPid: string | number) {
+        this.response.body = await this.getProblemInListBy(curPid, 1);
+    }
+
+    @param('curPid', Types.ProblemId, true)
+    async postPrev(_, curPid: string | number) {
+        this.response.body = await this.getProblemInListBy(curPid, -1);
     }
 }
 
@@ -184,9 +222,6 @@ export class SystemProblemListEditHandler extends Handler {
 }
 
 export async function apply(ctx: Context) {
-    ctx.inject(['setting'], (c) => {
-        c.setting.DomainSetting(SettingModel.Setting('setting_domain', 'tree_filters', '', 'json', 'HomePage Tree Filter'));
-    });
     /**
      * 以下的“系统题单”定义为指定域的管理员创建的题单，因此与域相关
      */
