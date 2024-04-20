@@ -93,13 +93,13 @@ export class SystemProblemListDetailHandler extends Handler {
     async getProblemInListBy(anchorPid: string | number, offset: number) {
         const pdoc = await problem.get(this.domain._id, anchorPid);
         if (!pdoc) throw new ProblemNotFoundError(anchorPid);
-        const index = this.tdoc.pids.indexOf(pdoc.docId);
+        const index = this.allPids.indexOf(pdoc.docId);
         if (index === -1) throw new ProblemNotFoundInListError(anchorPid);
 
         const targetIndex = index + offset;
-        if (targetIndex > this.tdoc.pids.length - 1 || targetIndex < 0)
+        if (targetIndex > this.allPids.length - 1 || targetIndex < 0)
             throw new (offset > 0 ? ProblemNoNextError : ProblemNoPreviousError)(anchorPid, this.tdoc.docId);
-        const targetPid = this.tdoc.pids[targetIndex];
+        const targetPid = this.allPids[targetIndex];
         const _perm = await this.checkProblemPerm(targetPid);
         return { pid: targetPid, access: _perm };
     }
@@ -125,7 +125,9 @@ export class SystemProblemListEditHandler extends Handler {
     async get(domainId: string, tid: ObjectId) {
         const tdoc = tid ? await plist.get(domainId, tid) : null;
         const extensionDays = tid ? Math.round((tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100)) / 100 : 1;
-        const beginAt = tid ? moment(tdoc.beginAt).tz(this.user.timeZone) : moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
+        const beginAt = tid
+            ? moment(tdoc.beginAt).tz(this.user.timeZone)
+            : moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
         const penaltySince = tid
             ? moment(tdoc.penaltySince).tz(this.user.timeZone)
             : beginAt.clone().add(7, 'days').tz(this.user.timeZone).hour(23).minute(59).millisecond(0);
