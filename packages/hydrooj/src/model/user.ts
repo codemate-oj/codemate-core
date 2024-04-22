@@ -22,16 +22,10 @@ export const collV: Collection<VUdoc> = db.collection('vuser');
 export const collGroup: Collection<GDoc> = db.collection('user.group');
 const cache = new LRUCache<string, User>({ max: 10000, ttl: 300 * 1000 });
 
-export function deleteUserCache(
-    udoc: { _id: number; uname: string; mail: string } | string | true | undefined | null,
-    receiver = false,
-) {
+export function deleteUserCache(udoc: { _id: number; uname: string; mail: string } | string | true | undefined | null, receiver = false) {
     if (!udoc) return false;
     if (!receiver) {
-        bus.broadcast(
-            'user/delcache',
-            JSON.stringify(typeof udoc === 'string' ? udoc : pick(udoc, ['uname', 'mail', '_id'])),
-        );
+        bus.broadcast('user/delcache', JSON.stringify(typeof udoc === 'string' ? udoc : pick(udoc, ['uname', 'mail', '_id'])));
     }
     if (udoc === true) return cache.clear();
     if (typeof udoc === 'string') {
@@ -45,9 +39,7 @@ export function deleteUserCache(
     }
     return true;
 }
-bus.on('user/delcache', (content) =>
-    deleteUserCache(typeof content === 'string' ? JSON.parse(content) : content, true),
-);
+bus.on('user/delcache', (content) => deleteUserCache(typeof content === 'string' ? JSON.parse(content) : content, true));
 
 export class User {
     _id: number;
@@ -76,6 +68,12 @@ export class User {
     tfa: boolean;
     authn: boolean;
     group?: string[];
+    verifyInfo: {
+        realName?: string;
+        idNumber?: string;
+        verifyPassed: boolean;
+    };
+
     [key: string]: any;
 
     constructor(udoc: Udoc, dudoc, scope = PERM.PERM_ALL) {
@@ -104,6 +102,11 @@ export class User {
         this.tfa = !!udoc.tfa;
         this.authn = (udoc.authenticators || []).length > 0;
         this.phoneNumber = udoc.phoneNumber;
+        this.verifyInfo = {
+            realName: udoc.realName,
+            idNumber: udoc.idNumber,
+            verifyPassed: udoc.verifyPassed ?? false,
+        };
         if (dudoc.group) this.group = dudoc.group;
 
         for (const key in setting.SETTINGS_BY_KEY) {
@@ -111,8 +114,7 @@ export class User {
         }
 
         for (const key in setting.DOMAIN_USER_SETTINGS_BY_KEY) {
-            this[key] =
-                dudoc[key] ?? (setting.DOMAIN_USER_SETTINGS_BY_KEY[key].value || system.get(`preference.${key}`));
+            this[key] = dudoc[key] ?? (setting.DOMAIN_USER_SETTINGS_BY_KEY[key].value || system.get(`preference.${key}`));
         }
     }
 
@@ -127,9 +129,7 @@ export class User {
     own<T extends { owner: number; maintainer?: number[] }>(doc: T): boolean;
     own(doc: any, arg1: any = false): boolean {
         if (typeof arg1 === 'bigint' && !this.hasPerm(arg1)) return false;
-        return typeof arg1 === 'boolean' && arg1
-            ? doc.owner === this._id
-            : doc.owner === this._id || (doc.maintainer || []).includes(this._id);
+        return typeof arg1 === 'boolean' && arg1 ? doc.owner === this._id : doc.owner === this._id || (doc.maintainer || []).includes(this._id);
     }
 
     hasPerm(...perm: bigint[]) {
@@ -226,10 +226,7 @@ class UserModel {
         if (cache.has(`id/${_id}/${domainId}`)) return cache.get(`id/${_id}/${domainId}`) || null;
         const udoc = await (_id < -999 ? collV : coll).findOne({ _id });
         if (!udoc) return null;
-        const [dudoc, groups] = await Promise.all([
-            domain.getDomainUser(domainId, udoc),
-            UserModel.listGroup(domainId, _id),
-        ]);
+        const [dudoc, groups] = await Promise.all([domain.getDomainUser(domainId, udoc), UserModel.listGroup(domainId, _id)]);
         dudoc.group = groups.map((i) => i.name);
         if (typeof scope === 'string') scope = BigInt(scope);
         return initAndCache(udoc, dudoc, scope);
@@ -406,14 +403,7 @@ class UserModel {
 
     static async getListForRender(domainId: string, uids: number[]) {
         const [udocs, vudocs, dudocs] = await Promise.all([
-            UserModel.getMulti({ _id: { $in: uids } }, [
-                '_id',
-                'uname',
-                'mail',
-                'avatar',
-                'school',
-                'studentId',
-            ]).toArray(),
+            UserModel.getMulti({ _id: { $in: uids } }, ['_id', 'uname', 'mail', 'avatar', 'school', 'studentId']).toArray(),
             collV.find({ _id: { $in: uids } }).toArray(),
             domain.getDomainUserMulti(domainId, uids).project({ uid: true, displayName: true }).toArray(),
         ]);
@@ -435,11 +425,7 @@ class UserModel {
     static async getPrefixList(domainId: string, prefix: string, limit: number = 50) {
         const $regex = `^${escapeRegExp(prefix.toLowerCase())}`;
         const udocs = await coll.find({ unameLower: { $regex } }).limit(limit).project({ _id: 1 }).toArray();
-        const dudocs = await domain
-            .getMultiUserInDomain(domainId, { displayName: { $regex } })
-            .limit(limit)
-            .project({ uid: 1 })
-            .toArray();
+        const dudocs = await domain.getMultiUserInDomain(domainId, { displayName: { $regex } }).limit(limit).project({ uid: 1 }).toArray();
         const uids = uniq([...udocs.map(({ _id }) => _id), ...dudocs.map(({ uid }) => uid)]);
         return await Promise.all(uids.map((_id) => UserModel.getById(domainId, _id)));
     }
@@ -460,11 +446,7 @@ class UserModel {
     static async setJudge(uid: number) {
         return await UserModel.setPriv(
             uid,
-            PRIV.PRIV_USER_PROFILE |
-                PRIV.PRIV_JUDGE |
-                PRIV.PRIV_VIEW_ALL_DOMAIN |
-                PRIV.PRIV_READ_PROBLEM_DATA |
-                PRIV.PRIV_UNLIMITED_ACCESS,
+            PRIV.PRIV_USER_PROFILE | PRIV.PRIV_JUDGE | PRIV.PRIV_VIEW_ALL_DOMAIN | PRIV.PRIV_READ_PROBLEM_DATA | PRIV.PRIV_UNLIMITED_ACCESS,
         );
     }
 
@@ -502,21 +484,9 @@ class UserModel {
 
 bus.on('ready', () =>
     Promise.all([
-        db.ensureIndexes(
-            coll,
-            { key: { unameLower: 1 }, name: 'uname', unique: true },
-            { key: { mailLower: 1 }, name: 'mail', unique: true },
-        ),
-        db.ensureIndexes(
-            collV,
-            { key: { unameLower: 1 }, name: 'uname', unique: true },
-            { key: { mailLower: 1 }, name: 'mail', unique: true },
-        ),
-        db.ensureIndexes(
-            collGroup,
-            { key: { domainId: 1, name: 1 }, name: 'name', unique: true },
-            { key: { domainId: 1, uids: 1 }, name: 'uid' },
-        ),
+        db.ensureIndexes(coll, { key: { unameLower: 1 }, name: 'uname', unique: true }, { key: { mailLower: 1 }, name: 'mail', unique: true }),
+        db.ensureIndexes(collV, { key: { unameLower: 1 }, name: 'uname', unique: true }, { key: { mailLower: 1 }, name: 'mail', unique: true }),
+        db.ensureIndexes(collGroup, { key: { domainId: 1, name: 1 }, name: 'name', unique: true }, { key: { domainId: 1, uids: 1 }, name: 'uid' }),
     ]),
 );
 export default UserModel;
