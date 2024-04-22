@@ -1,4 +1,4 @@
-import { Context, ForbiddenError, Handler, ObjectID, param, PERM, PRIV, TokenModel, Types } from 'hydrooj';
+import { Context, ForbiddenError, Handler, ObjectID, OplogModel, param, PERM, PRIV, TokenModel, Types } from 'hydrooj';
 import {
     ActivationCodeExpiredError,
     ActivationCodeNotFoundError,
@@ -60,6 +60,7 @@ export class GroupOperationHandler extends Handler {
         ]);
 
         logger.info(`User ${uid} activate group ${group.name} successfully with code ${code}`);
+        await OplogModel.log(this, 'group.activate', { code, group: group.name });
 
         this.response.body = { success: true, group: group.name };
     }
