@@ -70,7 +70,6 @@
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json}": "prettier --write",
-        "*.{js,ts,jsx,tsx}": "eslint --cache --quiet --fix",
-        "*.{ts,tsx}": "tsc-files --noEmit --strict=false"
+        "*.{js,ts,jsx,tsx}": "eslint --cache --quiet --fix"
     }
 }

@@ -1,7 +1,11 @@
-import { Err, ForbiddenError, superagent, ValidationError } from 'hydrooj';
+import { Err, ForbiddenError, Logger, superagent, ValidationError } from 'hydrooj';
 
 export const IDNumberValidationError = Err('IDNumberValidationError', ValidationError, 'ID number {0} is invalid.');
 export const VerifyNotPassError = Err('VerifyNotPassError', ForbiddenError, 'Real-name info verification failed.');
+export const AlreadyVerifiedError = Err('AlreadyVerifiedError', ForbiddenError, 'Real-name info has been verified.');
+export const DuplicatedIDNumberError = Err('DuplicatedIDNumberError', ForbiddenError, 'ID number {0} has been used.');
+
+export const logger = new Logger('id-auth');
 
 export const enum RealnameVerifyStatus {
     MATCH,
