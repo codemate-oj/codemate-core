@@ -36,8 +36,8 @@ export class IDVerifyHandler extends Handler {
         if (!validateIDNumber(idNumber)) throw new IDNumberValidationError(idNumber); // 过滤无效身份证号
         if (this.udoc.verifyPassed) throw new AlreadyVerifiedError(); // 不允许重复提交认证
 
-        // 禁止重复注册
-        const dupNum = await UserModel.getMulti({ idNumber }).count();
+        // 禁止重复注册（非当前用户）
+        const dupNum = (await UserModel.getMulti({ idNumber }).toArray()).filter((i) => i._id !== this.user._id).length;
         if (dupNum > 0) throw new DuplicatedIDNumberError(idNumber);
 
         // 先写入实名信息到数据库
@@ -52,7 +52,7 @@ export class IDVerifyHandler extends Handler {
         // TODO: 在写入数据库后发起校验任务就返回 使用schedule.slowRequest和GET接口查询
         const verifyResult = await global.Hydro.lib.idVerify(realName, idNumber);
         if (!verifyResult.success) throw new VerifyNotPassError();
-        const { result, sex, ...infos } = verifyResult;
+        const { result, sex, success, ...infos } = verifyResult;
         await UserModel.setById(this.user._id, {
             verifyPassed: result === RealnameVerifyStatus.MATCH,
             ...infos,
