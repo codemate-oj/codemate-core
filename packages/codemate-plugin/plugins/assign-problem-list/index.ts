@@ -20,9 +20,8 @@ import { ProblemNoNextError, ProblemNoPreviousError, ProblemNotFoundInListError 
 import * as plist from './model';
 
 export class SystemProblemListMainHandler extends Handler {
-    @param('page', Types.PositiveInt, true)
-    async get(domainId: string) {
-        const tdocs = await plist.getMulti(domainId, {}, ['docId', 'title', 'content', 'parent', 'children']).toArray();
+    async get() {
+        const tdocs = await plist.getMulti(this.domain._id, {}, ['docId', 'title', 'content', 'parent', 'children']).toArray();
 
         const extractChildren = (tdoc: plist.SystemPList) => {
             if (!tdoc) throw new Error();
