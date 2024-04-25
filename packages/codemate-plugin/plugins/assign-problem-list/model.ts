@@ -76,5 +76,8 @@ export async function edit(domainId: string, tid: ObjectId, $set: Partial<System
 }
 
 export async function del(domainId: string, tid: ObjectId) {
-    await Promise.all([document.deleteOne(domainId, TYPE_SYSTEM_PLIST, tid), document.deleteMultiStatus(domainId, TYPE_SYSTEM_PLIST, { docId: tid })]);
+    await Promise.all([
+        document.deleteOne(domainId, TYPE_SYSTEM_PLIST, tid),
+        document.deleteMultiStatus(domainId, TYPE_SYSTEM_PLIST, { docId: tid }),
+    ]);
 }
