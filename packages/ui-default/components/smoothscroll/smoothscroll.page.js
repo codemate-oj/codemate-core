@@ -28,10 +28,7 @@ const smoothScrollPage = new AutoloadPage('smoothScrollPage', null, () => {
   function delegateAnchors(e) {
     if (e.metaKey || e.ctrlKey || e.shiftKey) return;
     const elem = e.target;
-    if (
-      elem.nodeName === 'A'
-      && scrollIfAnchor(elem.getAttribute('href'), true)
-    ) e.preventDefault();
+    if (elem.nodeName === 'A' && scrollIfAnchor(elem.getAttribute('href'), true)) e.preventDefault();
   }
 
   $(document).on('vjPageFullyInitialized', () => {

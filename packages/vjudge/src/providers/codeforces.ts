@@ -2,9 +2,7 @@
 import { PassThrough } from 'stream';
 import yaml from 'js-yaml';
 import { JSDOM } from 'jsdom';
-import {
-    buildContent, Logger, sleep, STATUS,
-} from 'hydrooj';
+import { buildContent, Logger, sleep, STATUS } from 'hydrooj';
 import { BasicFetcher } from '../fetch';
 import { IBasicProvider, RemoteAccount } from '../interface';
 import { normalize, VERDICT } from '../verdict';
@@ -12,11 +10,9 @@ import { normalize, VERDICT } from '../verdict';
 const logger = new Logger('remote/codeforces');
 
 function parseProblemId(id: string) {
-    const [, type, contestId, problemId] = id.startsWith('P921')
-        ? ['', 'P', '921', '01']
-        : /^(P|GYM)(\d+)([A-Z]+[0-9]*)$/.exec(id);
-    if (type === 'GYM' && (+contestId) < 100000) {
-        return [type, ((+contestId) + 100000).toString(), problemId];
+    const [, type, contestId, problemId] = id.startsWith('P921') ? ['', 'P', '921', '01'] : /^(P|GYM)(\d+)([A-Z]+[0-9]*)$/.exec(id);
+    if (type === 'GYM' && +contestId < 100000) {
+        return [type, (+contestId + 100000).toString(), problemId];
     }
     return [type, contestId, problemId];
 }
@@ -50,24 +46,35 @@ ${node.innerHTML.trim().replace(/<br>/g, '\n')}
 \n`;
         }
         const lines = [...node.children];
-        const highlighted = lines.map((i, l) => [i, l] as [Element, number])
-            .filter(([i]) => i.className.includes('odd')).map(([, i]) => i + 1);
+        const highlighted = lines
+            .map((i, l) => [i, l] as [Element, number])
+            .filter(([i]) => i.className.includes('odd'))
+            .map(([, i]) => i + 1);
         return `\n
 \`\`\`${mode}${index + 1}|${highlighted.join(',')}
-${lines.map((i) => i.innerHTML).join('\n').trim()}
+${lines
+    .map((i) => i.innerHTML)
+    .join('\n')
+    .trim()}
 \`\`\`
 \n`;
     };
 
 export default class CodeforcesProvider extends BasicFetcher implements IBasicProvider {
-    constructor(public account: RemoteAccount, private save: (data: any) => Promise<void>) {
+    constructor(
+        public account: RemoteAccount,
+        private save: (data: any) => Promise<void>,
+    ) {
         super(account, 'https://codeforces.com', 'form', logger);
     }
 
     csrf: string;
 
     getCookie(target: string) {
-        return this.cookie.find((i) => i.startsWith(`${target}=`))?.split('=')[1]?.split(';')[0];
+        return this.cookie
+            .find((i) => i.startsWith(`${target}=`))
+            ?.split('=')[1]
+            ?.split(';')[0];
     }
 
     tta(_39ce7: string) {
@@ -90,11 +97,10 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
         const ftaa = this.getCookie('70a7c28f3de') || 'n/a';
         const bfaa = this.getCookie('raa') || this.getCookie('bfaa') || 'n/a';
         return [
-            (
-                document.querySelector('meta[name="X-Csrf-Token"]')
-                || document.querySelector('input[name="csrf_token"]')
-            )?.getAttribute('content'),
-            ftaa, bfaa, headers,
+            (document.querySelector('meta[name="X-Csrf-Token"]') || document.querySelector('input[name="csrf_token"]'))?.getAttribute('content'),
+            ftaa,
+            bfaa,
+            headers,
         ];
     }
 
@@ -138,18 +144,18 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
     async getPdfProblem(id: string, meta: Record<string, any>) {
         const [, contestId, problemId] = parseProblemId(id);
         const file = new PassThrough();
-        this.get(id.startsWith('GYM')
-            ? `/gym/${contestId}/problem/${problemId}`
-            : `/problemset/problem/${contestId}/${problemId}`).pipe(file);
+        this.get(id.startsWith('GYM') ? `/gym/${contestId}/problem/${problemId}` : `/problemset/problem/${contestId}/${problemId}`).pipe(file);
         return {
             title: meta.title || '__NO_TITLE__',
             data: {
-                'config.yaml': Buffer.from(yaml.dump({
-                    ...meta,
-                    type: 'remote_judge',
-                    subType: 'codeforces',
-                    target: id,
-                })),
+                'config.yaml': Buffer.from(
+                    yaml.dump({
+                        ...meta,
+                        type: 'remote_judge',
+                        subType: 'codeforces',
+                        target: id,
+                    }),
+                ),
             },
             files: { 'problem.pdf': file },
             tag: [],
@@ -162,20 +168,22 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
         if (id === 'P936E') return null; // Problem Missing
         if (id.startsWith('GYM') && !Number.isNaN(Number(id[9]))) return null; // GYM Problem Missing
         const [, contestId, problemId] = parseProblemId(id);
-        const res = await this.get(id.startsWith('GYM')
-            ? `/gym/${contestId}/problem/${problemId}`
-            : `/problemset/problem/${contestId}/${problemId}`);
+        const res = await this.get(id.startsWith('GYM') ? `/gym/${contestId}/problem/${problemId}` : `/problemset/problem/${contestId}/${problemId}`);
         if (!res.text) return await this.getPdfProblem(id, meta);
         const $dom = new JSDOM(res.text.replace(/\$\$\$/g, '$'));
         const judgestatement = $dom.window.document.querySelector('html').innerHTML;
-        if (['<th>Actions</th>',
-            'Statement is not available on English language',
-            'ограничение по времени на тест'].find((i) => judgestatement.includes(i))) {
+        if (
+            ['<th>Actions</th>', 'Statement is not available on English language', 'ограничение по времени на тест'].find((i) =>
+                judgestatement.includes(i),
+            )
+        ) {
             return null;
         }
         const tag = Array.from($dom.window.document.querySelectorAll('.tag-box')).map((i) => i.textContent.trim());
         const text = $dom.window.document.querySelector('.problem-statement').innerHTML;
-        const { window: { document } } = new JSDOM(text);
+        const {
+            window: { document },
+        } = new JSDOM(text);
         const files = {};
         for (const ele of document.querySelectorAll('img[src]')) {
             const src = ele.getAttribute('src');
@@ -216,20 +224,49 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
             difficulty: getDifficulty(tag),
             content: buildContent([
                 {
-                    type: 'Text', sectionTitle: 'Description', subType: 'markdown', text: description,
+                    type: 'Text',
+                    sectionTitle: 'Description',
+                    subType: 'markdown',
+                    text: description,
                 },
-                ...input ? [{
-                    type: 'Text', sectionTitle: 'Input', subType: 'markdown', text: input,
-                }] : [],
-                ...output ? [{
-                    type: 'Text', sectionTitle: 'Output', subType: 'markdown', text: output,
-                }] : [],
-                ...inputs.length ? [{
-                    type: 'Plain', text: [...inputs, ...outputs].join('\n'),
-                }] : [] as any,
-                ...note ? [{
-                    type: 'Text', sectionTitle: 'Note', subType: 'markdown', text: note,
-                }] : [],
+                ...(input
+                    ? [
+                          {
+                              type: 'Text',
+                              sectionTitle: 'Input',
+                              subType: 'markdown',
+                              text: input,
+                          },
+                      ]
+                    : []),
+                ...(output
+                    ? [
+                          {
+                              type: 'Text',
+                              sectionTitle: 'Output',
+                              subType: 'markdown',
+                              text: output,
+                          },
+                      ]
+                    : []),
+                ...(inputs.length
+                    ? [
+                          {
+                              type: 'Plain',
+                              text: [...inputs, ...outputs].join('\n'),
+                          },
+                      ]
+                    : ([] as any)),
+                ...(note
+                    ? [
+                          {
+                              type: 'Text',
+                              sectionTitle: 'Note',
+                              subType: 'markdown',
+                              text: note,
+                          },
+                      ]
+                    : []),
             ]),
         };
     }
@@ -240,11 +277,8 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
         if (resync && page > 1) return [];
         if (resync && listName.startsWith('GYM')) return [];
         if (listName.startsWith('GYM') && page > 1) return [];
-        const { document } = await this.html(listName === 'main'
-            ? `/problemset/page/${page}`
-            : listName === 'gym'
-                ? `/gyms/page/${page}`
-                : `/gym/${listName.split('GYM')[1]}`,
+        const { document } = await this.html(
+            listName === 'main' ? `/problemset/page/${page}` : listName === 'gym' ? `/gyms/page/${page}` : `/gym/${listName.split('GYM')[1]}`,
         );
         if (['gym', 'main'].includes(listName)) {
             const index = document.querySelector('.page-index.active').getAttribute('pageindex');
@@ -273,9 +307,7 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
     async submitProblem(id: string, lang: string, code: string, info, next, end) {
         const programTypeId = lang.includes('codeforces.') ? lang.split('codeforces.')[1] : '54';
         const [type, contestId, problemId] = parseProblemId(id);
-        const endpoint = type === 'GYM'
-            ? `/gym/${contestId}/submit`
-            : `/problemset/submit/${contestId}/${problemId}`;
+        const endpoint = type === 'GYM' ? `/gym/${contestId}/submit` : `/problemset/submit/${contestId}/${problemId}`;
         const [csrf, ftaa, bfaa] = await this.getCsrfToken(endpoint);
         // TODO check submit time to ensure submission
         const { text: submit } = await this.post(`${endpoint}?csrf_token=${csrf}`).send({
@@ -291,16 +323,19 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
             contestId,
             submittedProblemIndex: problemId,
         });
-        const { window: { document: statusDocument } } = new JSDOM(submit);
+        const {
+            window: { document: statusDocument },
+        } = new JSDOM(submit);
         const message = Array.from(statusDocument.querySelectorAll('.error'))
-            .map((i) => i.textContent).join('').replace(/&nbsp;/g, ' ').trim();
+            .map((i) => i.textContent)
+            .join('')
+            .replace(/&nbsp;/g, ' ')
+            .trim();
         if (message) {
             end({ status: STATUS.STATUS_SYSTEM_ERROR, message });
             return null;
         }
-        const { document } = await this.html(type !== 'GYM'
-            ? '/problemset/status?my=on'
-            : `/gym/${contestId}/my`);
+        const { document } = await this.html(type !== 'GYM' ? '/problemset/status?my=on' : `/gym/${contestId}/my`);
         this.csrf = document.querySelector('meta[name="X-Csrf-Token"]').getAttribute('content');
         const submission = document.querySelector('[data-submission-id]').getAttribute('data-submission-id');
         return type !== 'GYM' ? submission : `${contestId}#${submission}`;
@@ -329,8 +364,17 @@ export default class CodeforcesProvider extends BasicFetcher implements IBasicPr
                 });
                 break;
             }
-            const time = Math.sum(Object.keys(body).filter((k) => k.startsWith('timeConsumed#')).map((k) => +body[k]));
-            const memory = Math.max(...Object.keys(body).filter((k) => k.startsWith('memoryConsumed#')).map((k) => +body[k])) / 1024;
+            const time = Math.sum(
+                Object.keys(body)
+                    .filter((k) => k.startsWith('timeConsumed#'))
+                    .map((k) => +body[k]),
+            );
+            const memory =
+                Math.max(
+                    ...Object.keys(body)
+                        .filter((k) => k.startsWith('memoryConsumed#'))
+                        .map((k) => +body[k]),
+                ) / 1024;
             const cases = [];
             for (; i <= +body.testCount; i++) {
                 const status = VERDICT[body[`verdict#${i}`]] || STATUS.STATUS_WRONG_ANSWER;

@@ -8,8 +8,8 @@ proxy(superagent);
 
 interface FetchOptions {
     headers?: { [key: string]: string };
-    post?: Omit<FetchOptions, 'get' | 'post'>
-    get?: Omit<FetchOptions, 'get' | 'post'>
+    post?: Omit<FetchOptions, 'get' | 'post'>;
+    get?: Omit<FetchOptions, 'get' | 'post'>;
 }
 
 const UA = `Hydro/${global.Hydro.version.hydrooj} VJudge/${global.Hydro.version.vjudge}`;
@@ -18,8 +18,10 @@ export class BasicFetcher {
     cookie: string[] = [];
 
     constructor(
-        public account: RemoteAccount, private defaultEndpoint: string,
-        private formType: 'form' | 'json', public logger: Logger,
+        public account: RemoteAccount,
+        private defaultEndpoint: string,
+        private formType: 'form' | 'json',
+        public logger: Logger,
         public fetchOptions: FetchOptions = {},
     ) {
         if (account.cookie) this.cookie = account.cookie;
@@ -39,7 +41,7 @@ export class BasicFetcher {
         const $dom = new JSDOM(html);
         $dom.window.html = html;
         $dom.window.headers = headers;
-        return $dom.window as DOMWindow & { html: string, headers: any };
+        return $dom.window as DOMWindow & { html: string; headers: any };
     }
 
     post(url: string) {

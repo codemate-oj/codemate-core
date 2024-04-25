@@ -1,11 +1,13 @@
-import {
-    omit, pick, throttle, uniqBy,
-} from 'lodash';
+import { omit, pick, throttle, uniqBy } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
 import {
-    ContestNotFoundError, HackRejudgeFailedError,
-    PermissionError, ProblemConfigError,
-    ProblemNotFoundError, RecordNotFoundError, UserNotFoundError,
+    ContestNotFoundError,
+    HackRejudgeFailedError,
+    PermissionError,
+    ProblemConfigError,
+    ProblemNotFoundError,
+    RecordNotFoundError,
+    UserNotFoundError,
 } from '../error';
 import { RecordDoc, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -17,9 +19,7 @@ import storage from '../model/storage';
 import * as system from '../model/system';
 import TaskModel from '../model/task';
 import user from '../model/user';
-import {
-    ConnectionHandler, param, subscribe, Types,
-} from '../service/server';
+import { ConnectionHandler, param, subscribe, Types } from '../service/server';
 import { buildProjection, Time } from '../utils';
 import { ContestDetailBaseHandler } from './contest';
 import { postJudge } from './judge';
@@ -37,9 +37,16 @@ class RecordListHandler extends ContestDetailBaseHandler {
     @param('all', Types.Boolean)
     @param('allDomain', Types.Boolean)
     async get(
-        domainId: string, page = 1, pid?: string | number, tid?: ObjectId,
-        uidOrName?: string, lang?: string, status?: number, full = false,
-        all = false, allDomain = false,
+        domainId: string,
+        page = 1,
+        pid?: string | number,
+        tid?: ObjectId,
+        uidOrName?: string,
+        lang?: string,
+        status?: number,
+        full = false,
+        all = false,
+        allDomain = false,
     ) {
         const notification = [];
         let tdoc = null;
@@ -48,9 +55,10 @@ class RecordListHandler extends ContestDetailBaseHandler {
         const q: Filter<RecordDoc> = { contest: tid };
         if (full) uidOrName = this.user._id.toString();
         if (uidOrName) {
-            const udoc = await user.getById(domainId, +uidOrName)
-                || await user.getByUname(domainId, uidOrName)
-                || await user.getByEmail(domainId, uidOrName);
+            const udoc =
+                (await user.getById(domainId, +uidOrName)) ||
+                (await user.getByUname(domainId, uidOrName)) ||
+                (await user.getByEmail(domainId, uidOrName));
             if (udoc) q.uid = udoc._id;
             else invalid = true;
         }
@@ -64,9 +72,7 @@ class RecordListHandler extends ContestDetailBaseHandler {
                 throw new PermissionError(PERM.PERM_VIEW_CONTEST_HIDDEN_SCOREBOARD);
             }
             if (!(await contest.getStatus(domainId, tid, this.user._id))?.attend) {
-                const name = tdoc.rule === 'homework'
-                    ? "You haven't claimed this homework yet."
-                    : "You haven't attended this contest yet.";
+                const name = tdoc.rule === 'homework' ? "You haven't claimed this homework yet." : "You haven't attended this contest yet.";
                 notification.push({ name, args: { type: 'note' }, checker: () => true });
             }
         }
@@ -94,17 +100,30 @@ class RecordListHandler extends ContestDetailBaseHandler {
         if (!full) cursor = cursor.project(buildProjection(record.PROJECTION_LIST));
         const limit = full ? 10 : system.get('pagination.record');
         let rdocs = invalid
-            ? [] as RecordDoc[]
-            : await cursor.skip((page - 1) * limit).limit(limit).toArray();
+            ? ([] as RecordDoc[])
+            : await cursor
+                  .skip((page - 1) * limit)
+                  .limit(limit)
+                  .toArray();
         const canViewProblem = tid || this.user.hasPerm(PERM.PERM_VIEW_PROBLEM);
         const canViewHiddenProblem = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id;
-        const [udict, pdict] = full ? [{}, {}]
+        const [udict, pdict] = full
+            ? [{}, {}]
             : await Promise.all([
-                user.getList(domainId, rdocs.map((rdoc) => rdoc.uid)),
-                canViewProblem
-                    ? problem.getList(domainId, rdocs.map((rdoc) => rdoc.pid), canViewHiddenProblem, false, problem.PROJECTION_LIST)
-                    : Object.fromEntries(uniqBy(rdocs, 'pid').map((rdoc) => [rdoc.pid, { ...problem.default, pid: rdoc.pid }])),
-            ]);
+                  user.getList(
+                      domainId,
+                      rdocs.map((rdoc) => rdoc.uid),
+                  ),
+                  canViewProblem
+                      ? problem.getList(
+                            domainId,
+                            rdocs.map((rdoc) => rdoc.pid),
+                            canViewHiddenProblem,
+                            false,
+                            problem.PROJECTION_LIST,
+                        )
+                      : Object.fromEntries(uniqBy(rdocs, 'pid').map((rdoc) => [rdoc.pid, { ...problem.default, pid: rdoc.pid }])),
+              ]);
         if (this.tdoc && !this.user.own(this.tdoc) && !this.user.hasPerm(PERM.PERM_EDIT_CONTEST)) {
             rdocs = rdocs.map((i) => contest.applyProjection(tdoc, i, this.user));
         }
@@ -201,7 +220,10 @@ class RecordDetailHandler extends ContestDetailBaseHandler {
         } else if (download) return await this.download();
         this.response.template = 'record_detail.html';
         this.response.body = {
-            udoc, rdoc: canViewDetail ? rdoc : pick(rdoc, ['_id', 'lang', 'code']), pdoc, tdoc: this.tdoc,
+            udoc,
+            rdoc: canViewDetail ? rdoc : pick(rdoc, ['_id', 'lang', 'code']),
+            pdoc,
+            tdoc: this.tdoc,
         };
     }
 
@@ -230,14 +252,19 @@ class RecordDetailHandler extends ContestDetailBaseHandler {
             score: 0,
             time: 0,
             memory: 0,
-            testCases: [{
-                id: 0, subtaskId: 0, status: 9, score: 0, time: 0, memory: 0, message: 'score canceled',
-            }],
+            testCases: [
+                {
+                    id: 0,
+                    subtaskId: 0,
+                    status: 9,
+                    score: 0,
+                    time: 0,
+                    memory: 0,
+                    message: 'score canceled',
+                },
+            ],
         };
-        const [latest] = await Promise.all([
-            record.update(domainId, rid, $set),
-            TaskModel.deleteMany({ rid: this.rdoc._id }),
-        ]);
+        const [latest] = await Promise.all([record.update(domainId, rid, $set), TaskModel.deleteMany({ rid: this.rdoc._id })]);
         if (latest) {
             this.ctx.broadcast('record/change', latest);
             await postJudge(latest);
@@ -267,8 +294,14 @@ class RecordMainConnectionHandler extends ConnectionHandler {
     @param('all', Types.Boolean)
     @param('allDomain', Types.Boolean)
     async prepare(
-        domainId: string, tid?: ObjectId, pid?: string | number, uidOrName?: string,
-        status?: number, pretest = false, all = false, allDomain = false,
+        domainId: string,
+        tid?: ObjectId,
+        pid?: string | number,
+        uidOrName?: string,
+        status?: number,
+        pretest = false,
+        all = false,
+        allDomain = false,
     ) {
         if (tid) {
             this.tdoc = await contest.get(domainId, tid);
@@ -313,8 +346,10 @@ class RecordMainConnectionHandler extends ConnectionHandler {
     async message(msg: { rids: string[] }) {
         if (!(msg.rids instanceof Array)) return;
         const rids = msg.rids.map((id) => new ObjectId(id));
-        const rdocs = await record.getMulti(this.args.domainId, { _id: { $in: rids } })
-            .project<RecordDoc>(buildProjection(record.PROJECTION_LIST)).toArray();
+        const rdocs = await record
+            .getMulti(this.args.domainId, { _id: { $in: rids } })
+            .project<RecordDoc>(buildProjection(record.PROJECTION_LIST))
+            .toArray();
         for (const rdoc of rdocs) this.onRecordChange(rdoc);
     }
 
@@ -335,11 +370,8 @@ class RecordMainConnectionHandler extends ConnectionHandler {
         if (this.uid && rdoc.uid !== this.uid) return;
 
         // eslint-disable-next-line prefer-const
-        let [udoc, pdoc] = await Promise.all([
-            user.getById(this.args.domainId, rdoc.uid),
-            problem.get(rdoc.domainId, rdoc.pid),
-        ]);
-        const tdoc = this.tid ? this.tdoc || await contest.get(rdoc.domainId, new ObjectId(this.tid)) : null;
+        let [udoc, pdoc] = await Promise.all([user.getById(this.args.domainId, rdoc.uid), problem.get(rdoc.domainId, rdoc.pid)]);
+        const tdoc = this.tid ? this.tdoc || (await contest.get(rdoc.domainId, new ObjectId(this.tid))) : null;
         if (pdoc && !rdoc.contest) {
             if (!problem.canViewBy(pdoc, this.user)) pdoc = null;
             if (!this.user.hasPerm(PERM.PERM_VIEW_PROBLEM)) pdoc = null;
@@ -349,7 +381,11 @@ class RecordMainConnectionHandler extends ConnectionHandler {
         else {
             this.queueSend(rdoc._id.toHexString(), async () => ({
                 html: await this.renderHTML('record_main_tr.html', {
-                    rdoc, udoc, pdoc, tdoc, allDomain: this.allDomain,
+                    rdoc,
+                    udoc,
+                    pdoc,
+                    tdoc,
+                    allDomain: this.allDomain,
                 }),
             }));
         }
@@ -388,10 +424,7 @@ class RecordDetailConnectionHandler extends ConnectionHandler {
                 this.applyProjection = true;
             }
         }
-        const [pdoc, self] = await Promise.all([
-            problem.get(rdoc.domainId, rdoc.pid),
-            problem.getStatus(domainId, rdoc.pid, this.user._id),
-        ]);
+        const [pdoc, self] = await Promise.all([problem.get(rdoc.domainId, rdoc.pid), problem.getStatus(domainId, rdoc.pid, this.user._id)]);
 
         let canViewCode = rdoc.uid === this.user._id;
         canViewCode ||= this.user.hasPriv(PRIV.PRIV_READ_RECORD_CODE);

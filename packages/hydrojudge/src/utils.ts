@@ -36,7 +36,7 @@ export function compilerText(stdout: string, stderr: string) {
 function restrictFile(p: string) {
     if (!p) return '/';
     if (p[0] === '/') p = '';
-    return p.replace(/\.\./gmi, '');
+    return p.replace(/\.\./gim, '');
 }
 
 export function ensureFile(folder: string) {

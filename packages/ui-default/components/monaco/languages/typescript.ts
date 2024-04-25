@@ -16,10 +16,7 @@ monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions(diagnostics
 monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions(diagnosticsOptions);
 monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
 monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
-const libSource = [
-  'declare function readline(): string;',
-  'declare function print(content: string): void;',
-].join('\n');
+const libSource = ['declare function readline(): string;', 'declare function print(content: string): void;'].join('\n');
 const libUri = 'ts:filename/basic.d.ts';
 monaco.languages.typescript.javascriptDefaults.addExtraLib(libSource, libUri);
 monaco.editor.createModel(libSource, 'typescript', monaco.Uri.parse(libUri));
@@ -31,7 +28,7 @@ export async function loadTypes() {
     const m = await types(key);
     const val = m.replace('declare var require: NodeRequire;', '');
     if (val.includes('declare module ')) {
-      modules.push(val.toString().split('declare module \'')[1].split('\'')[0]);
+      modules.push(val.toString().split("declare module '")[1].split("'")[0]);
     }
     const uri = `ts:node/${key.split('./')[1]}`;
     monaco.languages.typescript.javascriptDefaults.addExtraLib(val, uri);

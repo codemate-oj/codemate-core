@@ -2,10 +2,7 @@
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 import { debounce, uniqueId } from 'lodash';
 import PropTypes from 'prop-types';
-import React, {
-  forwardRef, useEffect,
-  useImperativeHandle, useRef, useState,
-} from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import Icon from 'vj/components/react/IconComponent';
@@ -56,9 +53,7 @@ export interface AutoCompleteHandle<Item> {
 
 const superCache = {};
 
-function DraggableSelection({
-  type, id, move, children, ...props
-}) {
+function DraggableSelection({ type, id, move, children, ...props }) {
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, drag] = useDrag<{ id: string }, any, boolean>(() => ({
     type,
@@ -83,16 +78,22 @@ function DraggableSelection({
 // eslint-disable-next-line prefer-arrow-callback
 const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, ref: React.Ref<AutoCompleteHandle<T>>) {
   const {
-    multi = false, width = '100%', height = 'auto',
-    freeSolo = false, allowEmptyQuery = false, listStyle = {},
-    disabled = false, disabledHint = '', draggable = multi,
+    multi = false,
+    width = '100%',
+    height = 'auto',
+    freeSolo = false,
+    allowEmptyQuery = false,
+    listStyle = {},
+    disabled = false,
+    disabledHint = '',
+    draggable = multi,
   } = props;
   const queryItems = props.queryItems ?? (() => []);
   const renderItem = props.renderItem ?? ((item) => item);
   const itemText = props.itemText ?? ((item) => item.toString());
   const itemKey = props.itemKey ?? itemText;
-  const onChange = props.onChange ?? (() => { });
-  const freeSoloConverter = freeSolo ? props.freeSoloConverter ?? ((i) => i) : ((i) => i);
+  const onChange = props.onChange ?? (() => {});
+  const freeSoloConverter = freeSolo ? props.freeSoloConverter ?? ((i) => i) : (i) => i;
 
   const [focused, setFocused] = useState(false); // is focused
   const [selected, setSelected] = useState([]); // selected items
@@ -121,7 +122,7 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
     queryCache[query] ||= await queryItems(query);
     for (const item of queryCache[query]) valueCache[itemKey(item)] = item;
     setItemList(queryCache[query]);
-    setCurrentItem((!freeSolo && queryCache[query].length) ? 0 : null);
+    setCurrentItem(!freeSolo && queryCache[query].length ? 0 : null);
   };
 
   useEffect(() => {
@@ -229,37 +230,41 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
     // TODO: handle other keys
   };
 
-  useImperativeHandle(ref, () => ({
-    getSelectedItems: () => selected,
-    getSelectedItemKeys: () => [...selectedKeys, inputRef.current?.value].filter((v) => v?.trim().length),
-    getSelectedItemsAsString: () => [...selectedKeys, inputRef.current?.value].filter((v) => v?.trim().length).join(','),
-    setSelectedItems: (items) => {
-      setSelected(items);
-      setSelectedKeys(items.map((i) => itemKey(i)));
-      if (!multi && inputRef.current) inputRef.current.value = items.map((i) => itemKey(i)).join(',');
-    },
-    getQuery: () => inputRef.current?.value,
-    setQuery: (query) => {
-      if (inputRef.current) inputRef.current.value = query;
-    },
-    setSelectedKeys: (keys) => setSelectedKeys(keys),
-    triggerQuery: () => queryList(inputRef.current?.value),
-    closeList: () => {
-      setItemList([]);
-      setCurrentItem(null);
-    },
-    getValue: () => (multi ? selectedKeys.join(',') : (inputRef.current.value ?? '')),
-    getValueArray: () => (multi ? selected : [inputRef.current?.value].filter((i) => !!i)),
-    clear: () => {
-      setSelected([]);
-      setSelectedKeys([]);
-      if (inputRef.current) inputRef.current.value = '';
-    },
-    focus: () => {
-      setFocused(true);
-      inputRef.current?.focus();
-    },
-  }), [selected, selectedKeys, inputRef, multi]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      getSelectedItems: () => selected,
+      getSelectedItemKeys: () => [...selectedKeys, inputRef.current?.value].filter((v) => v?.trim().length),
+      getSelectedItemsAsString: () => [...selectedKeys, inputRef.current?.value].filter((v) => v?.trim().length).join(','),
+      setSelectedItems: (items) => {
+        setSelected(items);
+        setSelectedKeys(items.map((i) => itemKey(i)));
+        if (!multi && inputRef.current) inputRef.current.value = items.map((i) => itemKey(i)).join(',');
+      },
+      getQuery: () => inputRef.current?.value,
+      setQuery: (query) => {
+        if (inputRef.current) inputRef.current.value = query;
+      },
+      setSelectedKeys: (keys) => setSelectedKeys(keys),
+      triggerQuery: () => queryList(inputRef.current?.value),
+      closeList: () => {
+        setItemList([]);
+        setCurrentItem(null);
+      },
+      getValue: () => (multi ? selectedKeys.join(',') : inputRef.current.value ?? ''),
+      getValueArray: () => (multi ? selected : [inputRef.current?.value].filter((i) => !!i)),
+      clear: () => {
+        setSelected([]);
+        setSelectedKeys([]);
+        if (inputRef.current) inputRef.current.value = '';
+      },
+      focus: () => {
+        setFocused(true);
+        inputRef.current?.focus();
+      },
+    }),
+    [selected, selectedKeys, inputRef, multi],
+  );
 
   const move = (dragId: string, hoverId: string) => {
     if (dragId === hoverId || !draggable) return;
@@ -275,20 +280,18 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
 
   return (
     <div className="autocomplete-container" style={{ display: 'inline-block', width: '100%', marginBottom: '1rem' }}>
-      <div
-        className={focused ? 'autocomplete-wrapper focused' : 'autocomplete-wrapper'}
-        style={{ width, height }}
-      >
+      <div className={focused ? 'autocomplete-wrapper focused' : 'autocomplete-wrapper'} style={{ width, height }}>
         <DndProvider backend={HTML5Backend}>
-          {multi && selectedKeys.map((key) => {
-            const item = valueCache[key];
-            return (
-              <DraggableSelection type={draggableId} id={key} move={move} className="autocomplete-tag" key={item ? key : `draft-${key}`}>
-                <div>{item ? itemText(item) : key}</div>
-                <Icon name="close" onClick={() => toggleItem(item, key, true)} />
-              </DraggableSelection>
-            );
-          })}
+          {multi &&
+            selectedKeys.map((key) => {
+              const item = valueCache[key];
+              return (
+                <DraggableSelection type={draggableId} id={key} move={move} className="autocomplete-tag" key={item ? key : `draft-${key}`}>
+                  <div>{item ? itemText(item) : key}</div>
+                  <Icon name="close" onClick={() => toggleItem(item, key, true)} />
+                </DraggableSelection>
+              );
+            })}
           <input
             ref={inputRef}
             autoComplete="off"
@@ -306,7 +309,10 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
               const text = e.clipboardData.getData('text');
               if (!text || (!text.includes(',') && !text.includes('，'))) return;
               e.preventDefault();
-              const ids = text.replace(/，/g, ',').split(',').filter((v) => v?.trim().length && !selectedKeys.includes(v));
+              const ids = text
+                .replace(/，/g, ',')
+                .split(',')
+                .filter((v) => v?.trim().length && !selectedKeys.includes(v));
               if (!ids.length) return;
               const fetched = await props.fetchItems(ids.filter((v) => !valueCache[v]));
               for (const item of fetched) valueCache[itemKey(item)] = item;
@@ -320,13 +326,7 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
           />
         </DndProvider>
       </div>
-      {disabled && (
-        <input
-          disabled
-          autoComplete="off"
-          value={disabledHint}
-        />
-      )}
+      {disabled && <input disabled autoComplete="off" value={disabledHint} />}
       {focused && itemList.length > 0 && (
         <ul ref={listRef} className="autocomplete-list" style={listStyle} onMouseDown={(e) => e.preventDefault()}>
           {itemList.map((item, idx) => (

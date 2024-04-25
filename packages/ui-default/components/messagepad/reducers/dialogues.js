@@ -25,10 +25,7 @@ export default function reducer(state = {}, action = {}) {
         ...state,
         [id]: {
           ...state[id],
-          messages: [
-            ...state[id].messages,
-            mdoc,
-          ],
+          messages: [...state[id].messages, mdoc],
         },
       };
     }
@@ -38,12 +35,9 @@ export default function reducer(state = {}, action = {}) {
       return {
         ...state,
         [to]: {
-          ...state[to] || {},
+          ...(state[to] || {}),
           udoc,
-          messages: [
-            ...state[to]?.messages || [],
-            mdoc,
-          ],
+          messages: [...(state[to]?.messages || []), mdoc],
         },
       };
     }

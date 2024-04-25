@@ -1,11 +1,9 @@
-import {
-    Context, Handler, superagent, SystemModel, TokenModel, UserFacingError,
-} from 'hydrooj';
+import { Context, Handler, superagent, SystemModel, TokenModel, UserFacingError } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface SystemKeys {
-        'login-with-google.id': string,
-        'login-with-google.secret': string,
+        'login-with-google.id': string;
+        'login-with-google.secret': string;
     }
 }
 
@@ -42,24 +40,19 @@ function decodeJWT(idToken: string) {
     }
 }
 
-async function callback(this: Handler, {
-    state, code, error,
-}) {
+async function callback(this: Handler, { state, code, error }) {
     if (error) throw new UserFacingError(error);
     const [[appid, secret, url], s] = await Promise.all([
-        SystemModel.getMany([
-            'login-with-google.id', 'login-with-google.secret', 'server.url',
-        ]),
+        SystemModel.getMany(['login-with-google.id', 'login-with-google.secret', 'server.url']),
         TokenModel.get(state, TokenModel.TYPE_OAUTH),
     ]);
-    const res = await superagent.post('https://oauth2.googleapis.com/token')
-        .send({
-            client_id: appid,
-            client_secret: secret,
-            code,
-            grant_type: 'authorization_code',
-            redirect_uri: `${url}oauth/google/callback`,
-        });
+    const res = await superagent.post('https://oauth2.googleapis.com/token').send({
+        client_id: appid,
+        client_secret: secret,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: `${url}oauth/google/callback`,
+    });
     const payload = decodeJWT(res.body.id_token).payload;
     await TokenModel.del(state, TokenModel.TYPE_OAUTH);
     this.response.redirect = s.redirect;

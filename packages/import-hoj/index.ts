@@ -1,10 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import os from 'os';
 import path from 'path';
-import {
-    AdmZip, buildContent, Context, fs, Handler, PERM,
-    ProblemConfigFile, ProblemModel, ValidationError, yaml,
-} from 'hydrooj';
+import { AdmZip, buildContent, Context, fs, Handler, PERM, ProblemConfigFile, ProblemModel, ValidationError, yaml } from 'hydrooj';
 
 const tmpdir = path.join(os.tmpdir(), 'hydro', 'import-hoj');
 fs.ensureDirSync(tmpdir);
@@ -43,17 +40,21 @@ class ImportHojHandler extends Handler {
                         const m = i.match(/<input>([\s\S]*?)<\/input><output>([\s\S]*?)<\/output>/);
                         return { input: m[1], output: m[2] };
                     });
-                    content.samples = examples.map((sample) => ([sample.input, sample.output]));
+                    content.samples = examples.map((sample) => [sample.input, sample.output]);
                 }
                 const isValidPid = async (id: string) => {
-                    if (!(/^[A-Za-z]+[0-9A-Za-z]*$/.test(id))) return false;
+                    if (!/^[A-Za-z]+[0-9A-Za-z]*$/.test(id)) return false;
                     if (await ProblemModel.get(domainId, id)) return false;
                     return true;
                 };
-                if (!await isValidPid(pdoc.problemId)) pdoc.display_id = null;
+                if (!(await isValidPid(pdoc.problemId))) pdoc.display_id = null;
                 const pid = await ProblemModel.add(
-                    domainId, pdoc.display_id, pdoc.title, buildContent(content, 'markdown'),
-                    this.user._id, doc.tags || [],
+                    domainId,
+                    pdoc.display_id,
+                    pdoc.title,
+                    buildContent(content, 'markdown'),
+                    this.user._id,
+                    doc.tags || [],
                 );
                 const config: ProblemConfigFile = {
                     time: `${pdoc.timeLimit}ms`,
@@ -65,45 +66,34 @@ class ImportHojHandler extends Handler {
                 }
                 const tasks = [];
                 for (const tc of doc.samples) {
-                    tasks.push(ProblemModel.addTestdata(
-                        domainId, pid, tc.input,
-                        path.join(tmp, folder, tc.input),
-                    ));
-                    tasks.push(ProblemModel.addTestdata(
-                        domainId, pid, tc.output,
-                        path.join(tmp, folder, tc.output),
-                    ));
+                    tasks.push(ProblemModel.addTestdata(domainId, pid, tc.input, path.join(tmp, folder, tc.input)));
+                    tasks.push(ProblemModel.addTestdata(domainId, pid, tc.output, path.join(tmp, folder, tc.output)));
                     config.subtasks.push({
                         ...(tc.score ? { score: tc.score } : {}),
-                        cases: [{
-                            input: tc.input,
-                            output: tc.output,
-                        }],
+                        cases: [
+                            {
+                                input: tc.input,
+                                output: tc.output,
+                            },
+                        ],
                     });
                 }
                 if (pdoc.spjLanguage === 'C++') {
-                    tasks.push(ProblemModel.addTestdata(
-                        domainId, pid, 'checker.cc',
-                        Buffer.from(pdoc.spjCode),
-                    ));
+                    tasks.push(ProblemModel.addTestdata(domainId, pid, 'checker.cc', Buffer.from(pdoc.spjCode)));
                     config.checker = 'checker.cc';
                     config.checker_type = 'testlib';
                 }
                 if (pdoc.userExtraFile) {
                     for (const file of Object.keys(pdoc.userExtraFile)) {
                         if (file === 'testlib.h') continue;
-                        tasks.push(ProblemModel.addTestdata(
-                            domainId, pid, file, Buffer.from(pdoc.userExtraFile[file]),
-                        ));
+                        tasks.push(ProblemModel.addTestdata(domainId, pid, file, Buffer.from(pdoc.userExtraFile[file])));
                         config.user_extra_files ||= [];
                         config.user_extra_files.push(file);
                     }
                 }
                 if (pdoc.judgeExtraFile) {
                     for (const file of Object.keys(pdoc.judgeExtraFile)) {
-                        tasks.push(ProblemModel.addTestdata(
-                            domainId, pid, file, Buffer.from(pdoc.judgeExtraFile[file]),
-                        ));
+                        tasks.push(ProblemModel.addTestdata(domainId, pid, file, Buffer.from(pdoc.judgeExtraFile[file])));
                         config.judge_extra_files ||= [];
                         config.judge_extra_files.push(file);
                     }

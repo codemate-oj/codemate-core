@@ -1,5 +1,5 @@
-import { db, GDoc, ObjectId, TokenModel } from 'hydrooj';
-import { ActivationCodeExpiredError, ActivationCodeNotFoundError, ActivationCodeUsedError, DuplicatedActivationError, GroupNotFoundError } from './lib';
+import { db, GDoc, ObjectId } from 'hydrooj';
+import { GroupNotFoundError } from './lib';
 
 export const collGroup = db.collection('user.group');
 

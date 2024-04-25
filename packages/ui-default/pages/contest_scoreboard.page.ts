@@ -35,7 +35,11 @@ const page = new NamedPage(['contest_scoreboard', 'homework_scoreboard'], () => 
       $('.rank--unrank').closest('tr').hide();
     } else {
       $('.data-table tbody tr').hide();
-      const uids = val.toString().split(',').map((i) => +i.trim()).filter((i) => i);
+      const uids = val
+        .toString()
+        .split(',')
+        .map((i) => +i.trim())
+        .filter((i) => i);
       if (!uids?.length) return;
       uids.forEach((uid) => $(`.user--${uid}`).closest('tr').show());
     }

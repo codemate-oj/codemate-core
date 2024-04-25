@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 /// <reference no-default-lib="true" />
 /// <reference lib="webworker" />
-export { }; // make it a module so that declare self works
+export {}; // make it a module so that declare self works
 declare const self: ServiceWorkerGlobalScope;
 
 const map = new Map();
@@ -79,13 +79,15 @@ self.addEventListener('notificationclick', (event) => {
   console.log('On notification click: ', event.notification.tag);
   event.notification.close();
   if (!event.notification.tag.startsWith('message-')) return;
-  event.waitUntil(self.clients.matchAll({ type: 'window' }).then((clientList) => {
-    for (const client of clientList) {
-      if (client.url === '/home/messages' && 'focus' in client) return client.focus();
-    }
-    if (self.clients.openWindow) self.clients.openWindow('/home/messages');
-    return null;
-  }));
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === '/home/messages' && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) self.clients.openWindow('/home/messages');
+      return null;
+    }),
+  );
 });
 
 const PRECACHE = `precache-${process.env.VERSION}`;
@@ -125,28 +127,32 @@ function initConfig() {
   console.log('Config:', config);
 }
 
-self.addEventListener('install', (event) => event.waitUntil((async () => {
-  initConfig();
-  if (process.env.NODE_ENV === 'production' && config?.preload) {
-    const [cache, manifest] = await Promise.all([
-      caches.open(PRECACHE),
-      fetch('/manifest.json').then((res) => res.json()),
-    ]);
-    const files = Object.values(manifest).filter(shouldPreCache)
-      .map((i: string) => new URL(i, config.preload).toString());
-    await cache.addAll(files); // NOTE: CORS header
-  }
-  self.skipWaiting();
-})()));
+self.addEventListener('install', (event) =>
+  event.waitUntil(
+    (async () => {
+      initConfig();
+      if (process.env.NODE_ENV === 'production' && config?.preload) {
+        const [cache, manifest] = await Promise.all([caches.open(PRECACHE), fetch('/manifest.json').then((res) => res.json())]);
+        const files = Object.values(manifest)
+          .filter(shouldPreCache)
+          .map((i: string) => new URL(i, config.preload).toString());
+        await cache.addAll(files); // NOTE: CORS header
+      }
+      self.skipWaiting();
+    })(),
+  ),
+);
 
 self.addEventListener('activate', (event) => {
   initConfig();
   event.waitUntil(self.clients.claim());
   const valid = [PRECACHE];
-  caches.keys().then((names) => names
-    .filter((name) => name.startsWith('precache-'))
-    .filter((name) => !valid.includes(name))
-    .map((p) => caches.delete(p)));
+  caches.keys().then((names) =>
+    names
+      .filter((name) => name.startsWith('precache-'))
+      .filter((name) => !valid.includes(name))
+      .map((p) => caches.delete(p)),
+  );
 });
 
 async function get(request: Request) {
@@ -189,10 +195,7 @@ async function cachedRespond(request: Request) {
   const cachedResponse = await caches.match(url);
   if (cachedResponse) return cachedResponse;
   console.log(`Caching ${url}`);
-  const [cache, response] = await Promise.all([
-    caches.open(PRECACHE),
-    get(request),
-  ]);
+  const [cache, response] = await Promise.all([caches.open(PRECACHE), get(request)]);
   if (response.ok) {
     cache.put(url, response.clone());
     return response;
@@ -212,46 +215,47 @@ self.addEventListener('fetch', (event: FetchEvent) => {
   if (!['get', 'post', 'head'].includes(event.request.method.toLowerCase())) return;
   if (!config) return; // Don't do anything when not initialized
   const url = new URL(event.request.url);
-  const rewritable = config.domains.length > 1
-    && config.domains.includes(url.hostname) && url.origin === location.origin;
+  const rewritable = config.domains.length > 1 && config.domains.includes(url.hostname) && url.origin === location.origin;
   // Only handle whitelisted origins;
   if (!config.hosts.some((i) => event.request.url.startsWith(i))) return;
 
   if (shouldCache(event.request)) {
-    event.respondWith((async () => {
-      if (rewritable) {
-        const targets = config.domains.map((i) => {
-          const t = new URL(event.request.url);
-          t.host = i;
-          return transformUrl(t.toString());
-        });
-        const results = await Promise.all(targets.map((i) => caches.match(i)));
-        return results.find((i) => i) || cachedRespond(event.request);
-      }
-      const transformedUrl = transformUrl(event.request.url);
-      const cachedResponse = await caches.match(transformedUrl);
-      if (cachedResponse) return cachedResponse;
-      console.log(`Caching ${transformedUrl}`);
-      const [cache, response] = await Promise.all([
-        caches.open(PRECACHE),
-        fetch(url, {
-          method: event.request.method,
-          headers: event.request.headers,
-          redirect: event.request.redirect,
-          keepalive: event.request.keepalive,
-          referrer: event.request.referrer,
-          referrerPolicy: event.request.referrerPolicy,
-          signal: event.request.signal,
-        }), // Fetch from url to prevent opaque response
-      ]);
-      if (response.ok) {
-        cache.put(transformedUrl, response.clone());
-        return response;
-      }
-      console.log(`Failed to cache ${transformedUrl}`, response);
-      // If response fails, re-fetch the original request to prevent
-      // errors caused by different headers and do not cache them
-      return fetch(event.request);
-    })());
+    event.respondWith(
+      (async () => {
+        if (rewritable) {
+          const targets = config.domains.map((i) => {
+            const t = new URL(event.request.url);
+            t.host = i;
+            return transformUrl(t.toString());
+          });
+          const results = await Promise.all(targets.map((i) => caches.match(i)));
+          return results.find((i) => i) || cachedRespond(event.request);
+        }
+        const transformedUrl = transformUrl(event.request.url);
+        const cachedResponse = await caches.match(transformedUrl);
+        if (cachedResponse) return cachedResponse;
+        console.log(`Caching ${transformedUrl}`);
+        const [cache, response] = await Promise.all([
+          caches.open(PRECACHE),
+          fetch(url, {
+            method: event.request.method,
+            headers: event.request.headers,
+            redirect: event.request.redirect,
+            keepalive: event.request.keepalive,
+            referrer: event.request.referrer,
+            referrerPolicy: event.request.referrerPolicy,
+            signal: event.request.signal,
+          }), // Fetch from url to prevent opaque response
+        ]);
+        if (response.ok) {
+          cache.put(transformedUrl, response.clone());
+          return response;
+        }
+        console.log(`Failed to cache ${transformedUrl}`, response);
+        // If response fails, re-fetch the original request to prevent
+        // errors caused by different headers and do not cache them
+        return fetch(event.request);
+      })(),
+    );
   } else if (rewritable) event.respondWith(get(event.request));
 });

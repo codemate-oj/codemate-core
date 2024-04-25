@@ -7,10 +7,7 @@ import fs from 'fs-extra';
 import { Context } from '../context';
 import { Logger } from '../logger';
 import db from '../service/db';
-import {
-    addon, builtinModel, handler, lib, locale, model,
-    script, service, setting, template,
-} from './common';
+import { addon, builtinModel, handler, lib, locale, model, script, service, setting, template } from './common';
 
 const argv = cac().parse();
 const logger = new Logger('worker');
@@ -29,10 +26,7 @@ export async function apply(ctx: Context) {
     const pending = global.addons; // comment by clzh: 开始加载插件列表
     const fail = [];
     // comment by clzh: 加载template和locale（语言）文件，ui-default也是这样加载的
-    await Promise.all([
-        locale(pending, fail),
-        template(pending, fail),
-    ]);
+    await Promise.all([locale(pending, fail), template(pending, fail)]);
     await db.start();
     await require('../settings').loadConfig();
     const modelSystem = require('../model/system');

@@ -8,9 +8,7 @@ import createHint from 'vj/components/hint';
 import Notification from 'vj/components/notification';
 import { downloadProblemSet } from 'vj/components/zipDownloader';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  delay, i18n, pjax, request, tpl,
-} from 'vj/utils';
+import { delay, i18n, pjax, request, tpl } from 'vj/utils';
 
 const list = [];
 const filterTags = {};
@@ -38,12 +36,15 @@ const parserOptions = {
 function writeSelectionToInput() {
   const currentValue = $('[name="q"]').val() as string;
   const parsedCurrentValue = parser.parse(currentValue, parserOptions) as SearchParserResult;
-  const q = parser.stringify({
-    ...parsedCurrentValue,
-    category: selectedTags.category,
-    difficulty: selectedTags.difficulty,
-    text: parsedCurrentValue.text,
-  }, parserOptions);
+  const q = parser.stringify(
+    {
+      ...parsedCurrentValue,
+      category: selectedTags.category,
+      difficulty: selectedTags.difficulty,
+      text: parsedCurrentValue.text,
+    },
+    parserOptions,
+  );
   $('[name="q"]').val(q);
 }
 
@@ -61,7 +62,7 @@ function updateSelection() {
         childSelected ||= childShouldSelect;
         if (childIsSelected !== childShouldSelect) setDomSelected(item.children[subcategory].$tag, childShouldSelect);
       }
-      if (item.$legacy) setDomSelected(item.$legacy, (shouldSelect || childSelected));
+      if (item.$legacy) setDomSelected(item.$legacy, shouldSelect || childSelected);
       if (isSelected !== shouldSelect) {
         if (pinned[type].includes(selection)) {
           setDomSelected(item.$tag, shouldSelect, '<span class="icon icon-check"></span>');
@@ -109,17 +110,10 @@ function buildLegacyCategoryFilter() {
   if (!$container) return;
   $container.attr('class', 'widget--category-filter row small-up-3 medium-up-2');
   for (const category of $container.children('li').get()) {
-    const $category = $(category)
-      .attr('class', 'widget--category-filter__category column');
-    const $categoryTag = $category
-      .find('.section__title a')
-      .remove()
-      .attr('class', 'widget--category-filter__tag');
+    const $category = $(category).attr('class', 'widget--category-filter__category column');
+    const $categoryTag = $category.find('.section__title a').remove().attr('class', 'widget--category-filter__tag');
     const categoryText = $categoryTag.text();
-    const $drop = $category
-      .children('.chip-list')
-      .remove()
-      .attr('class', 'widget--category-filter__drop');
+    const $drop = $category.children('.chip-list').remove().attr('class', 'widget--category-filter__drop');
     if (selections.category[categoryText]) {
       selections.category[categoryText].$legacy = $categoryTag;
     } else {
@@ -157,16 +151,13 @@ function buildLegacyCategoryFilter() {
 }
 
 function parseCategorySelection() {
-  const parsed = parser.parse($('[name="q"]').val() as string || '', parserOptions) as SearchParserResult;
+  const parsed = parser.parse(($('[name="q"]').val() as string) || '', parserOptions) as SearchParserResult;
   selectedTags.category = _.uniq(parsed.category || []);
   selectedTags.difficulty = _.uniq(parsed.difficulty || []);
 }
 
 function ensureAndGetSelectedPids() {
-  const pids = _.map(
-    $('tbody [data-checkbox-group="problem"]:checked'),
-    (ch) => $(ch).closest('tr').attr('data-pid'),
-  );
+  const pids = _.map($('tbody [data-checkbox-group="problem"]:checked'), (ch) => $(ch).closest('tr').attr('data-pid'));
   if (pids.length === 0) {
     Notification.error(i18n('Please select at least one problem to perform this operation.'));
     return null;

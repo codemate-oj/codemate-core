@@ -4,8 +4,7 @@ import Schema from 'schemastery';
 import { Logger } from './logger';
 import { Flatten } from './typeutils';
 
-const defaultPath = process.env.CI ? '/tmp/file'
-    : process.env.DEFAULT_STORE_PATH || '/data/file/hydro';
+const defaultPath = process.env.CI ? '/tmp/file' : process.env.DEFAULT_STORE_PATH || '/data/file/hydro';
 const FileSetting = Schema.intersect([
     Schema.object({
         type: Schema.union([
@@ -78,9 +77,11 @@ export async function setConfig(key: string, value: any) {
     await saveConfig(systemConfig);
 }
 
-export function requestConfig<T, S>(s: Schema<T, S>): {
-    config: ReturnType<Schema<T, S>>,
-    setConfig: (key: keyof Flatten<ReturnType<Schema<T, S>>> & string, value: any) => Promise<void>,
+export function requestConfig<T, S>(
+    s: Schema<T, S>,
+): {
+    config: ReturnType<Schema<T, S>>;
+    setConfig: (key: keyof Flatten<ReturnType<Schema<T, S>>> & string, value: any) => Promise<void>;
 } {
     SystemSettings.push(s);
     let curValue = s(systemConfig);

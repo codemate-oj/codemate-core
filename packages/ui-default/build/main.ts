@@ -16,26 +16,29 @@ import root from './utils/root';
 
 const argv = cac().parse();
 
-async function runWebpack({
-  watch, production, measure, dev, https,
-}) {
+async function runWebpack({ watch, production, measure, dev, https }) {
   const compiler = webpack(webpackConfig({ watch, production, measure }));
   if (dev) {
-    const server = new WebpackDevServer({
-      port: https ? 8001 : 8000,
-      compress: true,
-      hot: true,
-      server: https ? 'https' : 'http',
-      allowedHosts: 'all',
-      proxy: [{
-        context: (p) => p !== '/ws',
-        target: 'http://localhost:2333',
-        ws: true,
-      }],
-      client: {
-        webSocketURL: 'auto://0.0.0.0:0/ws',
+    const server = new WebpackDevServer(
+      {
+        port: https ? 8001 : 8000,
+        compress: true,
+        hot: true,
+        server: https ? 'https' : 'http',
+        allowedHosts: 'all',
+        proxy: [
+          {
+            context: (p) => p !== '/ws',
+            target: 'http://localhost:2333',
+            ws: true,
+          },
+        ],
+        client: {
+          webSocketURL: 'auto://0.0.0.0:0/ws',
+        },
       },
-    }, compiler);
+      compiler,
+    );
     server.start();
     return;
   }
@@ -61,9 +64,7 @@ async function runWebpack({
     for (const file of files) {
       if (!file.isFile() || file.name.endsWith('.map')) continue;
       const data = await fs.stat(path.join(root('public'), file.name));
-      const key = file.name
-        .replace(/\.[a-f0-9]{6}\.chunk\./, '.chunk.')
-        .replace(/\.[a-f0-9]{6}\.worker\./, '.worker.');
+      const key = file.name.replace(/\.[a-f0-9]{6}\.chunk\./, '.chunk.').replace(/\.[a-f0-9]{6}\.worker\./, '.worker.');
       stats[key] = data.size;
     }
     const statsPath = root('__bundleInfo');
@@ -79,7 +80,7 @@ async function runWebpack({
       sorted.push(['Total', sum(sorted.map((i) => i[1])), sum(sorted.map((i) => i[2]))]);
       for (const entry of sorted) {
         const [name, orig, curr] = entry;
-        const diff = 100 * (curr - orig) / orig;
+        const diff = (100 * (curr - orig)) / orig;
         if (Math.abs(diff) < 0.01 && name !== 'Total') continue;
         const color = orig > curr ? chalk.green : chalk.red;
         log(color(`${name.padStart(35)} ${size(orig).padStart(10)} -> ${size(curr).padEnd(10)} (${diff.toPrecision(5)}%)`), chalk.reset());

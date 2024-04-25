@@ -1,6 +1,4 @@
-import {
-  ContextMenu, Menu, MenuItem, TreeNode,
-} from '@blueprintjs/core';
+import { ContextMenu, Menu, MenuItem, TreeNode } from '@blueprintjs/core';
 import { TestCaseConfig } from 'hydrooj';
 import { omit } from 'lodash';
 import React from 'react';
@@ -19,9 +17,7 @@ interface TestcaseNodeProps {
 }
 
 export function TestcaseNode(props: TestcaseNodeProps) {
-  const {
-    c, selected, onClick, subtaskIds, subtaskId,
-  } = props;
+  const { c, selected, onClick, subtaskIds, subtaskId } = props;
   return (
     <ContextMenu
       onContextMenu={onClick}
@@ -30,13 +26,13 @@ export function TestcaseNode(props: TestcaseNodeProps) {
       data-selected={selected}
       content={
         <Menu>
-          <MenuItem icon="drawer-left" text={i18n('Move to subtask')} >
-            {subtaskIds.filter((i) => i !== subtaskId).map((i) => (
-              <MenuItem key={i} text={i18n('Subtask {0}', i)} />
-            ))}
-            {subtaskIds.length <= 1 && (
-              <MenuItem icon="disable" disabled text={i18n('No target available')} />
-            )}
+          <MenuItem icon="drawer-left" text={i18n('Move to subtask')}>
+            {subtaskIds
+              .filter((i) => i !== subtaskId)
+              .map((i) => (
+                <MenuItem key={i} text={i18n('Subtask {0}', i)} />
+              ))}
+            {subtaskIds.length <= 1 && <MenuItem icon="disable" disabled text={i18n('No target available')} />}
           </MenuItem>
         </Menu>
       }
@@ -47,7 +43,11 @@ export function TestcaseNode(props: TestcaseNodeProps) {
         isSelected={selected}
         onClick={onClick}
         icon="document"
-        label={<>&nbsp;{c.input} / {c.output}</>}
+        label={
+          <>
+            &nbsp;{c.input} / {c.output}
+          </>
+        }
         path={[0]}
       />
     </ContextMenu>
@@ -60,20 +60,23 @@ interface TestcaseGroupProps extends Omit<TestcaseNodeProps, 'c'> {
 }
 
 export function TestcaseGroup(props: TestcaseGroupProps) {
-  const {
-    cases, subtaskId, onClick, index,
-  } = props;
-  const [collected, drag] = useDrag(() => ({
-    type: 'cases',
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+  const { cases, subtaskId, onClick, index } = props;
+  const [collected, drag] = useDrag(
+    () => ({
+      type: 'cases',
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+      canDrag: props.selected,
+      item: { cases, subtaskId },
     }),
-    canDrag: props.selected,
-    item: { cases, subtaskId },
-  }), [JSON.stringify(cases), subtaskId]);
-  return <div ref={drag} onClick={onClick} onMouseDown={props.onMouseDown} style={{ opacity: collected.isDragging ? 0.5 : 1 }}>
-    {cases.map((c, id) => (
-      <TestcaseNode c={c} key={`${c.input}@${index + id}`} {...omit(props, 'onClick')} index={index + id} />
-    ))}
-  </div>;
+    [JSON.stringify(cases), subtaskId],
+  );
+  return (
+    <div ref={drag} onClick={onClick} onMouseDown={props.onMouseDown} style={{ opacity: collected.isDragging ? 0.5 : 1 }}>
+      {cases.map((c, id) => (
+        <TestcaseNode c={c} key={`${c.input}@${index + id}`} {...omit(props, 'onClick')} index={index + id} />
+      ))}
+    </div>
+  );
 }

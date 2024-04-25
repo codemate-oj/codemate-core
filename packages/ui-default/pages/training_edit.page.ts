@@ -15,10 +15,12 @@ export default new NamedPage('training_edit', () => {
     const message = 'Confirm deleting this training? Its files and status will be deleted as well.';
     return new ConfirmDialog({
       $body: tpl.typoMsg(i18n(message)),
-    }).open().then((action) => {
-      if (action !== 'yes') return;
-      confirmed = true;
-      ev.target.click();
-    });
+    })
+      .open()
+      .then((action) => {
+        if (action !== 'yes') return;
+        confirmed = true;
+        ev.target.click();
+      });
   });
 });

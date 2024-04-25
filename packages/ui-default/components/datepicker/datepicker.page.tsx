@@ -19,7 +19,9 @@ const datepickerPage = new AutoloadPage('datepickerPage', async () => {
         editable: true,
         interval: 15,
         clear: false,
-        onSet() { $this.trigger('change'); },
+        onSet() {
+          $this.trigger('change');
+        },
       });
     }
   });

@@ -1,9 +1,7 @@
 import $ from 'jquery';
 import Notification from 'vj/components/notification';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  delay, i18n, request, tpl,
-} from 'vj/utils';
+import { delay, i18n, request, tpl } from 'vj/utils';
 
 export default new NamedPage('home_account', () => {
   document.getElementsByName('avatar')[0].parentNode.parentNode.parentElement.remove();
@@ -18,11 +16,19 @@ export default new NamedPage('home_account', () => {
   const $text = $(tpl`<input type="text" class="textbox" placeholder="${i18n('Avatar URL')}">`);
   const $layout = $(`
     <div class="row">
-      ${[['type', 3], ['text', 6], ['btn', 3]].map(([i, w]) => `
+      ${[
+        ['type', 3],
+        ['text', 6],
+        ['btn', 3],
+      ]
+        .map(
+          ([i, w]) => `
         <div class="medium-${w} columns form__item">
           <div name="form_item_${i}"></div>
         </div>
-      `).join(' ')}
+      `,
+        )
+        .join(' ')}
     </div>
   `);
   const $file: JQuery<HTMLInputElement> = $('<input type="file" style="display:none" accept=".jpg,.jpeg,.png">');
@@ -43,11 +49,7 @@ export default new NamedPage('home_account', () => {
     } else {
       $text.show();
       $file.hide();
-      const placeholder = $type.val() === 'gravatar'
-        ? 'Email address'
-        : $type.val() === 'github'
-          ? 'Github username'
-          : 'QQ ID';
+      const placeholder = $type.val() === 'gravatar' ? 'Email address' : $type.val() === 'github' ? 'Github username' : 'QQ ID';
       $text.attr('placeholder', i18n(placeholder));
     }
   });

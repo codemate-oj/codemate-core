@@ -9,22 +9,17 @@ import { Context, ContextSubTask } from './interface';
 function judgeCase(c: NormalizedCase) {
     return async (ctx: Context, ctxSubtask: ContextSubTask, runner?: Function) => {
         const { address_space_limit, process_limit } = ctx.session.getLang(ctx.lang);
-        const res = await runQueued(
-            ctx.execute.execute,
-            {
-                stdin: { src: c.input },
-                copyIn: ctx.execute.copyIn,
-                filename: ctx.config.filename,
-                time: c.time,
-                memory: c.memory,
-                cacheStdoutAndStderr: true,
-                addressSpaceLimit: address_space_limit,
-                processLimit: process_limit,
-            },
-        );
-        const {
-            code, signalled, time, memory, fileIds,
-        } = res;
+        const res = await runQueued(ctx.execute.execute, {
+            stdin: { src: c.input },
+            copyIn: ctx.execute.copyIn,
+            filename: ctx.config.filename,
+            time: c.time,
+            memory: c.memory,
+            cacheStdoutAndStderr: true,
+            addressSpaceLimit: address_space_limit,
+            processLimit: process_limit,
+        });
+        const { code, signalled, time, memory, fileIds } = res;
         let { status } = res;
         let message: any = '';
         let score = 0;
@@ -72,12 +67,13 @@ function judgeCase(c: NormalizedCase) {
     };
 }
 
-export const judge = async (ctx: Context) => await runFlow(ctx, {
-    compile: async () => {
-        [ctx.execute, ctx.checker] = await Promise.all([
-            ctx.compile(ctx.lang, ctx.code),
-            ctx.compileLocalFile('checker', ctx.config.checker, ctx.config.checker_type),
-        ]);
-    },
-    judgeCase,
-});
+export const judge = async (ctx: Context) =>
+    await runFlow(ctx, {
+        compile: async () => {
+            [ctx.execute, ctx.checker] = await Promise.all([
+                ctx.compile(ctx.lang, ctx.code),
+                ctx.compileLocalFile('checker', ctx.config.checker, ctx.config.checker_type),
+            ]);
+        },
+        judgeCase,
+    });

@@ -1,7 +1,9 @@
 ## 首要条件
 
 ## docker 安装方式仅适用于可熟练使用 docker-compose 维护容器的用户，并要求您有基础的错误排查能力
+
 ## 该安装模块非官方维护，即不会提供任何技术支持
+
 ## 普通用户请务必使用自动脚本安装，这可大大提高您一次成功的可能性
 
 本文假设您已经安装了`Docker`、`docker-compose`、`git`。
@@ -12,11 +14,11 @@
 
 1. 请选择磁盘空间富裕的位置，运行下面的命令。
 
-   `git clone https://github.com/hydro-dev/Hydro.git && cd Hydro/install/docker`
+    `git clone https://github.com/hydro-dev/Hydro.git && cd Hydro/install/docker`
 
 2. 启动服务。
 
-   `docker-compose up -d`
+    `docker-compose up -d`
 
 因为是在本机制作docker镜像，所以耗时可能会比较久。根据网速情况，大约5到30分钟就可以自动搭建完成，全程无需人工干预。
 
@@ -46,4 +48,3 @@
 12. ruby
 13. mono-runtime
 14. mono-mcs
-

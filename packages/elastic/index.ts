@@ -1,16 +1,12 @@
 import { Client } from '@elastic/elasticsearch';
-import {
-    _, Context, DomainModel, iterateAllProblem, iterateAllProblemInDomain,
-    ProblemDoc, ProblemModel, Schema, SystemModel,
-} from 'hydrooj';
+import { _, Context, DomainModel, iterateAllProblem, iterateAllProblemInDomain, ProblemDoc, ProblemModel, Schema, SystemModel } from 'hydrooj';
 
 const client = new Client({ node: SystemModel.get('elastic-search.url') || 'http://127.0.0.1:9200' });
 
 const indexOmit = ['_id', 'docType', 'data', 'additional_file', 'config', 'stats', 'assign'];
 const processDocument = (doc: Partial<ProblemDoc>) => {
     doc.content &&= doc.content.replace(/[[\]【】()（）]/g, ' ');
-    doc.title &&= doc.title.replace(/[[\]【】()（）]/g, ' ')
-        .replace(/([a-zA-Z]{2,})(\d+)/, '$1$2 $1 $2');
+    doc.title &&= doc.title.replace(/[[\]【】()（）]/g, ' ').replace(/([a-zA-Z]{2,})(\d+)/, '$1$2 $1 $2');
     doc.pid &&= doc.pid.replace(/([a-zA-Z]{2,})(\d+)/, '$1$2 $1 $2');
     return _.omit(doc, indexOmit);
 };
@@ -90,7 +86,8 @@ export const apply = (ctx: Context) => {
         });
     });
     ctx.addScript(
-        'ensureElasticSearch', 'Elastic problem search re-index',
+        'ensureElasticSearch',
+        'Elastic problem search re-index',
         Schema.object({
             domainId: Schema.string(),
         }),

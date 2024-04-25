@@ -1,8 +1,19 @@
 /* eslint-disable no-await-in-loop */
 import os from 'os';
 import {
-    Context, db, DomainModel, JudgeHandler, Logger,
-    ProblemModel, RecordModel, Service, SettingModel, sleep, STATUS, TaskModel, Time,
+    Context,
+    db,
+    DomainModel,
+    JudgeHandler,
+    Logger,
+    ProblemModel,
+    RecordModel,
+    Service,
+    SettingModel,
+    sleep,
+    STATUS,
+    TaskModel,
+    Time,
 } from 'hydrooj';
 import { BasicProvider, IBasicProvider, RemoteAccount } from './interface';
 import providers from './providers/index';
@@ -18,7 +29,10 @@ class AccountService {
     working = false;
     error = '';
 
-    constructor(public Provider: BasicProvider, public account: RemoteAccount) {
+    constructor(
+        public Provider: BasicProvider,
+        public account: RemoteAccount,
+    ) {
         this.api = new Provider(account, async (data) => {
             await coll.updateOne({ _id: account._id }, { $set: data });
         });
@@ -85,7 +99,7 @@ class AccountService {
                 if (id.search('\\\\#') !== -1) continue;
                 const [pid, metastr = '{}'] = id.split('#');
                 const meta = JSON.parse(metastr);
-                if (await ProblemModel.get(domainId, pid) || syncing[`${domainId}/${pid}`]) continue;
+                if ((await ProblemModel.get(domainId, pid)) || syncing[`${domainId}/${pid}`]) continue;
                 syncing[`${domainId}/${pid}`] = true;
                 try {
                     const res = await this.api.getProblem(pid, meta);
@@ -177,7 +191,7 @@ class VJudgeService extends Service {
     }
 
     async checkStatus(onCheckFunc = false) {
-        const res: Record<string, { working: boolean, error?: string, status?: any }> = {};
+        const res: Record<string, { working: boolean; error?: string; status?: any }> = {};
         for (const [k, v] of Object.entries(this.pool)) {
             res[k] = {
                 working: v.working,

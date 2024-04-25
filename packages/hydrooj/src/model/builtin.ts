@@ -1,7 +1,15 @@
 import {
-    getScoreColor, STATUS, STATUS_CODES, STATUS_SHORT_TEXTS,
-    STATUS_TEXTS, USER_GENDER_FEMALE, USER_GENDER_ICONS, USER_GENDER_MALE,
-    USER_GENDER_OTHER, USER_GENDER_RANGE, USER_GENDERS,
+    getScoreColor,
+    STATUS,
+    STATUS_CODES,
+    STATUS_SHORT_TEXTS,
+    STATUS_TEXTS,
+    USER_GENDER_FEMALE,
+    USER_GENDER_ICONS,
+    USER_GENDER_MALE,
+    USER_GENDER_OTHER,
+    USER_GENDER_RANGE,
+    USER_GENDERS,
 } from '@hydrooj/utils/lib/status';
 
 export * from '@hydrooj/utils/lib/status';
@@ -177,63 +185,65 @@ for (const p of PERMS) {
     else PERMS_BY_FAMILY[p.family].push(p);
 }
 
-PERM.PERM_BASIC = PERM.PERM_VIEW
-    | PERM.PERM_VIEW_PROBLEM
-    | PERM.PERM_VIEW_PROBLEM_SOLUTION
-    | PERM.PERM_VIEW_PROBLEM_SOLUTION_ACCEPT
-    | PERM.PERM_VIEW_DISCUSSION
-    | PERM.PERM_VIEW_CONTEST
-    | PERM.PERM_VIEW_CONTEST_SCOREBOARD
-    | PERM.PERM_VIEW_HOMEWORK
-    | PERM.PERM_VIEW_HOMEWORK_SCOREBOARD
-    | PERM.PERM_VIEW_TRAINING
-    | PERM.PERM_VIEW_RANKING
-    | PERM.PERM_VIEW_RECORD;
+PERM.PERM_BASIC =
+    PERM.PERM_VIEW |
+    PERM.PERM_VIEW_PROBLEM |
+    PERM.PERM_VIEW_PROBLEM_SOLUTION |
+    PERM.PERM_VIEW_PROBLEM_SOLUTION_ACCEPT |
+    PERM.PERM_VIEW_DISCUSSION |
+    PERM.PERM_VIEW_CONTEST |
+    PERM.PERM_VIEW_CONTEST_SCOREBOARD |
+    PERM.PERM_VIEW_HOMEWORK |
+    PERM.PERM_VIEW_HOMEWORK_SCOREBOARD |
+    PERM.PERM_VIEW_TRAINING |
+    PERM.PERM_VIEW_RANKING |
+    PERM.PERM_VIEW_RECORD;
 
-PERM.PERM_DEFAULT = PERM.PERM_VIEW
-    | PERM.PERM_VIEW_DISPLAYNAME
-    | PERM.PERM_VIEW_PROBLEM
-    | PERM.PERM_EDIT_PROBLEM_SELF
-    | PERM.PERM_SUBMIT_PROBLEM
-    | PERM.PERM_VIEW_PROBLEM_SOLUTION
-    | PERM.PERM_VIEW_PROBLEM_SOLUTION_ACCEPT
-    | PERM.PERM_CREATE_PROBLEM_SOLUTION
-    | PERM.PERM_VOTE_PROBLEM_SOLUTION
-    | PERM.PERM_EDIT_PROBLEM_SOLUTION_SELF
-    | PERM.PERM_DELETE_PROBLEM_SOLUTION_SELF
-    | PERM.PERM_REPLY_PROBLEM_SOLUTION
-    | PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF
-    | PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF
-    | PERM.PERM_VIEW_DISCUSSION
-    | PERM.PERM_CREATE_DISCUSSION
-    | PERM.PERM_EDIT_DISCUSSION_SELF
-    | PERM.PERM_REPLY_DISCUSSION
-    | PERM.PERM_ADD_REACTION
-    | PERM.PERM_EDIT_DISCUSSION_REPLY_SELF
-    | PERM.PERM_DELETE_DISCUSSION_REPLY_SELF
-    | PERM.PERM_DELETE_DISCUSSION_REPLY_SELF_DISCUSSION
-    | PERM.PERM_VIEW_CONTEST
-    | PERM.PERM_VIEW_CONTEST_SCOREBOARD
-    | PERM.PERM_ATTEND_CONTEST
-    | PERM.PERM_EDIT_CONTEST_SELF
-    | PERM.PERM_VIEW_HOMEWORK
-    | PERM.PERM_VIEW_HOMEWORK_SCOREBOARD
-    | PERM.PERM_ATTEND_HOMEWORK
-    | PERM.PERM_EDIT_HOMEWORK_SELF
-    | PERM.PERM_VIEW_TRAINING
-    | PERM.PERM_CREATE_TRAINING
-    | PERM.PERM_EDIT_TRAINING_SELF
-    | PERM.PERM_SUBMIT_PROBLEM
-    | PERM.PERM_CREATE_PROBLEM_SOLUTION
-    | PERM.PERM_VOTE_PROBLEM_SOLUTION
-    | PERM.PERM_REPLY_PROBLEM_SOLUTION
-    | PERM.PERM_CREATE_DISCUSSION
-    | PERM.PERM_REPLY_DISCUSSION
-    | PERM.PERM_ATTEND_CONTEST
-    | PERM.PERM_CREATE_TRAINING
-    | PERM.PERM_ATTEND_HOMEWORK
-    | PERM.PERM_VIEW_RANKING
-    | PERM.PERM_VIEW_RECORD;
+PERM.PERM_DEFAULT =
+    PERM.PERM_VIEW |
+    PERM.PERM_VIEW_DISPLAYNAME |
+    PERM.PERM_VIEW_PROBLEM |
+    PERM.PERM_EDIT_PROBLEM_SELF |
+    PERM.PERM_SUBMIT_PROBLEM |
+    PERM.PERM_VIEW_PROBLEM_SOLUTION |
+    PERM.PERM_VIEW_PROBLEM_SOLUTION_ACCEPT |
+    PERM.PERM_CREATE_PROBLEM_SOLUTION |
+    PERM.PERM_VOTE_PROBLEM_SOLUTION |
+    PERM.PERM_EDIT_PROBLEM_SOLUTION_SELF |
+    PERM.PERM_DELETE_PROBLEM_SOLUTION_SELF |
+    PERM.PERM_REPLY_PROBLEM_SOLUTION |
+    PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF |
+    PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF |
+    PERM.PERM_VIEW_DISCUSSION |
+    PERM.PERM_CREATE_DISCUSSION |
+    PERM.PERM_EDIT_DISCUSSION_SELF |
+    PERM.PERM_REPLY_DISCUSSION |
+    PERM.PERM_ADD_REACTION |
+    PERM.PERM_EDIT_DISCUSSION_REPLY_SELF |
+    PERM.PERM_DELETE_DISCUSSION_REPLY_SELF |
+    PERM.PERM_DELETE_DISCUSSION_REPLY_SELF_DISCUSSION |
+    PERM.PERM_VIEW_CONTEST |
+    PERM.PERM_VIEW_CONTEST_SCOREBOARD |
+    PERM.PERM_ATTEND_CONTEST |
+    PERM.PERM_EDIT_CONTEST_SELF |
+    PERM.PERM_VIEW_HOMEWORK |
+    PERM.PERM_VIEW_HOMEWORK_SCOREBOARD |
+    PERM.PERM_ATTEND_HOMEWORK |
+    PERM.PERM_EDIT_HOMEWORK_SELF |
+    PERM.PERM_VIEW_TRAINING |
+    PERM.PERM_CREATE_TRAINING |
+    PERM.PERM_EDIT_TRAINING_SELF |
+    PERM.PERM_SUBMIT_PROBLEM |
+    PERM.PERM_CREATE_PROBLEM_SOLUTION |
+    PERM.PERM_VOTE_PROBLEM_SOLUTION |
+    PERM.PERM_REPLY_PROBLEM_SOLUTION |
+    PERM.PERM_CREATE_DISCUSSION |
+    PERM.PERM_REPLY_DISCUSSION |
+    PERM.PERM_ATTEND_CONTEST |
+    PERM.PERM_CREATE_TRAINING |
+    PERM.PERM_ATTEND_HOMEWORK |
+    PERM.PERM_VIEW_RANKING |
+    PERM.PERM_VIEW_RECORD;
 
 PERM.PERM_ADMIN = PERM.PERM_ALL;
 
@@ -266,9 +276,7 @@ export const PRIV = {
     PRIV_NEVER: 1 << 20,
 };
 
-PRIV.PRIV_DEFAULT = PRIV.PRIV_USER_PROFILE
-    + PRIV.PRIV_CREATE_FILE
-    + PRIV.PRIV_SEND_MESSAGE;
+PRIV.PRIV_DEFAULT = PRIV.PRIV_USER_PROFILE + PRIV.PRIV_CREATE_FILE + PRIV.PRIV_SEND_MESSAGE;
 
 // people whose rank is less than 1% will get Level 10
 export const LEVELS = [100, 90, 70, 55, 40, 30, 20, 10, 5, 2, 1];
@@ -285,12 +293,7 @@ export const DEFAULT_NODES = {
         { pic: 'share', name: '分享' },
         { pic: 'solution', name: '题解' },
     ],
-    Hydro: [
-        { pic: 'hydro', name: 'Hydro' },
-        { name: '团队' },
-        { name: '月赛' },
-        { pic: 'advice', name: '建议' },
-    ],
+    Hydro: [{ pic: 'hydro', name: 'Hydro' }, { name: '团队' }, { name: '月赛' }, { pic: 'advice', name: '建议' }],
     泛: [
         { name: '数学' },
         { name: '编程' },
@@ -306,25 +309,8 @@ export const DEFAULT_NODES = {
 
 export const CATEGORIES = {
     // 从洛谷标签中借鉴了一部分
-    动态规划: [
-        'LCS',
-        'LIS',
-        '背包',
-        '单调性DP',
-        '环形DP',
-        '树形DP',
-        '状态压缩DP',
-    ],
-    搜索: [
-        '枚举',
-        '搜索与剪枝',
-        '启发式搜索',
-        'DLX',
-        '双向搜索',
-        '折半搜索',
-        '记忆化搜索',
-        '模拟退火',
-    ],
+    动态规划: ['LCS', 'LIS', '背包', '单调性DP', '环形DP', '树形DP', '状态压缩DP'],
+    搜索: ['枚举', '搜索与剪枝', '启发式搜索', 'DLX', '双向搜索', '折半搜索', '记忆化搜索', '模拟退火'],
     计算几何: [
         '半平面交',
         '凸包',
@@ -341,16 +327,7 @@ export const CATEGORIES = {
         '几何知识',
     ],
     贪心: [],
-    树结构: [
-        '最近公共祖先',
-        '生成树',
-        '次小生成树',
-        'DFS序列',
-        '树上倍增',
-        '树的分治',
-        '树链剖分',
-        'Link-Cut-Tree',
-    ],
+    树结构: ['最近公共祖先', '生成树', '次小生成树', 'DFS序列', '树上倍增', '树的分治', '树链剖分', 'Link-Cut-Tree'],
     图结构: [
         'Floyd',
         'Dijkstra',
@@ -403,61 +380,15 @@ export const CATEGORIES = {
         'Hashing',
         '函数式编程',
     ],
-    博弈论: [
-        '巴什博弈',
-        '尼姆博弈',
-        '威佐夫博弈',
-        '斐波那契博弈',
-        'SG定理',
-    ],
-    字符串: [
-        'KMP',
-        '后缀数据结构',
-        'Trie树',
-        'AC自动机',
-        'Manacher',
-        '表达式处理',
-        '最小表示法',
-    ],
-    组合数学: [
-        '鸽笼',
-        '生成函数',
-        '容斥原理',
-        '康托展开',
-        'Catalan数列',
-        'Stirling数',
-        '差分',
-        'Polya定理',
-    ],
-    线性代数: [
-        '矩阵乘法',
-        '高斯消元',
-        '线性规划',
-    ],
-    高精度: [
-        'FFT',
-    ],
+    博弈论: ['巴什博弈', '尼姆博弈', '威佐夫博弈', '斐波那契博弈', 'SG定理'],
+    字符串: ['KMP', '后缀数据结构', 'Trie树', 'AC自动机', 'Manacher', '表达式处理', '最小表示法'],
+    组合数学: ['鸽笼', '生成函数', '容斥原理', '康托展开', 'Catalan数列', 'Stirling数', '差分', 'Polya定理'],
+    线性代数: ['矩阵乘法', '高斯消元', '线性规划'],
+    高精度: ['FFT'],
     递推: [],
-    概率论: [
-        '随机化',
-    ],
+    概率论: ['随机化'],
     NPC: [],
-    其他: [
-        '二分查找',
-        '三分查找',
-        '双指针扫描',
-        '分治',
-        '分块',
-        'RMQ',
-        '快速幂',
-        '数学',
-        '排序',
-        '构造',
-        '打表',
-        '位运算',
-        '离散化',
-        '莫队',
-    ],
+    其他: ['二分查找', '三分查找', '双指针扫描', '分治', '分块', 'RMQ', '快速幂', '数学', '排序', '构造', '打表', '位运算', '离散化', '莫队'],
 };
 
 global.Hydro.model.builtin = {

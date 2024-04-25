@@ -13,9 +13,7 @@ export function getMultiStatus(domainId: string, query: Filter<TrainingDoc>) {
 }
 
 export async function getListStatus(domainId: string, uid: number, tids: ObjectId[]) {
-    const tsdocs = await getMultiStatus(
-        domainId, { uid, docId: { $in: Array.from(new Set(tids)) } },
-    ).toArray();
+    const tsdocs = await getMultiStatus(domainId, { uid, docId: { $in: Array.from(new Set(tids)) } }).toArray();
     const r = {};
     for (const tsdoc of tsdocs) r[tsdoc.docId] = tsdoc;
     return r;
@@ -34,10 +32,7 @@ export function setStatus(domainId: string, tid: ObjectId, uid: number, $set: an
     return document.setStatus(domainId, document.TYPE_TRAINING, tid, uid, $set);
 }
 
-export function add(
-    domainId: string, title: string, content: string,
-    owner: number, dag: TrainingNode[] = [], description = '', pin = 0,
-) {
+export function add(domainId: string, title: string, content: string, owner: number, dag: TrainingNode[] = [], description = '', pin = 0) {
     return document.add(domainId, content, owner, document.TYPE_TRAINING, null, null, null, {
         dag,
         title,
@@ -63,30 +58,26 @@ export function getPids(dag: TrainingNode[]) {
 }
 
 export function isDone(node: TrainingNode, doneNids: Set<number> | number[], donePids: Set<number> | number[]) {
-    return (Set.isSuperset(new Set(doneNids), new Set(node.requireNids))
-        && Set.isSuperset(new Set(donePids), new Set(node.pids)));
+    return Set.isSuperset(new Set(doneNids), new Set(node.requireNids)) && Set.isSuperset(new Set(donePids), new Set(node.pids));
 }
 
 export function isProgress(node: TrainingNode, doneNids: Set<number> | number[], donePids: Set<number> | number[], progPids: Set<number> | number[]) {
-    return (Set.isSuperset(new Set(doneNids), new Set(node.requireNids))
-        && !Set.isSuperset(new Set(donePids), new Set(node.pids))
-        && Set.intersection(
-            Set.union(new Set(donePids), new Set(progPids)),
-            new Set(node.pids),
-        ).size);
+    return (
+        Set.isSuperset(new Set(doneNids), new Set(node.requireNids)) &&
+        !Set.isSuperset(new Set(donePids), new Set(node.pids)) &&
+        Set.intersection(Set.union(new Set(donePids), new Set(progPids)), new Set(node.pids)).size
+    );
 }
 
 export function isOpen(node: TrainingNode, doneNids: Set<number> | number[], donePids: Set<number> | number[], progPids: Set<number> | number[]) {
-    return (Set.isSuperset(new Set(doneNids), new Set(node.requireNids))
-        && !Set.isSuperset(new Set(donePids), new Set(node.pids))
-        && !Set.intersection(
-            Set.union(new Set(donePids), new Set(progPids)),
-            new Set(node.pids),
-        ).size);
+    return (
+        Set.isSuperset(new Set(doneNids), new Set(node.requireNids)) &&
+        !Set.isSuperset(new Set(donePids), new Set(node.pids)) &&
+        !Set.intersection(Set.union(new Set(donePids), new Set(progPids)), new Set(node.pids)).size
+    );
 }
 
-export const isInvalid = (node: TrainingNode, doneNids: Set<number> | number[]) =>
-    !Set.isSuperset(new Set(doneNids), new Set(node.requireNids));
+export const isInvalid = (node: TrainingNode, doneNids: Set<number> | number[]) => !Set.isSuperset(new Set(doneNids), new Set(node.requireNids));
 
 export async function count(domainId: string, query: Filter<TrainingDoc>) {
     return await document.count(domainId, document.TYPE_TRAINING, query);
@@ -109,9 +100,7 @@ export const getMulti = (domainId: string, query: Filter<TrainingDoc> = {}) =>
     document.getMulti(domainId, document.TYPE_TRAINING, query).sort({ pin: -1, _id: -1 });
 
 export async function getList(domainId: string, tids: ObjectId[]) {
-    const tdocs = await getMulti(
-        domainId, { _id: { $in: Array.from(new Set(tids)) } },
-    ).toArray();
+    const tdocs = await getMulti(domainId, { _id: { $in: Array.from(new Set(tids)) } }).toArray();
     const r = {};
     for (const tdoc of tdocs) r[tdoc.docId.toString()] = tdoc;
     return r;

@@ -27,8 +27,8 @@ export default class DomDialog extends DOMAttachedObject {
     this.options = {
       cancelByClickingBack: false,
       cancelByEsc: false,
-      onDispatch: () => { },
-      ...options as any,
+      onDispatch: () => {},
+      ...(options as any),
     };
   }
 
@@ -62,12 +62,15 @@ export default class DomDialog extends DOMAttachedObject {
     $dgContent.css({ scale: 0.8 });
     $dgContent.trigger('vjContentNew');
     await $dgContent
-      .transition({
-        scale: 1,
-      }, {
-        duration: 200,
-        easing: 'easeOutCubic',
-      })
+      .transition(
+        {
+          scale: 1,
+        },
+        {
+          duration: 200,
+          easing: 'easeOutCubic',
+        },
+      )
       .promise();
 
     this.$dom.find('[data-autofocus]').focus();
@@ -85,11 +88,14 @@ export default class DomDialog extends DOMAttachedObject {
     this.$dom.off(`click.${this.eventNS}`);
 
     this.$dom.css({ opacity: 1 });
-    this.$dom.transition({
-      opacity: 0,
-    }, {
-      duration: 200,
-    });
+    this.$dom.transition(
+      {
+        opacity: 0,
+      },
+      {
+        duration: 200,
+      },
+    );
 
     const $dgContent = this.$dom.find('.dialog__content');
     $dgContent.css({ scale: 1 });
@@ -100,7 +106,8 @@ export default class DomDialog extends DOMAttachedObject {
           duration: 200,
           easing: 'easeOutCubic',
         },
-      ).promise();
+      )
+      .promise();
 
     this.$dom.css('display', 'none');
 

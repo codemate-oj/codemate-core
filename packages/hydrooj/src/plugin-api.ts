@@ -42,10 +42,7 @@ export { default as rank } from './lib/rank';
 export { default as paginate } from './lib/paginate';
 export * from './lib/validator';
 export * from './service/decorators';
-export {
-    Handler, ConnectionHandler, captureAllRoutes,
-    httpServer, wsServer, router,
-} from './service/server';
+export { Handler, ConnectionHandler, captureAllRoutes, httpServer, wsServer, router } from './service/server';
 export { UiContextBase } from './service/layers/base';
 export * as StorageService from './service/storage';
 export { EventMap } from './service/bus';

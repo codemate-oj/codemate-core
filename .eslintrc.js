@@ -42,8 +42,9 @@ module.exports = {
                 ],
             },
         ],
-        'no-console': ['error', { allow: ['error'] }],
+        'no-console': ['error', { allow: ['error', 'warn', 'debug'] }],
         'template-tag-spacing': 'off',
+        '@typescript-eslint/indent': 'off',
     },
     settings: {
         'import/parsers': {

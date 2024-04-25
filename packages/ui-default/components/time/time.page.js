@@ -16,25 +16,31 @@ try {
   console.error(`Cannot register timeago locale: ${i18n('timeago_locale')}`);
 }
 function runRelativeTime($container) {
-  $container.find('span.time.relative[data-timestamp]').get().forEach((element) => {
-    const $element = $(element);
-    if ($element.attr('data-has-timeago') !== undefined) return;
-    $element.attr('data-tooltip', $element.text());
-    $element.attr('datetime', ($element.attr('data-timestamp') || 0) * 1000);
-    $element.attr('data-has-timeago', '1');
-    timeago.render(element, i18n('timeago_locale'));
-  });
+  $container
+    .find('span.time.relative[data-timestamp]')
+    .get()
+    .forEach((element) => {
+      const $element = $(element);
+      if ($element.attr('data-has-timeago') !== undefined) return;
+      $element.attr('data-tooltip', $element.text());
+      $element.attr('datetime', ($element.attr('data-timestamp') || 0) * 1000);
+      $element.attr('data-has-timeago', '1');
+      timeago.render(element, i18n('timeago_locale'));
+    });
 }
 
 function cancelRelativeTime($container) {
-  $container.find('span.time.relative[data-timestamp]').get().forEach((element) => {
-    const $element = $(element);
-    if ($element.attr('data-has-timeago') === undefined) {
-      return;
-    }
-    $element.removeAttr('data-has-timeago');
-    timeago.cancel(element);
-  });
+  $container
+    .find('span.time.relative[data-timestamp]')
+    .get()
+    .forEach((element) => {
+      const $element = $(element);
+      if ($element.attr('data-has-timeago') === undefined) {
+        return;
+      }
+      $element.removeAttr('data-has-timeago');
+      timeago.cancel(element);
+    });
 }
 
 const relativeTimePage = new AutoloadPage('relativeTimePage', () => {

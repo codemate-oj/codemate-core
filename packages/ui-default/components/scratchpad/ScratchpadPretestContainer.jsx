@@ -27,31 +27,26 @@ const mapDispatchToProps = (dispatch) => ({
   },
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(class ScratchpadPretestContainer extends React.PureComponent {
-  render() {
-    return (
-      <Panel
-        title={(
-          <span>
-            <Icon name="edit" />
-            {' '}
-            {i18n('Pretest')}
-          </span>
-        )}
-      >
-        <Allotment>
-          <DataInput
-            title={i18n('Input')}
-            value={this.props.input}
-            onChange={(v) => this.props.handleDataChange('input', v)}
-          />
-          <DataInput
-            title={i18n('Output')}
-            value={AU.ansi_to_html(this.props.output)}
-            html
-          />
-        </Allotment>
-      </Panel>
-    );
-  }
-});
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(
+  class ScratchpadPretestContainer extends React.PureComponent {
+    render() {
+      return (
+        <Panel
+          title={
+            <span>
+              <Icon name="edit" /> {i18n('Pretest')}
+            </span>
+          }
+        >
+          <Allotment>
+            <DataInput title={i18n('Input')} value={this.props.input} onChange={(v) => this.props.handleDataChange('input', v)} />
+            <DataInput title={i18n('Output')} value={AU.ansi_to_html(this.props.output)} html />
+          </Allotment>
+        </Panel>
+      );
+    }
+  },
+);

@@ -4,15 +4,10 @@ import { ConfirmDialog } from 'vj/components/dialog/index';
 import Notification from 'vj/components/notification';
 import uploadFiles from 'vj/components/upload';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  i18n, pjax, request, tpl,
-} from 'vj/utils';
+import { i18n, pjax, request, tpl } from 'vj/utils';
 
 function ensureAndGetSelectedFiles() {
-  const files = _.map(
-    $('.files tbody [data-checkbox-group="files"]:checked'),
-    (ch) => $(ch).closest('tr').attr('data-filename'),
-  );
+  const files = _.map($('.files tbody [data-checkbox-group="files"]:checked'), (ch) => $(ch).closest('tr').attr('data-filename'));
   if (files.length === 0) {
     Notification.error(i18n('Please select at least one file to perform this operation.'));
     return null;
@@ -26,7 +21,9 @@ async function handleClickUpload(files) {
     input.type = 'file';
     input.multiple = true;
     input.click();
-    await new Promise((resolve) => { input.onchange = resolve; });
+    await new Promise((resolve) => {
+      input.onchange = resolve;
+    });
     files = input.files;
   }
   if (!files.length) {

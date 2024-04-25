@@ -4,9 +4,8 @@ import type { ProblemConfig, ProblemConfigFile } from '../interface';
 import { normalizeSubtasks, parseMemoryMB, parseTimeMS } from '../utils';
 
 export async function parseConfig(config: string | ProblemConfigFile = {}) {
-    const cfg: ProblemConfigFile = typeof config === 'string'
-        ? await readYamlCases(load(config) as Record<string, any>)
-        : await readYamlCases(config);
+    const cfg: ProblemConfigFile =
+        typeof config === 'string' ? await readYamlCases(load(config) as Record<string, any>) : await readYamlCases(config);
     const result: ProblemConfig = {
         count: 0,
         memoryMin: Number.MAX_SAFE_INTEGER,
@@ -19,7 +18,7 @@ export async function parseConfig(config: string | ProblemConfigFile = {}) {
     if (cfg.subType) result.subType = cfg.subType;
     if (cfg.target) result.target = cfg.target;
     if (cfg.subtasks?.length) {
-        for (const subtask of normalizeSubtasks(cfg.subtasks as any || [], (i) => i, cfg.time, cfg.memory)) {
+        for (const subtask of normalizeSubtasks((cfg.subtasks as any) || [], (i) => i, cfg.time, cfg.memory)) {
             result.memoryMax = Math.max(result.memoryMax, ...subtask.cases.map((i) => parseMemoryMB(i.memory)));
             result.memoryMin = Math.min(result.memoryMin, ...subtask.cases.map((i) => parseMemoryMB(i.memory)));
             result.timeMax = Math.max(result.timeMax, ...subtask.cases.map((i) => parseTimeMS(i.time)));

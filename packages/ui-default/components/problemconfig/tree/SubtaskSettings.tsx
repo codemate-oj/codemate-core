@@ -1,8 +1,4 @@
-import {
-  Button, ControlGroup,
-  Dialog, DialogBody, DialogFooter,
-  Icon, InputGroup, Tag,
-} from '@blueprintjs/core';
+import { Button, ControlGroup, Dialog, DialogBody, DialogFooter, Icon, InputGroup, Tag } from '@blueprintjs/core';
 import { parseMemoryMB, parseTimeMS } from '@hydrooj/utils/lib/common';
 import { isEqual } from 'lodash';
 import React, { useEffect } from 'react';
@@ -53,92 +49,102 @@ export function SubtaskSettings(props: SubtaskSettingsProps) {
         time: ctime,
         memory: cmemory,
         score: cscore,
-        if: cdeps.split(',').map((i) => i.trim()).filter((i) => +i).map((i) => +i),
+        if: cdeps
+          .split(',')
+          .map((i) => i.trim())
+          .filter((i) => +i)
+          .map((i) => +i),
       },
     });
     setOpen(false);
     setDepsOpen(false);
   }
 
-  return (<>
-    <Dialog title={i18n('Set time and memory limits')} icon="cog" isOpen={open} onClose={() => setOpen(false)}>
-      <DialogBody>
-        <ControlGroup fill={true} vertical={false}>
-          <InputGroup
-            leftElement={<Icon icon="time" />}
-            rightElement={<Tag minimal>ms</Tag>}
-            onChange={(ev) => setTime(ev.currentTarget.value ? `${ev.currentTarget.value}ms` : '')}
-            placeholder={parseTimeMS(props.time, false).toString() || '1000'}
-            value={ctime ? parseTimeMS(ctime, false).toString() || '' : ''}
+  return (
+    <>
+      <Dialog title={i18n('Set time and memory limits')} icon="cog" isOpen={open} onClose={() => setOpen(false)}>
+        <DialogBody>
+          <ControlGroup fill={true} vertical={false}>
+            <InputGroup
+              leftElement={<Icon icon="time" />}
+              rightElement={<Tag minimal>ms</Tag>}
+              onChange={(ev) => setTime(ev.currentTarget.value ? `${ev.currentTarget.value}ms` : '')}
+              placeholder={parseTimeMS(props.time, false).toString() || '1000'}
+              value={ctime ? parseTimeMS(ctime, false).toString() || '' : ''}
+            />
+            <InputGroup
+              leftElement={<Icon icon="comparison" />}
+              rightElement={<Tag minimal>MB</Tag>}
+              onChange={(ev) => setMemory(ev.currentTarget.value ? `${ev.currentTarget.value}MB` : '')}
+              placeholder={parseMemoryMB(props.memory, false).toString() || '256'}
+              value={cmemory ? parseMemoryMB(cmemory, false).toString() || '' : ''}
+            />
+            <InputGroup
+              leftElement={<Icon icon="star" />}
+              onChange={(ev) => setScore(+ev.target.value || 0)}
+              placeholder="Score"
+              type="number"
+              value={cscore.toString()}
+            />
+          </ControlGroup>
+        </DialogBody>
+        <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
+      </Dialog>
+      <Dialog title={i18n('Set dependencies')} icon="cog" isOpen={depsOpen} onClose={() => setDepsOpen(false)}>
+        <DialogBody>
+          <CustomSelectAutoComplete
+            data={subtaskIds.map((i) => ({ _id: i, name: `${i18n('Subtask {0}', i)}` }))}
+            setSelectItems={cdeps
+              .split(',')
+              .map((i) => i.trim())
+              .filter((i) => +i)
+              .map((i) => +i)}
+            onChange={(items) => setDeps(items)}
+            placeholder="dependencies"
+            multi
           />
-          <InputGroup
-            leftElement={<Icon icon="comparison" />}
-            rightElement={<Tag minimal>MB</Tag>}
-            onChange={(ev) => setMemory(ev.currentTarget.value ? `${ev.currentTarget.value}MB` : '')}
-            placeholder={parseMemoryMB(props.memory, false).toString() || '256'}
-            value={cmemory ? parseMemoryMB(cmemory, false).toString() || '' : ''}
-          />
-          <InputGroup
-            leftElement={<Icon icon="star" />}
-            onChange={(ev) => setScore(+ev.target.value || 0)}
-            placeholder="Score"
-            type="number"
-            value={cscore.toString()}
-          />
-        </ControlGroup>
-      </DialogBody>
-      <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
-    </Dialog>
-    <Dialog title={i18n('Set dependencies')} icon="cog" isOpen={depsOpen} onClose={() => setDepsOpen(false)}>
-      <DialogBody>
-        <CustomSelectAutoComplete
-          data={subtaskIds.map((i) => ({ _id: i, name: `${i18n('Subtask {0}', i)}` }))}
-          setSelectItems={cdeps.split(',').map((i) => i.trim()).filter((i) => +i).map((i) => +i)}
-          onChange={(items) => setDeps(items)}
-          placeholder="dependencies"
-          multi
-        />
-      </DialogBody>
-      <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
-    </Dialog>
-    <li className="bp5-tree-node" onClick={() => setOpen(true)}>
-      <div className="bp5-tree-node-content">
-        <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
-        <Icon icon="time" />
-        &nbsp;&nbsp;
-        <span className={`bp5-tree-node-label${time ? '' : ' text-gray'}`}>{time || props.time || '1s'}</span>
-        <Icon icon="comparison" />
-        &nbsp;&nbsp;
-        <span className={`bp5-tree-node-label${memory ? '' : ' text-gray'}`}>{memory || props.memory || '256m'}</span>
-        <Icon icon="star" />
-        {' '}
-        <span className="bp5-tree-node-secondary-label">{score || 0}</span>
-      </div>
-    </li>
-    <li className="bp5-tree-node" onClick={() => setDepsOpen(true)}>
-      <div className="bp5-tree-node-content">
-        <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
-        <Icon icon="diagram-tree" />
-        &nbsp;&nbsp;
-        <span className="bp5-tree-node-label">{i18n('Dependencies')}: {deps.length ? deps.join(', ') : i18n('(None)')}</span>
-      </div>
-    </li>
-    <li className="bp5-tree-node">
-      <div className="bp5-tree-node-content">
-        <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
-        <Icon icon="asterisk" />
-        &nbsp;&nbsp;
-        <span className="bp5-tree-node-label">{i18n('Scoring method')}</span>
-        <span className="bp5-tree-node-secondary-label">
-          <select className="compact select" value={ctype} onChange={(e) => setType(e.target.value)}>
-            <option value="min">Min</option>
-            <option value="max">Max</option>
-            <option value="sum">Sum</option>
-          </select>
-        </span>
-      </div>
-    </li>
-  </>);
+        </DialogBody>
+        <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
+      </Dialog>
+      <li className="bp5-tree-node" onClick={() => setOpen(true)}>
+        <div className="bp5-tree-node-content">
+          <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
+          <Icon icon="time" />
+          &nbsp;&nbsp;
+          <span className={`bp5-tree-node-label${time ? '' : ' text-gray'}`}>{time || props.time || '1s'}</span>
+          <Icon icon="comparison" />
+          &nbsp;&nbsp;
+          <span className={`bp5-tree-node-label${memory ? '' : ' text-gray'}`}>{memory || props.memory || '256m'}</span>
+          <Icon icon="star" /> <span className="bp5-tree-node-secondary-label">{score || 0}</span>
+        </div>
+      </li>
+      <li className="bp5-tree-node" onClick={() => setDepsOpen(true)}>
+        <div className="bp5-tree-node-content">
+          <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
+          <Icon icon="diagram-tree" />
+          &nbsp;&nbsp;
+          <span className="bp5-tree-node-label">
+            {i18n('Dependencies')}: {deps.length ? deps.join(', ') : i18n('(None)')}
+          </span>
+        </div>
+      </li>
+      <li className="bp5-tree-node">
+        <div className="bp5-tree-node-content">
+          <span className="bp5-tree-node-caret-none bp5-icon-standard"></span>
+          <Icon icon="asterisk" />
+          &nbsp;&nbsp;
+          <span className="bp5-tree-node-label">{i18n('Scoring method')}</span>
+          <span className="bp5-tree-node-secondary-label">
+            <select className="compact select" value={ctype} onChange={(e) => setType(e.target.value)}>
+              <option value="min">Min</option>
+              <option value="max">Max</option>
+              <option value="sum">Sum</option>
+            </select>
+          </span>
+        </div>
+      </li>
+    </>
+  );
 }
 
 export function GlobalSettings() {
@@ -162,37 +168,37 @@ export function GlobalSettings() {
     });
     setOpen(false);
   }
-  return (<>
-    <Dialog title={i18n('Set time and memory limits')} icon="cog" isOpen={open} onClose={() => setOpen(false)}>
-      <DialogBody>
-        <ControlGroup fill={true} vertical={false}>
-          <InputGroup
-            leftElement={<Icon icon="time" />}
-            rightElement={<Tag minimal>ms</Tag>}
-            onChange={(ev) => setTime(ev.currentTarget.value ? `${ev.currentTarget.value}ms` : '')}
-            placeholder="1000"
-            value={ctime ? parseTimeMS(ctime, false).toString() || '' : ''}
-          />
-          <InputGroup
-            leftElement={<Icon icon="comparison" />}
-            rightElement={<Tag minimal>MB</Tag>}
-            onChange={(ev) => setMemory(ev.currentTarget.value ? `${ev.currentTarget.value}MB` : '')}
-            placeholder="256"
-            value={cmemory ? parseMemoryMB(cmemory, false).toString() || '' : ''}
-          />
-        </ControlGroup>
-      </DialogBody>
-      <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
-    </Dialog>
-    <li className="bp5-tree-node" onClick={() => setOpen(true)}>
-      <div className="bp5-tree-node-content">
-        <Icon icon="time" />
-        &nbsp;&nbsp;
-        <span className={`bp5-tree-node-label${time ? '' : ' text-gray'}`}>{time || '1s'}</span>
-        <Icon icon="comparison" />
-        {' '}
-        <span className={`bp5-tree-node-secondary-label${memory ? '' : ' text-gray'}`}>{memory || '256MB'}</span>
-      </div>
-    </li>
-  </>);
+  return (
+    <>
+      <Dialog title={i18n('Set time and memory limits')} icon="cog" isOpen={open} onClose={() => setOpen(false)}>
+        <DialogBody>
+          <ControlGroup fill={true} vertical={false}>
+            <InputGroup
+              leftElement={<Icon icon="time" />}
+              rightElement={<Tag minimal>ms</Tag>}
+              onChange={(ev) => setTime(ev.currentTarget.value ? `${ev.currentTarget.value}ms` : '')}
+              placeholder="1000"
+              value={ctime ? parseTimeMS(ctime, false).toString() || '' : ''}
+            />
+            <InputGroup
+              leftElement={<Icon icon="comparison" />}
+              rightElement={<Tag minimal>MB</Tag>}
+              onChange={(ev) => setMemory(ev.currentTarget.value ? `${ev.currentTarget.value}MB` : '')}
+              placeholder="256"
+              value={cmemory ? parseMemoryMB(cmemory, false).toString() || '' : ''}
+            />
+          </ControlGroup>
+        </DialogBody>
+        <DialogFooter actions={<Button className="primary rounded button" onClick={onConfirm} intent="primary" text="Save" />} />
+      </Dialog>
+      <li className="bp5-tree-node" onClick={() => setOpen(true)}>
+        <div className="bp5-tree-node-content">
+          <Icon icon="time" />
+          &nbsp;&nbsp;
+          <span className={`bp5-tree-node-label${time ? '' : ' text-gray'}`}>{time || '1s'}</span>
+          <Icon icon="comparison" /> <span className={`bp5-tree-node-secondary-label${memory ? '' : ' text-gray'}`}>{memory || '256MB'}</span>
+        </div>
+      </li>
+    </>
+  );
 }

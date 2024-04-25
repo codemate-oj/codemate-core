@@ -2,7 +2,7 @@
 /* eslint-disable func-names */
 
 interface IHydroError {
-    new(...args: any[]): HydroError
+    new (...args: any[]): HydroError;
 }
 
 export class HydroError extends Error {
@@ -30,7 +30,9 @@ export const Err = (name: string, Class: IHydroError, ...info: Array<(() => stri
         if (typeof item === 'number') {
             code = item;
         } else if (typeof item === 'string') {
-            msg = function () { return item; };
+            msg = function () {
+                return item;
+            };
         } else if (typeof item === 'function') {
             msg = item;
         }
@@ -64,7 +66,11 @@ export const UserAlreadyExistError = Err('UserAlreadyExistError', ForbiddenError
 export const InvalidTokenError = Err('InvalidTokenError', ForbiddenError, 'The {0} Token is invalid.');
 export const BlacklistedError = Err('BlacklistedError', ForbiddenError, 'Address or user {0} is blacklisted.');
 export const VerifyPasswordError = Err('VerifyPasswordError', ForbiddenError, "Passwords don't match.");
-export const OpcountExceededError = Err('OpcountExceededError', ForbiddenError, 'Too frequent operations of {0} (limit: {2} operations in {1} seconds).');
+export const OpcountExceededError = Err(
+    'OpcountExceededError',
+    ForbiddenError,
+    'Too frequent operations of {0} (limit: {2} operations in {1} seconds).',
+);
 export const PermissionError = Err('PermissionError', ForbiddenError, function (this: HydroError) {
     if (typeof this.params[0] === 'bigint') {
         this.params[0] = require('./model/builtin').PERMS.find(({ key }) => key === this.params[0])?.desc || this.params[0];
@@ -79,13 +85,9 @@ export const PrivilegeError = Err('PrivilegeError', ForbiddenError, function (th
 });
 export const ValidationError = Err('ValidationError', ForbiddenError, function (this: HydroError) {
     if (this.params.length === 3) {
-        return this.params[1]
-            ? 'Field {0} or {1} validation failed. ({2})'
-            : 'Field {0} validation failed. ({2})';
+        return this.params[1] ? 'Field {0} or {1} validation failed. ({2})' : 'Field {0} validation failed. ({2})';
     }
-    return this.params[1]
-        ? 'Field {0} or {1} validation failed.'
-        : 'Field {0} validation failed.';
+    return this.params[1] ? 'Field {0} or {1} validation failed.' : 'Field {0} validation failed.';
 });
 export const ContestNotAttendedError = Err('ContestNotAttendedError', ForbiddenError, "You haven't attended this contest yet.");
 export const RequireProError = Err('RequireProError', ForbiddenError, 'RequireProError');
@@ -99,8 +101,16 @@ export const HomeworkNotAttendedError = Err('HomeworkNotAttendedError', Forbidde
 export const RoleAlreadyExistError = Err('RoleAlreadyExistError', ForbiddenError, 'This role already exists.');
 export const CsrfTokenError = Err('CsrfTokenError', ForbiddenError, 'CsrfTokenError');
 export const DomainAlreadyExistsError = Err('DomainAlreadyExistsError', ForbiddenError, 'The domain {0} already exists.');
-export const DomainJoinForbiddenError = Err('DomainJoinForbiddenError', ForbiddenError, 'You are not allowed to join the domain. The link is either invalid or expired.');
-export const DomainJoinAlreadyMemberError = Err('DomainJoinAlreadyMemberError', ForbiddenError, 'Failed to join the domain. You are already a member.');
+export const DomainJoinForbiddenError = Err(
+    'DomainJoinForbiddenError',
+    ForbiddenError,
+    'You are not allowed to join the domain. The link is either invalid or expired.',
+);
+export const DomainJoinAlreadyMemberError = Err(
+    'DomainJoinAlreadyMemberError',
+    ForbiddenError,
+    'Failed to join the domain. You are already a member.',
+);
 export const InvalidJoinInvitationCodeError = Err('InvalidJoinInvitationCodeError', ForbiddenError, 'The invitation code you provided is invalid.');
 export const CurrentPasswordError = Err('CurrentPasswordError', ForbiddenError, "Current password doesn't match.");
 export const DiscussionLockedError = Err('DiscussionLockedError', ForbiddenError, 'The discussion is locked, you can not reply anymore.');
@@ -110,7 +120,11 @@ export const FileUploadError = Err('FileUploadError', ForbiddenError, 'File uplo
 export const FileExistsError = Err('FileExistsError', ForbiddenError, 'File {0} already exists.');
 export const HackFailedError = Err('HackFailedError', ForbiddenError, 'Hack failed: {0}');
 export const ProblemAlreadyExistError = Err('ProblemAlreadyExistError', ForbiddenError, 'Problem {0} already exists.');
-export const ProblemAlreadyUsedByContestError = Err('ProblemAlreadyUsedByContestError', ForbiddenError, 'Problem {0} is already used by contest {1}.');
+export const ProblemAlreadyUsedByContestError = Err(
+    'ProblemAlreadyUsedByContestError',
+    ForbiddenError,
+    'Problem {0} is already used by contest {1}.',
+);
 export const ProblemNotAllowPretestError = Err('ProblemNotAllowPretestError', ForbiddenError, 'Pretesting is not supported for {0}.');
 export const ProblemNotAllowLanguageError = Err('ProblemNotAllowSubmitError', ForbiddenError, 'This language is not allowed to submit.');
 

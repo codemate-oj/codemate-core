@@ -15,10 +15,15 @@ export default (router, logger) => async (ctx: KoaContext, next) => {
             viewLang: ctx.translate('__id'),
         };
         const type = templateName.split('.')[1];
-        const engine = global.Hydro.module.render[type]
-            || (() => JSON.stringify(args, serializer({
-                showDisplayName: user?.hasPerm(PERM.PERM_VIEW_DISPLAYNAME),
-            })));
+        const engine =
+            global.Hydro.module.render[type] ||
+            (() =>
+                JSON.stringify(
+                    args,
+                    serializer({
+                        showDisplayName: user?.hasPerm(PERM.PERM_VIEW_DISPLAYNAME),
+                    }),
+                ));
         return engine(templateName, {
             handler: ctx.handler,
             UserContext,
@@ -51,12 +56,8 @@ export default (router, logger) => async (ctx: KoaContext, next) => {
             let withDomainId = args.domainId || false;
             const domainId = ctx.HydroContext.args.domainId;
             const host = ctx.HydroContext.domain?.host;
-            if (domainId !== 'system' && (
-                !request.host
-                || (host instanceof Array
-                    ? (!host.includes(request.host))
-                    : request.host !== host)
-            )) withDomainId ||= domainId;
+            if (domainId !== 'system' && (!request.host || (host instanceof Array ? !host.includes(request.host) : request.host !== host)))
+                withDomainId ||= domainId;
             res = router.url(name, args, { query }).toString();
             if (anchor) res = `${res}#${anchor}`;
             if (withDomainId) res = `/d/${withDomainId}${res}`;

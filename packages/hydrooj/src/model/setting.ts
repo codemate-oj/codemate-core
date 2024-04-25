@@ -20,7 +20,9 @@ for (const country of countries) {
     const tz = moment.tz.zonesForCountry(country);
     for (const t of tz) tzs.add(t);
 }
-const timezones = Array.from(tzs).sort().map((tz) => [tz, tz]) as [string, string][];
+const timezones = Array.from(tzs)
+    .sort()
+    .map((tz) => [tz, tz]) as [string, string][];
 const langRange: Dictionary<string> = {};
 
 for (const lang in global.Hydro.locales) {
@@ -44,12 +46,20 @@ export const DOMAIN_SETTINGS_BY_KEY: SettingDict = {};
 export const SYSTEM_SETTINGS_BY_KEY: SettingDict = {};
 
 // eslint-disable-next-line max-len
-export type SettingType = 'text' | 'yaml' | 'number' | 'float' | 'markdown' | 'password' | 'boolean' | 'textarea' | [string, string][] | Record<string, string> | 'json';
+export type SettingType =
+    | 'text'
+    | 'yaml'
+    | 'number'
+    | 'float'
+    | 'markdown'
+    | 'password'
+    | 'boolean'
+    | 'textarea'
+    | [string, string][]
+    | Record<string, string>
+    | 'json';
 
-export const Setting = (
-    family: string, key: string, value: any = null,
-    type: SettingType = 'text', name = '', desc = '', flag = 0,
-): _Setting => {
+export const Setting = (family: string, key: string, value: any = null, type: SettingType = 'text', name = '', desc = '', flag = 0): _Setting => {
     let subType = '';
     if (type === 'yaml' && typeof value !== 'string') {
         value = yaml.dump(value);
@@ -181,22 +191,32 @@ PreferenceSetting(
     Setting('setting_display', 'skipAnimate', false, 'boolean', 'Skip Animation'),
     Setting('setting_display', 'timeZone', 'Asia/Shanghai', timezones, 'Timezone'),
     LangSettingNode,
-    Setting('setting_usage', 'codeTemplate', '', 'textarea', 'Default Code Template',
-        'If left blank, the built-in template of the corresponding language will be used.'),
+    Setting(
+        'setting_usage',
+        'codeTemplate',
+        '',
+        'textarea',
+        'Default Code Template',
+        'If left blank, the built-in template of the corresponding language will be used.',
+    ),
 );
 
 AccountSetting(
-    Setting('setting_info', 'avatar', '', 'text', 'Avatar',
-        'Allow using gravatar:email qq:id github:name url:link format.'),
+    Setting('setting_info', 'avatar', '', 'text', 'Avatar', 'Allow using gravatar:email qq:id github:name url:link format.'),
     Setting('setting_info', 'qq', null, 'text', 'QQ'),
     Setting('setting_info', 'gender', builtin.USER_GENDER_OTHER, builtin.USER_GENDER_RANGE, 'Gender'),
     Setting('setting_info', 'bio', null, 'markdown', 'Bio'),
     Setting('setting_info', 'school', '', 'text', 'School'),
     Setting('setting_info', 'studentId', '', 'text', 'Student ID'),
     Setting('setting_info', 'phone', null, 'text', 'Phone', null, FLAG_DISABLED),
-    Setting('setting_customize', 'backgroundImage',
-        '/components/profile/backgrounds/1.jpg', 'text', 'Profile Background Image',
-        'Choose the background image in your profile page.'),
+    Setting(
+        'setting_customize',
+        'backgroundImage',
+        '/components/profile/backgrounds/1.jpg',
+        'text',
+        'Profile Background Image',
+        'Choose the background image in your profile page.',
+    ),
     Setting('setting_storage', 'unreadMsg', 0, 'number', 'Unread Message Count', null, FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'badge', '', 'text', 'badge info', null, FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'banReason', '', 'text', 'ban reason', null, FLAG_DISABLED | FLAG_HIDDEN),
@@ -224,14 +244,7 @@ DomainUserSetting(
     Setting('setting_storage', 'level', 0, 'number', 'level', null, FLAG_HIDDEN | FLAG_DISABLED),
 );
 
-const ignoreUA = [
-    'bingbot',
-    'Gatus',
-    'Googlebot',
-    'Prometheus',
-    'Uptime',
-    'YandexBot',
-].join('\n');
+const ignoreUA = ['bingbot', 'Gatus', 'Googlebot', 'Prometheus', 'Uptime', 'YandexBot'].join('\n');
 
 SystemSetting(
     Setting('setting_smtp', 'smtp.user', null, 'text', 'smtp.user', 'SMTP Username'),
@@ -259,11 +272,25 @@ SystemSetting(
     ServerLangSettingNode,
     Setting('setting_limits', 'limit.by_user', false, 'boolean', 'limit.by_user', 'Use per-user limits instead of per ip limits'),
     Setting('setting_limits', 'limit.problem_files_max', 100, 'number', 'limit.problem_files_max', 'Max files per problem'),
-    Setting('setting_limits', 'limit.problem_files_max_size', 256 * 1024 * 1024, 'number', 'limit.problem_files_max_size', 'Max files size per problem'),
+    Setting(
+        'setting_limits',
+        'limit.problem_files_max_size',
+        256 * 1024 * 1024,
+        'number',
+        'limit.problem_files_max_size',
+        'Max files size per problem',
+    ),
     Setting('setting_limits', 'limit.user_files', 100, 'number', 'limit.user_files', 'Max files for user'),
     Setting('setting_limits', 'limit.user_files_size', 128 * 1024 * 1024, 'number', 'limit.user_files_size', 'Max total file size for user'),
     Setting('setting_limits', 'limit.contest_files', 100, 'number', 'limit.contest_files', 'Max files for contest or training'),
-    Setting('setting_limits', 'limit.contest_files_size', 128 * 1024 * 1024, 'number', 'limit.contest_files_size', 'Max total file size for contest or training'),
+    Setting(
+        'setting_limits',
+        'limit.contest_files_size',
+        128 * 1024 * 1024,
+        'number',
+        'limit.contest_files_size',
+        'Max total file size for contest or training',
+    ),
     Setting('setting_limits', 'limit.submission', 60, 'number', 'limit.submission', 'Max submission count per minute'),
     Setting('setting_limits', 'limit.submission_user', 15, 'number', 'limit.submission_user', 'Max submission count per user per minute'),
     Setting('setting_limits', 'limit.pretest', 60, 'number', 'limit.pretest', 'Max pretest count per minute'),
@@ -280,10 +307,22 @@ SystemSetting(
     Setting('setting_basic', 'pagination.reply', 50, 'number', 'pagination.reply', 'Replies per page'),
     Setting('setting_session', 'session.keys', [String.random(32)], 'text', 'session.keys', 'session.keys', FLAG_HIDDEN),
     Setting('setting_session', 'session.domain', '', 'text', 'session.domain', 'session.domain', FLAG_HIDDEN),
-    Setting('setting_session', 'session.saved_expire_seconds', 3600 * 24 * 30,
-        'number', 'session.saved_expire_seconds', 'Saved session expire seconds'),
-    Setting('setting_session', 'session.unsaved_expire_seconds', 3600 * 3,
-        'number', 'session.unsaved_expire_seconds', 'Unsaved session expire seconds'),
+    Setting(
+        'setting_session',
+        'session.saved_expire_seconds',
+        3600 * 24 * 30,
+        'number',
+        'session.saved_expire_seconds',
+        'Saved session expire seconds',
+    ),
+    Setting(
+        'setting_session',
+        'session.unsaved_expire_seconds',
+        3600 * 3,
+        'number',
+        'session.unsaved_expire_seconds',
+        'Unsaved session expire seconds',
+    ),
     Setting('setting_storage', 'db.ver', 0, 'number', 'db.ver', 'Database version', FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'installid', String.random(64), 'text', 'installid', 'Installation ID', FLAG_HIDDEN | FLAG_DISABLED),
 );
@@ -336,7 +375,9 @@ export async function apply(ctx: Context) {
         for (const key in langs) range[key] = langs[key].display;
         LangSettingNode.range = range;
         ServerLangSettingNode.range = range;
-    } catch (e) { /* Ignore */ }
+    } catch (e) {
+        /* Ignore */
+    }
     ctx.on('system/setting', (args) => {
         if (!args.hydrooj?.langs) return;
         Object.assign(langs, parseLang(args.hydrooj.langs));

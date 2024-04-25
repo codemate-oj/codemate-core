@@ -18,16 +18,20 @@ export class Dialog {
     const box: React.CSSProperties = {};
     if (options.width) box.width = box.maxWidth = options.width;
     if (options.height) box.height = box.maxHeight = options.height;
-    this.$dom = $(tpl(
-      <div className={`dialog withBg ${this.options.classes}`} style={{ display: 'none' }}>
-        <div className="dialog__content" style={box}>
-          <div className="dialog__body" style={{ height: 'calc(100% - 45px)' }} />
-          <div className="row"><div className="columns clearfix">
-            <div className="float-right dialog__action" />
-          </div></div>
-        </div>
-      </div>,
-    ));
+    this.$dom = $(
+      tpl(
+        <div className={`dialog withBg ${this.options.classes}`} style={{ display: 'none' }}>
+          <div className="dialog__content" style={box}>
+            <div className="dialog__body" style={{ height: 'calc(100% - 45px)' }} />
+            <div className="row">
+              <div className="columns clearfix">
+                <div className="float-right dialog__action" />
+              </div>
+            </div>
+          </div>
+        </div>,
+      ),
+    );
     this.$dom.on('click', '[data-action]', this.handleActionButton.bind(this));
     this.$dom.on('vjDomDialogShow', this.beforeShow.bind(this));
     this.$dom.on('vjDomDialogHidden', this.afterHide.bind(this));

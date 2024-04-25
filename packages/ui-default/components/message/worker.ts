@@ -56,7 +56,9 @@ function initConn(path: string, port: MessagePort, cookie: any) {
     } else {
       broadcastMsg({ type: 'message', payload });
       let acked = false;
-      ack[payload.mdoc._id] = () => { acked = true; };
+      ack[payload.mdoc._id] = () => {
+        acked = true;
+      };
       setTimeout(() => {
         delete ack[payload.mdoc._id];
         if (acked) return;
@@ -66,20 +68,18 @@ function initConn(path: string, port: MessagePort, cookie: any) {
           return;
         }
         // eslint-disable-next-line no-new
-        new Notification(
-          payload.udoc.uname || 'Hydro Notification',
-          {
-            tag: `message-${payload.mdoc._id}`,
-            icon: payload.udoc.avatarUrl || '/android-chrome-192x192.png',
-            body: payload.mdoc.content,
-          },
-        );
+        new Notification(payload.udoc.uname || 'Hydro Notification', {
+          tag: `message-${payload.mdoc._id}`,
+          icon: payload.udoc.avatarUrl || '/android-chrome-192x192.png',
+          body: payload.mdoc.content,
+        });
       }, 5000);
     }
   };
 }
 
-self.onconnect = function (e) { // eslint-disable-line no-undef
+self.onconnect = function (e) {
+  // eslint-disable-line no-undef
   const port = e.ports[0];
 
   port.addEventListener('message', (msg: { data: RequestPayload }) => {

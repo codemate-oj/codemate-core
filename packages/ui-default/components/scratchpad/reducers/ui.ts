@@ -1,27 +1,28 @@
 import Notification from 'vj/components/notification';
 import { i18n } from 'vj/utils';
 
-export default function reducer(state = {
-  pretest: {
-    visible: UiContext.pdoc.config?.type === 'default'
-      ? localStorage.getItem('scratchpad/pretest') === 'true'
-      : false,
+export default function reducer(
+  state = {
+    pretest: {
+      visible: UiContext.pdoc.config?.type === 'default' ? localStorage.getItem('scratchpad/pretest') === 'true' : false,
+    },
+    records: {
+      visible: UiContext.canViewRecord && localStorage.getItem('scratchpad/records') === 'true',
+      isLoading: false,
+    },
+    settings: {
+      visible: false,
+      config: JSON.parse(localStorage.getItem('editor.config') || '{}'),
+    },
+    isPosting: false,
+    pretestWaitSec: 0,
+    submitWaitSec: 0,
+    lastTick: 0,
+    activePage: 'problem',
+    pendingCommand: '',
   },
-  records: {
-    visible: UiContext.canViewRecord && localStorage.getItem('scratchpad/records') === 'true',
-    isLoading: false,
-  },
-  settings: {
-    visible: false,
-    config: JSON.parse(localStorage.getItem('editor.config') || '{}'),
-  },
-  isPosting: false,
-  pretestWaitSec: 0,
-  submitWaitSec: 0,
-  lastTick: 0,
-  activePage: 'problem',
-  pendingCommand: '',
-}, action: any = {}) {
+  action: any = {},
+) {
   switch (action.type) {
     case 'SCRATCHPAD_UI_SET_VISIBILITY': {
       const { uiElement, visibility } = action.payload;
@@ -76,20 +77,21 @@ export default function reducer(state = {
     case 'SCRATCHPAD_POST_PRETEST_FULFILLED':
     case 'SCRATCHPAD_POST_SUBMIT_FULFILLED': {
       Notification.success(i18n('Submitted.'));
-      return (action.type === 'SCRATCHPAD_POST_SUBMIT_FULFILLED' && UiContext.canViewRecord)
+      return action.type === 'SCRATCHPAD_POST_SUBMIT_FULFILLED' && UiContext.canViewRecord
         ? {
-          ...state,
-          records: {
-            ...state.records,
-            visible: true,
-          },
-          isPosting: false,
-          submitWaitSec: 8,
-        } : {
-          ...state,
-          isPosting: false,
-          pretestWaitSec: 5,
-        };
+            ...state,
+            records: {
+              ...state.records,
+              visible: true,
+            },
+            isPosting: false,
+            submitWaitSec: 8,
+          }
+        : {
+            ...state,
+            isPosting: false,
+            pretestWaitSec: 5,
+          };
     }
     case 'SCRATCHPAD_POST_PRETEST_REJECTED':
     case 'SCRATCHPAD_POST_SUBMIT_REJECTED': {

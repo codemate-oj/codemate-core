@@ -1,17 +1,13 @@
 import { basename, join } from 'path';
 import { fs } from '@hydrooj/utils';
 import { STATUS } from '@hydrooj/utils/lib/status';
-import type {
-    FileInfo, JudgeMeta, JudgeResultBody, TestCase,
-} from 'hydrooj';
+import type { FileInfo, JudgeMeta, JudgeResultBody, TestCase } from 'hydrooj';
 import readCases from './cases';
 import checkers from './checkers';
 import compile, { compileLocalFile } from './compile';
 import { getConfig } from './config';
 import { CompileError, FormatError } from './error';
-import {
-    Execute, JudgeRequest, ParsedConfig, Session,
-} from './interface';
+import { Execute, JudgeRequest, ParsedConfig, Session } from './interface';
 import judge from './judge';
 import { Logger } from './log';
 import { CopyIn, CopyInFile, runQueued } from './sandbox';
@@ -37,7 +33,10 @@ export class JudgeTask {
     env: Record<string, string>;
     callbackCache?: TestCase[];
 
-    constructor(public session: Session, public request: JudgeRequest) {
+    constructor(
+        public session: Session,
+        public request: JudgeRequest,
+    ) {
         this.stat = {};
         this.stat.receive = new Date();
         logger.debug('%o', request);
@@ -72,19 +71,28 @@ export class JudgeTask {
             if (e instanceof CompileError) {
                 this.next({ compilerText: compilerText(e.stdout, e.stderr) });
                 this.end({
-                    status: STATUS.STATUS_COMPILE_ERROR, score: 0, time: 0, memory: 0,
+                    status: STATUS.STATUS_COMPILE_ERROR,
+                    score: 0,
+                    time: 0,
+                    memory: 0,
                 });
             } else if (e instanceof FormatError) {
                 this.next({ message: 'Testdata configuration incorrect.' });
                 this.next({ message: { message: e.message, params: e.params } });
                 this.end({
-                    status: STATUS.STATUS_FORMAT_ERROR, score: 0, time: 0, memory: 0,
+                    status: STATUS.STATUS_FORMAT_ERROR,
+                    score: 0,
+                    time: 0,
+                    memory: 0,
                 });
             } else {
                 logger.error(e);
-                this.next({ message: { message: e.message, params: e.params, ...process.env.DEV ? { stack: e.stack } : {} } });
+                this.next({ message: { message: e.message, params: e.params, ...(process.env.DEV ? { stack: e.stack } : {}) } });
                 this.end({
-                    status: STATUS.STATUS_SYSTEM_ERROR, score: 0, time: 0, memory: 0,
+                    status: STATUS.STATUS_SYSTEM_ERROR,
+                    score: 0,
+                    time: 0,
+                    memory: 0,
                 });
             }
         } finally {
@@ -113,23 +121,27 @@ export class JudgeTask {
                 isSelfSubmission: this.meta.problemOwner === this.request.uid,
                 key: md5(`${this.source}/${getConfig('secret')}`),
                 lang: this.lang,
-                langConfig: (this.request.type === 'generate' || ['objective', 'submit_answer'].includes(this.request.config.type))
-                    ? null : this.session.getLang(this.lang),
+                langConfig:
+                    this.request.type === 'generate' || ['objective', 'submit_answer'].includes(this.request.config.type)
+                        ? null
+                        : this.session.getLang(this.lang),
             },
         );
         this.stat.judge = new Date();
-        const type = this.request.contest?.toString() === '000000000000000000000000' ? 'run'
-            : this.request.type === 'generate' ? 'generate'
-                : this.files?.hack ? 'hack'
+        const type =
+            this.request.contest?.toString() === '000000000000000000000000'
+                ? 'run'
+                : this.request.type === 'generate'
+                  ? 'generate'
+                  : this.files?.hack
+                    ? 'hack'
                     : this.config.type || 'default';
         if (!judge[type]) throw new FormatError('Unrecognized problemType: {0}', [type]);
         await judge[type].judge(this);
     }
 
     async compile(lang: string, code: CopyInFile) {
-        const copyIn = Object.fromEntries(
-            (this.config.user_extra_files || []).map((i) => [basename(i), { src: i }]),
-        ) as CopyIn;
+        const copyIn = Object.fromEntries((this.config.user_extra_files || []).map((i) => [basename(i), { src: i }])) as CopyIn;
         const result = await compile(this.session.getLang(lang), code, copyIn, this.next);
         this.clean.push(result.clean);
         return result;
@@ -142,9 +154,7 @@ export class JudgeTask {
         const extra = type === 'std' ? this.config.user_extra_files : this.config.judge_extra_files;
         const copyIn = {
             user_code: this.code,
-            ...Object.fromEntries(
-                (extra || []).map((i) => [basename(i), { src: i }]),
-            ),
+            ...Object.fromEntries((extra || []).map((i) => [basename(i), { src: i }])),
         } as CopyIn;
         if (!file.startsWith('/')) file = join(this.folder, file);
         const result = await compileLocalFile(file, type, this.session.getLang, copyIn, withTestlib, this.next);
@@ -170,6 +180,7 @@ export class JudgeTask {
             });
             const out = r.stdout.toString();
             if (out.length) this.next({ compilerText: out.substring(0, 1024) });
+            // eslint-disable-next-line no-console
             if (process.env.DEV) console.log(r);
         } catch (e) {
             logger.info('Failed to run analysis');

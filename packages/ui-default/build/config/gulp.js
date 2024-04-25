@@ -33,33 +33,33 @@ function offsetMtimeAtFirstBuild() {
 export default function ({ errorHandler }) {
   let iconfontTemplateArgs = null;
 
-  tasks['iconfont:template'] = () => gulp
-    .src('misc/icons/template/*.styl')
-    .pipe(nunjucks(iconfontTemplateArgs))
-    .pipe(gulp.dest('misc/.iconfont'))
-    .pipe(offsetMtimeAtFirstBuild());
+  tasks['iconfont:template'] = () =>
+    gulp.src('misc/icons/template/*.styl').pipe(nunjucks(iconfontTemplateArgs)).pipe(gulp.dest('misc/.iconfont')).pipe(offsetMtimeAtFirstBuild());
 
-  tasks.iconfont = () => gulp
-    .src('misc/icons/*.svg')
-    .pipe(plumber({ errorHandler }))
-    .pipe(svgmin())
-    .pipe(gulp.dest('misc/icons'))
-    .pipe(offsetMtimeAtFirstBuild())
-    .pipe(iconfont({
-      fontHeight: 1000,
-      prependUnicode: false,
-      descent: 6.25 / 100 * 1000,
-      fontName: 'vj4icon',
-      formats: ['svg', 'ttf', 'eot', 'woff', 'woff2'],
-      timestamp: iconTimestamp,
-    }))
-    .on('glyphs', (glyphs, options) => {
-      iconfontTemplateArgs = { glyphs, options };
-      tasks['iconfont:template']();
-    })
-    .pipe(gulp.dest('misc/.iconfont'))
-    .pipe(vinylBuffer())
-    .pipe(offsetMtimeAtFirstBuild());
+  tasks.iconfont = () =>
+    gulp
+      .src('misc/icons/*.svg')
+      .pipe(plumber({ errorHandler }))
+      .pipe(svgmin())
+      .pipe(gulp.dest('misc/icons'))
+      .pipe(offsetMtimeAtFirstBuild())
+      .pipe(
+        iconfont({
+          fontHeight: 1000,
+          prependUnicode: false,
+          descent: (6.25 / 100) * 1000,
+          fontName: 'vj4icon',
+          formats: ['svg', 'ttf', 'eot', 'woff', 'woff2'],
+          timestamp: iconTimestamp,
+        }),
+      )
+      .on('glyphs', (glyphs, options) => {
+        iconfontTemplateArgs = { glyphs, options };
+        tasks['iconfont:template']();
+      })
+      .pipe(gulp.dest('misc/.iconfont'))
+      .pipe(vinylBuffer())
+      .pipe(offsetMtimeAtFirstBuild());
 
   tasks.watch = () => {
     isInWatchMode = true;

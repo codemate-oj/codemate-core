@@ -12,7 +12,7 @@ import { WebpackManifestPlugin } from 'webpack-manifest-plugin';
 import WebpackBar from 'webpackbar';
 import root from '../utils/root';
 
-export default function (env: { watch?: boolean, production?: boolean, measure?: boolean } = {}) {
+export default function (env: { watch?: boolean; production?: boolean; measure?: boolean } = {}) {
   function esbuildLoader() {
     return {
       loader: 'esbuild-loader',
@@ -63,7 +63,7 @@ export default function (env: { watch?: boolean, production?: boolean, measure?:
 
   const config: import('webpack').Configuration = {
     // bail: !env.production,
-    mode: (env.production || env.measure) ? 'production' : 'development',
+    mode: env.production || env.measure ? 'production' : 'development',
     profile: env.measure,
     context: root(),
     stats: {
@@ -160,12 +160,14 @@ export default function (env: { watch?: boolean, production?: boolean, measure?:
           test: /\.[mc]?[jt]sx?$/,
           include: [/components\/message\//, /entry\.js/],
           type: 'javascript/auto',
-          use: [{
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true,
+          use: [
+            {
+              loader: 'ts-loader',
+              options: {
+                transpileOnly: true,
+              },
             },
-          }],
+          ],
         },
         {
           test: /\.styl$/,
@@ -214,18 +216,18 @@ export default function (env: { watch?: boolean, production?: boolean, measure?:
         },
       },
       usedExports: true,
-      minimizer: [new ESBuildMinifyPlugin({
-        css: true,
-        minify: true,
-        minifySyntax: true,
-        minifyWhitespace: true,
-        minifyIdentifiers: true,
-        treeShaking: true,
-        target: [
-          'chrome65',
-        ],
-        exclude: [/mathmaps/, /\.min\.js$/],
-      })],
+      minimizer: [
+        new ESBuildMinifyPlugin({
+          css: true,
+          minify: true,
+          minifySyntax: true,
+          minifyWhitespace: true,
+          minifyIdentifiers: true,
+          treeShaking: true,
+          target: ['chrome65'],
+          exclude: [/mathmaps/, /\.min\.js$/],
+        }),
+      ],
       moduleIds: env.production ? 'deterministic' : 'named',
       chunkIds: env.production ? 'deterministic' : 'named',
     },
@@ -265,19 +267,18 @@ export default function (env: { watch?: boolean, production?: boolean, measure?:
       new webpack.NormalModuleReplacementPlugin(/^prettier[$/]/, root('../../modules/nop.ts')),
       new MonacoWebpackPlugin({
         filename: '[name].[hash:6].worker.js',
-        customLanguages: [{
-          label: 'yaml',
-          entry: require.resolve('monaco-yaml/index.js'),
-          worker: {
-            id: 'vs/language/yaml/yamlWorker',
-            entry: require.resolve('monaco-yaml/yaml.worker.js'),
+        customLanguages: [
+          {
+            label: 'yaml',
+            entry: require.resolve('monaco-yaml/index.js'),
+            worker: {
+              id: 'vs/language/yaml/yamlWorker',
+              entry: require.resolve('monaco-yaml/yaml.worker.js'),
+            },
           },
-        }],
+        ],
       }),
-      ...env.measure ? [
-        new BundleAnalyzerPlugin({ analyzerPort: 'auto' }),
-        new DuplicatesPlugin(),
-      ] : [],
+      ...(env.measure ? [new BundleAnalyzerPlugin({ analyzerPort: 'auto' }), new DuplicatesPlugin()] : []),
     ],
   };
 

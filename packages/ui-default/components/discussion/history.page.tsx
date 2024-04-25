@@ -23,36 +23,40 @@ const queryClient = new QueryClient();
 
 function History({ payload }) {
   const [load, setLoad] = React.useState(false);
-  const { isLoading, isError, data } = useQuery(['history', payload], async () => {
-    const { history } = await request.get(`${payload}?all=1`);
-    return history;
-  }, { enabled: !!load });
+  const { isLoading, isError, data } = useQuery(
+    ['history', payload],
+    async () => {
+      const { history } = await request.get(`${payload}?all=1`);
+      return history;
+    },
+    { enabled: !!load },
+  );
   return (
     <Popover
       usePortal
       interactionKind="hover"
       position="bottom"
       onOpening={() => setLoad(true)}
-      content={<ol className="menu">
-        {(isLoading || isError) && (
-          <li className="menu__item">
-            <a className="menu__link">
-              {isLoading ? i18n('Loading...') : i18n('Loading failed.')}
-            </a>
-          </li>
-        )}
-        {data?.map((item) => (
-          <li className="menu__item" key={item.time}>
-            <a className="menu__link" onClick={() => historyDialog(payload, item.time, item.uid)}>
-              {i18n('Edited at')}
-              {' '}
-              <TimeAgo datetime={item.time} locale={i18n('timeago_locale')} />
-            </a>
-          </li>
-        ))}
-      </ol>}
+      content={
+        <ol className="menu">
+          {(isLoading || isError) && (
+            <li className="menu__item">
+              <a className="menu__link">{isLoading ? i18n('Loading...') : i18n('Loading failed.')}</a>
+            </li>
+          )}
+          {data?.map((item) => (
+            <li className="menu__item" key={item.time}>
+              <a className="menu__link" onClick={() => historyDialog(payload, item.time, item.uid)}>
+                {i18n('Edited at')} <TimeAgo datetime={item.time} locale={i18n('timeago_locale')} />
+              </a>
+            </li>
+          ))}
+        </ol>
+      }
     >
-      <span>{i18n('Edited')} <span className="icon icon-expand_more"></span></span>
+      <span>
+        {i18n('Edited')} <span className="icon icon-expand_more"></span>
+      </span>
     </Popover>
   );
 }

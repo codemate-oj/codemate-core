@@ -9,6 +9,7 @@ interface Info {
 
 function shouldFindTestcase(files: string[], info?: Info) {
     const subtasks = readSubtasksFromFiles(files, {});
+    // eslint-disable-next-line no-console
     if (files.includes('a2_1.in')) console.log(subtasks);
     expect(subtasks).to.be.lengthOf(1);
     if (info?.subtask) expect(subtasks[0].id).to.equal(info.subtask);

@@ -1,9 +1,6 @@
 import * as status from '@hydrooj/utils/lib/status';
 import { findFileSync } from '@hydrooj/utils/lib/utils';
-import {
-  avatar, buildContent, Context,
-  fs, PERM, PRIV, STATUS, yaml,
-} from 'hydrooj';
+import { avatar, buildContent, Context, fs, PERM, PRIV, STATUS, yaml } from 'hydrooj';
 import jsesc from 'jsesc';
 import nunjucks from 'nunjucks';
 import path from 'path';
@@ -59,14 +56,18 @@ const replacer = (k, v) => {
 class Nunjucks extends nunjucks.Environment {
   constructor() {
     super(new Loader(), { autoescape: true, trimBlocks: true });
-    this.addFilter('await', async (promise, callback) => {
-      try {
-        const result = await promise;
-        callback(null, result);
-      } catch (error) {
-        callback(error);
-      }
-    }, true);
+    this.addFilter(
+      'await',
+      async (promise, callback) => {
+        try {
+          const result = await promise;
+          callback(null, result);
+        } catch (error) {
+          callback(error);
+        }
+      },
+      true,
+    );
     this.addFilter('json', (self) => (self ? JSON.stringify(self, replacer) : ''));
     this.addFilter('parseYaml', (self) => yaml.load(self));
     this.addFilter('dumpYaml', (self) => yaml.dump(self));
@@ -161,25 +162,33 @@ env.addGlobal('set', (obj, key, val) => {
 env.addGlobal('findSubModule', (prefix) => Object.keys(global.Hydro.ui.template).filter((n) => n.startsWith(prefix)));
 env.addGlobal('templateExists', (name) => !!global.Hydro.ui.template[name]);
 
-const render = (name: string, state: any) => new Promise<string>((resolve, reject) => {
-  env.render(name, {
-    page_name: name.split('.')[0],
-    ...state,
-    formatJudgeTexts: (texts) => texts.map((text) => {
-      if (typeof text === 'string') return text;
-      return state._(text.message).format(...text.params || []) + ((process.env.DEV && text.stack) ? `\n${text.stack}` : '');
-    }).join('\n'),
-    datetimeSpan: (arg0, arg1, arg2) => misc.datetimeSpan(arg0, arg1, arg2, state.handler.user?.timeZone),
-    ctx: state.handler?.ctx,
-    perm: PERM,
-    PRIV,
-    STATUS,
-    UiContext: state.handler?.UiContext || {},
-  }, (err, res) => {
-    if (err) reject(err);
-    else resolve(res);
+const render = (name: string, state: any) =>
+  new Promise<string>((resolve, reject) => {
+    env.render(
+      name,
+      {
+        page_name: name.split('.')[0],
+        ...state,
+        formatJudgeTexts: (texts) =>
+          texts
+            .map((text) => {
+              if (typeof text === 'string') return text;
+              return state._(text.message).format(...(text.params || [])) + (process.env.DEV && text.stack ? `\n${text.stack}` : '');
+            })
+            .join('\n'),
+        datetimeSpan: (arg0, arg1, arg2) => misc.datetimeSpan(arg0, arg1, arg2, state.handler.user?.timeZone),
+        ctx: state.handler?.ctx,
+        perm: PERM,
+        PRIV,
+        STATUS,
+        UiContext: state.handler?.UiContext || {},
+      },
+      (err, res) => {
+        if (err) reject(err);
+        else resolve(res);
+      },
+    );
   });
-});
 
 export async function apply(ctx: Context) {
   ctx.provideModule('render', 'html', render);

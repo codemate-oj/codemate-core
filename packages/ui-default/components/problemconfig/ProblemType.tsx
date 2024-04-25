@@ -1,6 +1,4 @@
-import {
-  Card, Classes, Switch, Tab, Tabs, TabsExpander,
-} from '@blueprintjs/core';
+import { Card, Classes, Switch, Tab, Tabs, TabsExpander } from '@blueprintjs/core';
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { i18n } from 'vj/utils';
@@ -37,12 +35,11 @@ export default function ProblemType() {
           <Tab
             id="default"
             title={i18n('problem_type.default')}
-            panel={(
+            panel={
               <Tabs
                 id="CheckerTypeTabs"
                 selectedTabId={
-                  ['strict', 'default'].includes(checkerType) || !checkerType
-                    ? 'default' : (checkerType !== 'testlib' ? 'other' : 'testlib')
+                  ['strict', 'default'].includes(checkerType) || !checkerType ? 'default' : checkerType !== 'testlib' ? 'other' : 'testlib'
                 }
                 onChange={(value) => {
                   dispatch({ type: 'CONFIG_FORM_UPDATE', key: 'checker_type', value });
@@ -55,7 +52,7 @@ export default function ProblemType() {
                 <Tab
                   id="default"
                   title={i18n('default')}
-                  panel={(
+                  panel={
                     <div className="row">
                       <FormItem columns={12} label="Config">
                         <Switch
@@ -67,12 +64,12 @@ export default function ProblemType() {
                         />
                       </FormItem>
                     </div>
-                  )}
+                  }
                 />
                 <Tab
                   id="testlib"
                   title="testlib"
-                  panel={(
+                  panel={
                     <div className="row">
                       <FormItem columns={6} label="Type">
                         <select
@@ -87,28 +84,32 @@ export default function ProblemType() {
                           <option value="custom">{i18n('Custom')}</option>
                         </select>
                       </FormItem>
-                      {category === 'preset'
-                        ? <FormItem columns={6} label="Checker">
+                      {category === 'preset' ? (
+                        <FormItem columns={6} label="Checker">
                           <select
                             value={checker}
                             onChange={(ev) => dispatch({ type: 'CONFIG_FORM_UPDATE', key: 'checker', value: ev.currentTarget.value })}
                             className="select"
                           >
                             {testlibCheckers.map((c) => (
-                              <option key={c} value={c}>{c}</option>
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
                             ))}
                           </select>
                         </FormItem>
-                        : <FormItem columns={6} label="Checker">
+                      ) : (
+                        <FormItem columns={6} label="Checker">
                           <SingleFileSelect formKey="checker" />
-                        </FormItem>}
+                        </FormItem>
+                      )}
                     </div>
-                  )}
+                  }
                 />
                 <Tab
                   id="other"
                   title="other"
-                  panel={(
+                  panel={
                     <div className="row">
                       <FormItem columns={6} label="Interface">
                         <ManagedSelect options={['syzoj', 'hustoj', 'qduoj', 'lemon']} formKey="checker_type" />
@@ -117,26 +118,26 @@ export default function ProblemType() {
                         <SingleFileSelect formKey="checker" />
                       </FormItem>
                     </div>
-                  )}
+                  }
                 />
               </Tabs>
-            )}
+            }
           />
           <Tab
             id="interactive"
             title={i18n('problem_type.interactive')}
-            panel={(
+            panel={
               <div className="row">
                 <FormItem columns={6} label="Interactor">
                   <SingleFileSelect formKey="interactor" />
                 </FormItem>
               </div>
-            )}
+            }
           />
           <Tab
             id="submit_answer"
             title={i18n('problem_type.submit_answer')}
-            panel={(
+            panel={
               <div className="row">
                 <FormItem columns={6} label="Config" disableLabel>
                   <Switch
@@ -152,17 +153,17 @@ export default function ProblemType() {
                     defaultValue={filename || '#.txt'}
                     placeholder="#.txt"
                     disabled={subType !== 'multi'}
-                    onChange={(ev) => dispatch(({ type: 'CONFIG_FORM_UPDATE', key: 'filename', value: ev.currentTarget.value }))}
+                    onChange={(ev) => dispatch({ type: 'CONFIG_FORM_UPDATE', key: 'filename', value: ev.currentTarget.value })}
                     className="textbox"
                   />
                 </FormItem>
               </div>
-            )}
+            }
           />
           <Tab
             id="objective"
             title={i18n('problem_type.objective')}
-            panel={(<p>{i18n('Unsupported configure this type of problem. Please refer to the documentation.')}</p>)}
+            panel={<p>{i18n('Unsupported configure this type of problem. Please refer to the documentation.')}</p>}
           />
         </Tabs>
       </Card>

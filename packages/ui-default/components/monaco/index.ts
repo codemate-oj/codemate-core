@@ -22,9 +22,7 @@ async function fetchTheme(id: string, label: string) {
   monaco.editor.defineTheme(id, data);
   loaded[id] = true;
 }
-export const loadThemePromise = customOptions.theme
-  ? fetchTheme(customOptions.theme, list[customOptions.theme])
-  : Promise.resolve();
+export const loadThemePromise = customOptions.theme ? fetchTheme(customOptions.theme, list[customOptions.theme]) : Promise.resolve();
 
 // 这破烂 monaco 能不能给个 typings 啊
 // 我翻源码真的很累的好吧
@@ -70,83 +68,94 @@ const pagename = document.documentElement.getAttribute('data-page');
 const isProblemPage = ['problem_create', 'problem_edit'].includes(pagename);
 const isProblemEdit = pagename === 'problem_edit';
 function handlePasteEvent(editor: monaco.editor.IStandaloneCodeEditor) {
-  window.addEventListener('paste', (ev: ClipboardEvent) => {
-    if (!editor.hasTextFocus()) return;
-    const selection = editor.getSelection();
-    const { items } = ev.clipboardData;
-    let wrapper = ['', ''];
-    let ext;
-    const matches = items[0].type.match(/^image\/(png|jpg|jpeg|gif)$/i);
-    if (matches) {
-      wrapper = ['![image](', ')'];
-      [, ext] = matches;
-    } else if (items[0].type === 'application/x-zip-compressed') {
-      wrapper = ['[file](', ')'];
-      ext = 'zip';
-    }
-    if (!ext) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    const filename = `${nanoid()}.${ext}`;
-    const data = new FormData();
-    data.append('filename', filename);
-    data.append('file', items[0].getAsFile());
-    data.append('operation', 'upload_file');
-    if (isProblemEdit) data.append('type', 'additional_file');
-    let range: monaco.Range = null;
-    editor.executeEdits('', [{
-      range: new monaco.Range(selection.endLineNumber, selection.endColumn, selection.endLineNumber, selection.endColumn),
-      text: `![image](${i18n('Preparing Upload...')}) `,
-    }], (inverseOp) => { range = inverseOp[0].range; return null; });
-    editor.setPosition(editor.getSelection().getEndPosition());
+  window.addEventListener(
+    'paste',
+    (ev: ClipboardEvent) => {
+      if (!editor.hasTextFocus()) return;
+      const selection = editor.getSelection();
+      const { items } = ev.clipboardData;
+      let wrapper = ['', ''];
+      let ext;
+      const matches = items[0].type.match(/^image\/(png|jpg|jpeg|gif)$/i);
+      if (matches) {
+        wrapper = ['![image](', ')'];
+        [, ext] = matches;
+      } else if (items[0].type === 'application/x-zip-compressed') {
+        wrapper = ['[file](', ')'];
+        ext = 'zip';
+      }
+      if (!ext) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const filename = `${nanoid()}.${ext}`;
+      const data = new FormData();
+      data.append('filename', filename);
+      data.append('file', items[0].getAsFile());
+      data.append('operation', 'upload_file');
+      if (isProblemEdit) data.append('type', 'additional_file');
+      let range: monaco.Range = null;
+      editor.executeEdits(
+        '',
+        [
+          {
+            range: new monaco.Range(selection.endLineNumber, selection.endColumn, selection.endLineNumber, selection.endColumn),
+            text: `![image](${i18n('Preparing Upload...')}) `,
+          },
+        ],
+        (inverseOp) => {
+          range = inverseOp[0].range;
+          return null;
+        },
+      );
+      editor.setPosition(editor.getSelection().getEndPosition());
 
-    function updateText(text: string) {
-      const pos = editor.getSelection();
-      const rangeBefore = range;
-      editor.executeEdits('', [{ range, text: `${wrapper[0]}${text}${wrapper[1]} ` }], (inverseOp) => {
-        range = inverseOp[0].range;
-        if (pos.endLineNumber !== pos.startLineNumber || pos.endLineNumber !== range.endLineNumber) return null;
-        const delta = rangeBefore.endColumn - range.endColumn;
-        editor.setPosition(new monaco.Position(pos.endLineNumber, pos.endColumn - delta));
-        return null;
-      });
-    }
-    let progress = 0;
-    request.postFile(isProblemEdit ? './files' : '/file', data, {
-      xhr() {
-        const xhr = new XMLHttpRequest();
-        xhr.upload.addEventListener('loadstart', () => updateText(i18n('Uploading...')));
-        xhr.upload.addEventListener('progress', (e) => {
-          if (!e.lengthComputable) return;
-          const percentComplete = Math.round((e.loaded / e.total) * 100);
-          if (percentComplete === progress) return;
-          progress = percentComplete;
-          updateText(`${i18n('Uploading...')} ${percentComplete}%`);
-        }, false);
-        return xhr;
-      },
-    })
-      .then(() => updateText(`${isProblemPage ? 'file://' : `/file/${UserContext._id}/`}${filename}`))
-      .catch((e) => {
-        console.error(e);
-        updateText(`${i18n('Upload Failed')}: ${e.message}`);
-      });
-  }, { capture: true });
+      function updateText(text: string) {
+        const pos = editor.getSelection();
+        const rangeBefore = range;
+        editor.executeEdits('', [{ range, text: `${wrapper[0]}${text}${wrapper[1]} ` }], (inverseOp) => {
+          range = inverseOp[0].range;
+          if (pos.endLineNumber !== pos.startLineNumber || pos.endLineNumber !== range.endLineNumber) return null;
+          const delta = rangeBefore.endColumn - range.endColumn;
+          editor.setPosition(new monaco.Position(pos.endLineNumber, pos.endColumn - delta));
+          return null;
+        });
+      }
+      let progress = 0;
+      request
+        .postFile(isProblemEdit ? './files' : '/file', data, {
+          xhr() {
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('loadstart', () => updateText(i18n('Uploading...')));
+            xhr.upload.addEventListener(
+              'progress',
+              (e) => {
+                if (!e.lengthComputable) return;
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                if (percentComplete === progress) return;
+                progress = percentComplete;
+                updateText(`${i18n('Uploading...')} ${percentComplete}%`);
+              },
+              false,
+            );
+            return xhr;
+          },
+        })
+        .then(() => updateText(`${isProblemPage ? 'file://' : `/file/${UserContext._id}/`}${filename}`))
+        .catch((e) => {
+          console.error(e);
+          updateText(`${i18n('Upload Failed')}: ${e.message}`);
+        });
+    },
+    { capture: true },
+  );
 }
 
-export function registerAction(
-  editor: monaco.editor.IStandaloneCodeEditor,
-  model: monaco.editor.IModel,
-  element?,
-) {
+export function registerAction(editor: monaco.editor.IStandaloneCodeEditor, model: monaco.editor.IModel, element?) {
   if (element) {
     editor.addAction({
       id: 'hydro.submitForm',
       label: 'Submit',
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-        monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter,
-      ],
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter],
       run: () => {
         const form = $(element).closest('form');
         if (form.find('[data-default-submit]').length) form.find('[data-default-submit]').click();

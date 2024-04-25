@@ -8,9 +8,7 @@ import { getConfig } from './config';
 import { FormatError, SystemError } from './error';
 import { Logger } from './log';
 import client from './sandbox/client';
-import {
-    Cmd, CopyIn, CopyInFile, SandboxResult, SandboxStatus,
-} from './sandbox/interface';
+import { Cmd, CopyIn, CopyInFile, SandboxResult, SandboxStatus } from './sandbox/interface';
 import { cmd, parseMemoryMB } from './utils';
 
 const argv = cac().parse();
@@ -73,9 +71,7 @@ function parseArgs(execute: string): string[] {
 }
 
 function proc(params: Parameter): Cmd {
-    const copyOut = supportOptional
-        ? params.copyOut
-        : (params.copyOut || []).map((i) => (i.endsWith('?') ? i.substring(0, i.length - 1) : i));
+    const copyOut = supportOptional ? params.copyOut : (params.copyOut || []).map((i) => (i.endsWith('?') ? i.substring(0, i.length - 1) : i));
     const stdioLimit = parseMemoryMB(getConfig('stdio_size'));
     const stdioSize = params.cacheStdoutAndStderr ? stdioLimit : 4;
     const copyOutCached = [...(params.copyOutCached || [])];
@@ -92,7 +88,10 @@ function proc(params: Parameter): Cmd {
     return {
         args: parseArgs(params.execute || ''),
         env: [
-            ...getConfig('env').split('\n').map((i) => i.trim()).filter((i) => !i.startsWith('#')),
+            ...getConfig('env')
+                .split('\n')
+                .map((i) => i.trim())
+                .filter((i) => !i.startsWith('#')),
             ...Object.entries(params.env || {}).map(([k, v]) => `${k}=${v.replace(/=/g, '\\=')}`),
         ],
         files: [
@@ -150,23 +149,23 @@ export async function runPiped(execute0: Parameter, execute1: Parameter): Promis
     const size = parseMemoryMB(getConfig('stdio_size'));
     try {
         const body = {
-            cmd: [
-                proc(execute0),
-                proc(execute1),
+            cmd: [proc(execute0), proc(execute1)],
+            pipeMapping: [
+                {
+                    in: { index: 0, fd: 1 },
+                    out: { index: 1, fd: 0 },
+                    proxy: true,
+                    name: 'stdout',
+                    max: 1024 * 1024 * size,
+                },
+                {
+                    in: { index: 1, fd: 1 },
+                    out: { index: 0, fd: 0 },
+                    proxy: true,
+                    name: 'stdout',
+                    max: 1024 * 1024 * size,
+                },
             ],
-            pipeMapping: [{
-                in: { index: 0, fd: 1 },
-                out: { index: 1, fd: 0 },
-                proxy: true,
-                name: 'stdout',
-                max: 1024 * 1024 * size,
-            }, {
-                in: { index: 1, fd: 1 },
-                out: { index: 0, fd: 0 },
-                proxy: true,
-                name: 'stdout',
-                max: 1024 * 1024 * size,
-            }],
         };
         body.cmd[0].files[0] = null;
         body.cmd[0].files[1] = null;
@@ -181,7 +180,7 @@ export async function runPiped(execute0: Parameter, execute1: Parameter): Promis
         console.error(e);
         throw new SystemError('Sandbox Error', [e]);
     }
-    return await Promise.all(res.map((r) => adaptResult(r, {}))) as [SandboxAdaptedResult, SandboxAdaptedResult];
+    return (await Promise.all(res.map((r) => adaptResult(r, {})))) as [SandboxAdaptedResult, SandboxAdaptedResult];
 }
 
 export async function del(fileId: string) {

@@ -6,9 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { ActionDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  i18n, pjax, request, tpl,
-} from 'vj/utils';
+import { i18n, pjax, request, tpl } from 'vj/utils';
 
 function Balloon({ tdoc, val }) {
   const [color, setColor] = React.useState('');
@@ -22,7 +20,9 @@ function Balloon({ tdoc, val }) {
               <th>{i18n('Problem')}</th>
               <th>{i18n('Color')}</th>
               <th>{i18n('Name')}</th>
-              <th><span className="icon icon-wrench"></span></th>
+              <th>
+                <span className="icon icon-wrench"></span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -31,16 +31,24 @@ function Balloon({ tdoc, val }) {
               return (
                 <tr key={pid}>
                   <td>
-                    {now === pid
-                      ? (<b>{String.fromCharCode(65 + tdoc.pids.indexOf(+pid))}</b>)
-                      : (<span>{String.fromCharCode(65 + tdoc.pids.indexOf(+pid))}</span>)}
+                    {now === pid ? (
+                      <b>{String.fromCharCode(65 + tdoc.pids.indexOf(+pid))}</b>
+                    ) : (
+                      <span>{String.fromCharCode(65 + tdoc.pids.indexOf(+pid))}</span>
+                    )}
                   </td>
                   <td>
                     <HexColorInput
-                      className='textbox'
+                      className="textbox"
                       color={c}
-                      onFocus={() => { setNow(pid); setColor(c); }}
-                      onChange={(e) => { val[+pid].color = e; setColor(e); }}
+                      onFocus={() => {
+                        setNow(pid);
+                        setColor(c);
+                      }}
+                      onChange={(e) => {
+                        val[+pid].color = e;
+                        setColor(e);
+                      }}
                     />
                   </td>
                   <td>
@@ -48,13 +56,29 @@ function Balloon({ tdoc, val }) {
                       type="text"
                       className="textbox"
                       defaultValue={name}
-                      onFocus={() => { setNow(pid); setColor(c); }}
-                      onChange={(e) => { val[+pid].name = e.target.value; }}
+                      onFocus={() => {
+                        setNow(pid);
+                        setColor(c);
+                      }}
+                      onChange={(e) => {
+                        val[+pid].name = e.target.value;
+                      }}
                     />
                   </td>
-                  {tdoc.pids.indexOf(+pid) === 0 && <td rowSpan={0}>
-                    {now && <HexColorPicker color={color} onChange={(e) => { val[+now].color = e; setColor(e); }} style={{ padding: '1rem' }} />}
-                  </td>}
+                  {tdoc.pids.indexOf(+pid) === 0 && (
+                    <td rowSpan={0}>
+                      {now && (
+                        <HexColorPicker
+                          color={color}
+                          onChange={(e) => {
+                            val[+now].color = e;
+                            setColor(e);
+                          }}
+                          style={{ padding: '1rem' }}
+                        />
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -79,9 +103,7 @@ async function handleSetColor(tdoc) {
       </div></div>
       <div id="balloon"></div>`,
   }).open();
-  createRoot($('#balloon').get(0)).render(
-    <Balloon tdoc={tdoc} val={val} />,
-  );
+  createRoot($('#balloon').get(0)).render(<Balloon tdoc={tdoc} val={val} />);
   const action = await promise;
   if (action !== 'ok') return;
   Notification.info(i18n('Updating...'));

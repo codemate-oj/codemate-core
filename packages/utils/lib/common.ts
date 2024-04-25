@@ -82,13 +82,7 @@ Date.prototype.format = function formatDate(fmt = '%Y-%m-%d %H:%M:%S') {
     if (M < 10) M = `0${M}`;
     let S = this.getSeconds();
     if (S < 10) S = `0${S}`;
-    return fmt
-        .replace('%Y', this.getFullYear())
-        .replace('%m', m)
-        .replace('%d', d)
-        .replace('%H', H)
-        .replace('%M', M)
-        .replace('%S', S);
+    return fmt.replace('%Y', this.getFullYear()).replace('%m', m).replace('%d', d).replace('%H', H).replace('%M', M).replace('%S', S);
 };
 
 Math.sum = function sum(...args) {
@@ -147,7 +141,7 @@ function deepen(modifyString: (source: string) => string) {
     };
 }
 
-export function noop() { }
+export function noop() {}
 
 export const camelCase = deepen((source) => source.replace(/[_-][a-z]/g, (str) => str.slice(1).toUpperCase()));
 export const paramCase = deepen((source) => source.replace(/_/g, '-').replace(/(?<!^)[A-Z]/g, (str) => `-${str.toLowerCase()}`));
@@ -200,7 +194,7 @@ export function size(s: number, base = 1) {
 }
 
 export type StringKeys<O> = {
-    [K in keyof O]: string extends O[K] ? K : never
+    [K in keyof O]: string extends O[K] ? K : never;
 }[keyof O];
 const fSortR = /[^\d]+|\d+/g;
 export function sortFiles(files: string[]): string[];
@@ -227,7 +221,7 @@ export function sortFiles(files: Record<string, any>[] | string[], key = '_id') 
             }
             return weightA ? 1 : -1;
         });
-    return result.map((x) => (isString ? x.name : (delete x._weights && x)));
+    return result.map((x) => (isString ? x.name : delete x._weights && x));
 }
 
 interface MatchRule {
@@ -267,20 +261,14 @@ const SubtaskMatcher: MatchRule[] = [
     },
     {
         regex: /^([^\d]*)([0-9]+)([-_])([0-9]+)\.in$/,
-        output: [
-            (a) => `${a[1]}${a[2]}${a[3]}${a[4]}.out`,
-            (a) => `${a[1]}${a[2]}${a[3]}${a[4]}.ans`,
-        ],
+        output: [(a) => `${a[1]}${a[2]}${a[3]}${a[4]}.out`, (a) => `${a[1]}${a[2]}${a[3]}${a[4]}.ans`],
         id: (a) => +a[4],
         subtask: (a) => +a[2],
         preferredScorerType: () => 'min',
     },
     {
         regex: /^(([0-9]+)[-_](?:.*))\.in$/,
-        output: [
-            (a) => `${a[1]}.out`,
-            (a) => `${a[1]}.ans`,
-        ],
+        output: [(a) => `${a[1]}.out`, (a) => `${a[1]}.ans`],
         id: (a) => +a[2],
         subtask: () => 1,
         preferredScorerType: () => 'sum',
@@ -361,22 +349,20 @@ export interface NormalizedSubtask extends Required<ParsedSubtask> {
 }
 
 export function normalizeSubtasks(
-    subtasks: ParsedSubtask[], checkFile: (name: string, errMsg: string) => string,
-    time: number | string = '1000ms', memory: number | string = '256m', ignoreParseError = false,
-    timeRate = 1, memoryRate = 1,
+    subtasks: ParsedSubtask[],
+    checkFile: (name: string, errMsg: string) => string,
+    time: number | string = '1000ms',
+    memory: number | string = '256m',
+    ignoreParseError = false,
+    timeRate = 1,
+    memoryRate = 1,
 ): NormalizedSubtask[] {
-    subtasks.sort((a, b) => (a.id - b.id));
-    const subtaskScore = getScore(
-        Math.max(100 - Math.sum(subtasks.map((i) => i.score || 0)), 0),
-        subtasks.filter((i) => !i.score).length,
-    );
+    subtasks.sort((a, b) => a.id - b.id);
+    const subtaskScore = getScore(Math.max(100 - Math.sum(subtasks.map((i) => i.score || 0)), 0), subtasks.filter((i) => !i.score).length);
     return subtasks.map((s, id) => {
-        s.cases.sort((a, b) => (a.id - b.id));
-        const score = s.score || subtaskScore.next().value as number;
-        const caseScore = getScore(
-            Math.max(score - Math.sum(s.cases.map((i) => i.score || 0)), 0),
-            s.cases.filter((i) => !i.score).length,
-        );
+        s.cases.sort((a, b) => a.id - b.id);
+        const score = s.score || (subtaskScore.next().value as number);
+        const caseScore = getScore(Math.max(score - Math.sum(s.cases.map((i) => i.score || 0)), 0), s.cases.filter((i) => !i.score).length);
         return {
             id: id + 1,
             type: 'min',
@@ -388,7 +374,7 @@ export function normalizeSubtasks(
             cases: s.cases.map((c, index) => ({
                 id: index + 1,
                 ...c,
-                score: c.score || (s.type === 'sum' ? caseScore.next().value as number : score),
+                score: c.score || (s.type === 'sum' ? (caseScore.next().value as number) : score),
                 time: parseTimeMS(c.time || s.time || time, !ignoreParseError) * timeRate,
                 memory: parseMemoryMB(c.memory || s.memory || memory, !ignoreParseError) * memoryRate,
                 input: c.input ? checkFile(c.input, 'Cannot find input file {0}.') : '/dev/null',

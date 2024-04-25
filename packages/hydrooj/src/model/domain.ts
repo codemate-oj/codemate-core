@@ -14,8 +14,8 @@ const collUser = db.collection('domain.user');
 const cache = new LRUCache<string, DomainDoc>({ max: 1000, ttl: 300 * 1000 });
 
 interface DomainUserArg {
-    _id: number,
-    priv: number,
+    _id: number;
+    priv: number;
 }
 
 class DomainModel {
@@ -110,11 +110,7 @@ class DomainModel {
     @ArgMethod
     static async inc(domainId: string, field: NumberKeys<DomainDoc>, n: number): Promise<number | null> {
         domainId = domainId.toLowerCase();
-        const res = await coll.findOneAndUpdate(
-            { _id: domainId },
-            { $inc: { [field]: n } as any },
-            { returnDocument: 'after' },
-        );
+        const res = await coll.findOneAndUpdate({ _id: domainId }, { $inc: { [field]: n } as any }, { returnDocument: 'after' });
         bus.broadcast('domain/delete-cache', domainId);
         return res.value?.[field];
     }
@@ -122,7 +118,13 @@ class DomainModel {
     @ArgMethod
     static async getList(domainIds: string[]) {
         const r: Record<string, DomainDoc | null> = {};
-        await Promise.all(domainIds.map((domainId) => DomainModel.get(domainId).then((ddoc) => { r[domainId] = ddoc; })));
+        await Promise.all(
+            domainIds.map((domainId) =>
+                DomainModel.get(domainId).then((ddoc) => {
+                    r[domainId] = ddoc;
+                }),
+            ),
+        );
         return r;
     }
 
@@ -140,7 +142,7 @@ class DomainModel {
             return res;
         }
         const affected = await UserModel.getMulti({ _id: { $in: uid } })
-            .project<{ _id: number, mail: string, uname: string }>({ mail: 1, uname: 1 })
+            .project<{ _id: number; mail: string; uname: string }>({ mail: 1, uname: 1 })
             .toArray();
         for (const udoc of affected) deleteUserCache(udoc);
         return await collUser.updateMany({ domainId, uid: { $in: uid } }, { $set: { role } }, { upsert: true });
@@ -165,11 +167,13 @@ class DomainModel {
             }
         }
         if (count) {
-            await Promise.all(roles.map(async (role) => {
-                if (['default', 'guest'].includes(role._id)) return role;
-                role.count = await DomainModel.countUser(ddoc._id, role._id);
-                return role;
-            }));
+            await Promise.all(
+                roles.map(async (role) => {
+                    if (['default', 'guest'].includes(role._id)) return role;
+                    role.count = await DomainModel.countUser(ddoc._id, role._id);
+                    return role;
+                }),
+            );
         }
         return roles;
     }
@@ -209,9 +213,7 @@ class DomainModel {
         if (udoc.priv & PRIV.PRIV_MANAGE_ALL_DOMAIN) dudoc.role = 'root';
         dudoc.role ||= 'default';
         const ddoc = await DomainModel.get(domainId);
-        dudoc.perm = ddoc?.roles[dudoc.role]
-            ? BigInt(ddoc?.roles[dudoc.role])
-            : BUILTIN_ROLES[dudoc.role];
+        dudoc.perm = ddoc?.roles[dudoc.role] ? BigInt(ddoc?.roles[dudoc.role]) : BUILTIN_ROLES[dudoc.role];
         return dudoc;
     }
 
@@ -269,9 +271,12 @@ class DomainModel {
     @ArgMethod
     static async getPrefixSearch(prefix: string, limit: number = 50) {
         const $regex = new RegExp(escapeRegExp(prefix), 'mi');
-        const ddocs = await coll.find({
-            $or: [{ _id: { $regex } }, { name: { $regex } }],
-        }).limit(limit).toArray();
+        const ddocs = await coll
+            .find({
+                $or: [{ _id: { $regex } }, { name: { $regex } }],
+            })
+            .limit(limit)
+            .toArray();
         return ddocs;
     }
 
@@ -284,17 +289,16 @@ class DomainModel {
     }
 }
 
-bus.on('ready', () => Promise.all([
-    db.ensureIndexes(
-        coll,
-        { key: { lower: 1 }, name: 'lower', unique: true },
-    ),
-    db.ensureIndexes(
-        collUser,
-        { key: { domainId: 1, uid: 1 }, name: 'uid', unique: true },
-        { key: { domainId: 1, rp: -1, uid: 1 }, name: 'rp', sparse: true },
-    ),
-]));
+bus.on('ready', () =>
+    Promise.all([
+        db.ensureIndexes(coll, { key: { lower: 1 }, name: 'lower', unique: true }),
+        db.ensureIndexes(
+            collUser,
+            { key: { domainId: 1, uid: 1 }, name: 'uid', unique: true },
+            { key: { domainId: 1, rp: -1, uid: 1 }, name: 'rp', sparse: true },
+        ),
+    ]),
+);
 bus.on('domain/delete-cache', async (domainId: string) => {
     const ddoc = await DomainModel.get(domainId);
     if (!ddoc) return;

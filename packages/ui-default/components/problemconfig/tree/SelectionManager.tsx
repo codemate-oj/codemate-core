@@ -20,13 +20,19 @@ function collide(rect1: any, rect2: any): boolean {
 
 export function SelectionManager(props: SelectionManagerProps) {
   const { subtaskIds, subtaskId } = props;
-  const cases = useSelector((state: RootState) => (subtaskId === -1
-    ? state.config.__cases || []
-    : state.config.subtasks.find((i) => i.id === subtaskId).cases || []));
+  const cases = useSelector((state: RootState) =>
+    subtaskId === -1 ? state.config.__cases || [] : state.config.subtasks.find((i) => i.id === subtaskId).cases || [],
+  );
   // Don't need to trigger a re-render for this property change
-  const pos = React.useMemo(() => ({
-    x: 0, y: 0, endX: 0, endY: 0,
-  }), []);
+  const pos = React.useMemo(
+    () => ({
+      x: 0,
+      y: 0,
+      endX: 0,
+      endY: 0,
+    }),
+    [],
+  );
   const [start, setStart] = React.useState(0);
   const [end, setEnd] = React.useState(0);
   React.useEffect(() => {
@@ -34,36 +40,43 @@ export function SelectionManager(props: SelectionManagerProps) {
     setEnd(0);
   }, [JSON.stringify(cases)]);
 
-  const handleMouseDown = React.useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    pos.x = event.pageX;
-    pos.y = event.pageY;
-    // Check if clicking on a selected testcase
-    const selected = Array.from($('[data-selected="true"]'));
-    for (const el of selected) {
-      if (collide(el, { ...pos, width: 1, height: 1 })) return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    document.body.addEventListener('mousemove', handleMouseMove);
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    document.body.addEventListener('mouseup', handleMouseUp);
-    $('body').css('cursor', 'crosshair')
-      .append('<div id="divSelectArea" style="position:absolute;background-color:#e073d4;"></div>');
-    $('#divSelectArea').css({
-      top: event.pageY,
-      left: event.pageX,
-      zIndex: 9999999,
-    }).fadeTo(12, 0.2);
-  }, [JSON.stringify(cases)]);
-  const handleMouseMove = React.useCallback((event) => {
-    pos.endX = event.pageX;
-    pos.endY = event.pageY;
-    $('#divSelectArea').css({
-      top: Math.min(event.pageY, pos.y),
-      left: Math.min(event.pageX, pos.x),
-      height: Math.abs(event.pageY - pos.y),
-      width: Math.abs(event.pageX - pos.x),
-    });
-  }, [JSON.stringify(cases)]);
+  const handleMouseDown = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+      pos.x = event.pageX;
+      pos.y = event.pageY;
+      // Check if clicking on a selected testcase
+      const selected = Array.from($('[data-selected="true"]'));
+      for (const el of selected) {
+        if (collide(el, { ...pos, width: 1, height: 1 })) return;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      document.body.addEventListener('mousemove', handleMouseMove);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      document.body.addEventListener('mouseup', handleMouseUp);
+      $('body').css('cursor', 'crosshair').append('<div id="divSelectArea" style="position:absolute;background-color:#e073d4;"></div>');
+      $('#divSelectArea')
+        .css({
+          top: event.pageY,
+          left: event.pageX,
+          zIndex: 9999999,
+        })
+        .fadeTo(12, 0.2);
+    },
+    [JSON.stringify(cases)],
+  );
+  const handleMouseMove = React.useCallback(
+    (event) => {
+      pos.endX = event.pageX;
+      pos.endY = event.pageY;
+      $('#divSelectArea').css({
+        top: Math.min(event.pageY, pos.y),
+        left: Math.min(event.pageX, pos.x),
+        height: Math.abs(event.pageY - pos.y),
+        width: Math.abs(event.pageX - pos.x),
+      });
+    },
+    [JSON.stringify(cases)],
+  );
   const handleMouseUp = React.useCallback(() => {
     document.body.removeEventListener('mousemove', handleMouseMove);
     document.body.removeEventListener('mouseup', handleMouseUp);
@@ -85,21 +98,22 @@ export function SelectionManager(props: SelectionManagerProps) {
 
   return (
     <>
-      {end > start && cases.slice(0, start).map((c, id) => (
-        <TestcaseGroup
-          subtaskId={subtaskId}
-          cases={[c]}
-          key={`${c.input}@${id}`}
-          selected={false}
-          subtaskIds={subtaskIds}
-          index={id}
-          onMouseDown={handleMouseDown}
-          onClick={() => {
-            setStart(id);
-            setEnd(id + 1);
-          }}
-        />
-      ))}
+      {end > start &&
+        cases.slice(0, start).map((c, id) => (
+          <TestcaseGroup
+            subtaskId={subtaskId}
+            cases={[c]}
+            key={`${c.input}@${id}`}
+            selected={false}
+            subtaskIds={subtaskIds}
+            index={id}
+            onMouseDown={handleMouseDown}
+            onClick={() => {
+              setStart(id);
+              setEnd(id + 1);
+            }}
+          />
+        ))}
       {start <= end && (
         <TestcaseGroup
           cases={cases.slice(start, end)}
@@ -110,21 +124,22 @@ export function SelectionManager(props: SelectionManagerProps) {
           index={start}
         />
       )}
-      {end < cases.length && cases.slice(end).map((c, id) => (
-        <TestcaseGroup
-          subtaskId={subtaskId}
-          cases={[c]}
-          key={`${c.input}@${id}`}
-          subtaskIds={subtaskIds}
-          selected={false}
-          onMouseDown={handleMouseDown}
-          index={id + end}
-          onClick={() => {
-            setStart(id + end);
-            setEnd(id + end + 1);
-          }}
-        />
-      ))}
+      {end < cases.length &&
+        cases.slice(end).map((c, id) => (
+          <TestcaseGroup
+            subtaskId={subtaskId}
+            cases={[c]}
+            key={`${c.input}@${id}`}
+            subtaskIds={subtaskIds}
+            selected={false}
+            onMouseDown={handleMouseDown}
+            index={id + end}
+            onClick={() => {
+              setStart(id + end);
+              setEnd(id + end + 1);
+            }}
+          />
+        ))}
     </>
   );
 }

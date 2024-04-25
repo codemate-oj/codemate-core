@@ -10,7 +10,7 @@ const pm2: typeof import('pm2') | null = (() => {
             const info = fs.readlinkSync(path.resolve(dir, 'pm2'));
             const p = path.resolve(dir, info);
             return require(`${p.split('.bin')[0]}pm2`); // eslint-disable-line import/no-dynamic-require
-        } catch (e) { }
+        } catch (e) {}
     }
     return null;
 })();

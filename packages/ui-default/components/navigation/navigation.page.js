@@ -7,9 +7,7 @@ import { i18n, request, tpl } from 'vj/utils';
 
 function handleNavLogoutClick(ev) {
   const $logoutLink = $(ev.currentTarget);
-  request
-    .post($logoutLink.attr('href'))
-    .then(() => window.location.reload());
+  request.post($logoutLink.attr('href')).then(() => window.location.reload());
   ev.preventDefault();
 }
 
@@ -82,44 +80,51 @@ function handleNavbar() {
   if (!$menu.children().length) $trigger.hide();
 }
 
-const navigationPage = new AutoloadPage('navigationPage', () => {
-  if (!document.getElementById('panel') || !document.getElementById('menu')) return;
+const navigationPage = new AutoloadPage(
+  'navigationPage',
+  () => {
+    if (!document.getElementById('panel') || !document.getElementById('menu')) return;
 
-  $(document).on('click', '[name="nav_logout"]', handleNavLogoutClick);
-  $(document).on('click', '[name="nav_switch_account"]', handlerSwitchAccount);
+    $(document).on('click', '[name="nav_logout"]', handleNavLogoutClick);
+    $(document).on('click', '[name="nav_switch_account"]', handlerSwitchAccount);
 
-  const slideout = new Slideout({
-    panel: document.getElementById('panel'),
-    menu: document.getElementById('menu'),
-    padding: 200,
-    tolerance: 70,
-    side: 'right',
-  });
-  [['beforeopen', 'add'], ['beforeclose', 'remove']].forEach(([event, action]) => {
-    slideout.on(event, () => $('.header__hamburger .hamburger')[`${action}Class`]('is-active'));
-  });
+    const slideout = new Slideout({
+      panel: document.getElementById('panel'),
+      menu: document.getElementById('menu'),
+      padding: 200,
+      tolerance: 70,
+      side: 'right',
+    });
+    [
+      ['beforeopen', 'add'],
+      ['beforeclose', 'remove'],
+    ].forEach(([event, action]) => {
+      slideout.on(event, () => $('.header__hamburger .hamburger')[`${action}Class`]('is-active'));
+    });
 
-  const $slideoutOverlay = $('.slideout-overlay');
-  $slideoutOverlay.on('click', () => slideout.close());
-  slideout.on('beforeopen', () => $slideoutOverlay.show());
-  slideout.on('beforeclose', () => $slideoutOverlay.hide());
+    const $slideoutOverlay = $('.slideout-overlay');
+    $slideoutOverlay.on('click', () => slideout.close());
+    slideout.on('beforeopen', () => $slideoutOverlay.show());
+    slideout.on('beforeclose', () => $slideoutOverlay.hide());
 
-  $('.header__hamburger').on('click', () => slideout.toggle());
-  $(window).on('resize', handleNavbar);
-  setInterval(handleNavbar, 3000);
-}, () => {
-  $trigger = $(tpl`
+    $('.header__hamburger').on('click', () => slideout.toggle());
+    $(window).on('resize', handleNavbar);
+    setInterval(handleNavbar, 3000);
+  },
+  () => {
+    $trigger = $(tpl`
     <li class="nav__list-item nav_more" data-dropdown-pos="bottom right" data-dropdown-target="#menu-nav-more">
       <a href="javascript:;" class="nav__item">
         ${i18n('More')} <span class="icon icon-expand_more"></span>
       </a>
     </li>
   `);
-  $menu = $('<ol class="dropdown-target menu menu_more" id="menu-nav-more">');
-  $trigger.append($menu);
-  $('.nav__list--main').append($trigger);
+    $menu = $('<ol class="dropdown-target menu menu_more" id="menu-nav-more">');
+    $trigger.append($menu);
+    $('.nav__list--main').append($trigger);
 
-  handleNavbar();
-});
+    handleNavbar();
+  },
+);
 
 export default navigationPage;

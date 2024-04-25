@@ -1,9 +1,27 @@
 import type { JSONSchema7 } from 'json-schema';
 
 export const testlibCheckers = [
-  'acmp', 'caseicmp', 'casencmp', 'casewcmp', 'dcmp', 'fcmp', 'hcmp',
-  'icmp', 'lcmp', 'ncmp', 'nyesno', 'pointscmp', 'pointsinfo',
-  'rcmp', 'rcmp4', 'rcmp6', 'rcmp9', 'rncmp', 'uncmp', 'wcmp', 'yesno',
+  'acmp',
+  'caseicmp',
+  'casencmp',
+  'casewcmp',
+  'dcmp',
+  'fcmp',
+  'hcmp',
+  'icmp',
+  'lcmp',
+  'ncmp',
+  'nyesno',
+  'pointscmp',
+  'pointsinfo',
+  'rcmp',
+  'rcmp4',
+  'rcmp6',
+  'rcmp9',
+  'rncmp',
+  'uncmp',
+  'wcmp',
+  'yesno',
 ];
 
 const problemConfigSchema: JSONSchema7 = {

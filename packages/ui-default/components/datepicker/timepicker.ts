@@ -30,16 +30,15 @@ export default class TimePicker {
     39: 1, // Right
     37: -1, // Left
     go(timeChange) {
-      this.set(
-        'highlight',
-        this.item.highlight.pick + timeChange * this.item.interval,
-        { interval: timeChange * this.item.interval },
-      );
+      this.set('highlight', this.item.highlight.pick + timeChange * this.item.interval, { interval: timeChange * this.item.interval });
       this.render();
     },
   };
 
-  constructor(picker, public settings) {
+  constructor(
+    picker,
+    public settings,
+  ) {
     const clock = this;
     const elementValue = picker.$node[0].value;
     const elementDataValue = picker.$node.data('value');
@@ -54,32 +53,44 @@ export default class TimePicker {
       });
 
     picker
-      .on('render', () => {
-        const $pickerHolder = picker.$root.children();
-        const $viewset = $pickerHolder.find(`.${settings.klass.viewset}`);
-        const vendors = function (prop) {
-          return ['webkit', 'moz', 'ms', 'o', ''].map((vendor) => (vendor ? `-${vendor}-` : '') + prop);
-        };
-        const animations = function ($el, state) {
-          vendors('transform').map((prop) => {
-            $el.css(prop, state);
-          });
-          vendors('transition').map((prop) => {
-            $el.css(prop, state);
-          });
-        };
-        if ($viewset.length) {
-          animations($pickerHolder, 'none');
-          $pickerHolder[0].scrollTop = ~~$viewset.position().top - ($viewset[0].clientHeight * 2);
-          animations($pickerHolder, '');
-        }
-      }, 1)
-      .on('open', () => {
-        picker.$root.find('button').attr('disabled', false);
-      }, 1)
-      .on('close', () => {
-        picker.$root.find('button').attr('disabled', true);
-      }, 1);
+      .on(
+        'render',
+        () => {
+          const $pickerHolder = picker.$root.children();
+          const $viewset = $pickerHolder.find(`.${settings.klass.viewset}`);
+          const vendors = function (prop) {
+            return ['webkit', 'moz', 'ms', 'o', ''].map((vendor) => (vendor ? `-${vendor}-` : '') + prop);
+          };
+          const animations = function ($el, state) {
+            vendors('transform').map((prop) => {
+              $el.css(prop, state);
+            });
+            vendors('transition').map((prop) => {
+              $el.css(prop, state);
+            });
+          };
+          if ($viewset.length) {
+            animations($pickerHolder, 'none');
+            $pickerHolder[0].scrollTop = ~~$viewset.position().top - $viewset[0].clientHeight * 2;
+            animations($pickerHolder, '');
+          }
+        },
+        1,
+      )
+      .on(
+        'open',
+        () => {
+          picker.$root.find('button').attr('disabled', false);
+        },
+        1,
+      )
+      .on(
+        'close',
+        () => {
+          picker.$root.find('button').attr('disabled', true);
+        },
+        1,
+      );
   }
 
   set(type, value?, options?) {
@@ -95,10 +106,13 @@ export default class TimePicker {
     // Otherwise go through the queue of methods, and invoke the functions.
     // Update this as the time unit, and set the final value as this item.
     // * In the case of `enable`, keep the queue but set `disable` instead.
-    clockItem[type] = clock.queue[type].split(' ').map((method) => {
-      value = clock[method](type, value, options);
-      return value;
-    }).pop();
+    clockItem[type] = clock.queue[type]
+      .split(' ')
+      .map((method) => {
+        value = clock[method](type, value, options);
+        return value;
+      })
+      .pop();
 
     if (type == 'select') {
       clock.set('highlight', clockItem.select, options);
@@ -123,11 +137,16 @@ export default class TimePicker {
     },
 
     // Create an array by splitting the formatting string passed.
-    toArray(formatString) { return formatString.split(/(h{1,2}|H{1,2}|i|a|A|!.)/g); },
+    toArray(formatString) {
+      return formatString.split(/(h{1,2}|H{1,2}|i|a|A|!.)/g);
+    },
     // Format an object into a string using the formatting options.
     toString(formatString, itemObject) {
       const clock = this;
-      return clock.formats.toArray(formatString).map((label) => _.trigger(clock.formats[label], clock, [0, itemObject]) || label.replace(/^!/, '')).join('');
+      return clock.formats
+        .toArray(formatString)
+        .map((label) => _.trigger(clock.formats[label], clock, [0, itemObject]) || label.replace(/^!/, ''))
+        .join('');
     },
   };
 
@@ -140,7 +159,7 @@ export default class TimePicker {
     if ($.isPlainObject(value) && _.isInteger(value.pick)) {
       value = value.pick;
     } else if ($.isArray(value)) {
-      value = +value[0] * MINUTES_IN_HOUR + (+value[1]);
+      value = +value[0] * MINUTES_IN_HOUR + +value[1];
     }
     if (type == 'max' && value < clock.item.min.pick) {
       value += MINUTES_IN_DAY;
@@ -151,15 +170,15 @@ export default class TimePicker {
     value = clock.normalize(type, value, options);
     return {
       hour: ~~(HOURS_IN_DAY + value / MINUTES_IN_HOUR) % HOURS_IN_DAY,
-      mins: (MINUTES_IN_HOUR + value % MINUTES_IN_HOUR) % MINUTES_IN_HOUR,
+      mins: (MINUTES_IN_HOUR + (value % MINUTES_IN_HOUR)) % MINUTES_IN_HOUR,
       time: (MINUTES_IN_DAY + value) % MINUTES_IN_DAY,
       pick: value % MINUTES_IN_DAY,
     };
   }
 
-  normalize(type, value/* , options */) {
+  normalize(type, value /* , options */) {
     const { interval } = this.item;
-    const minTime = this.item.min && this.item.min.pick || 0;
+    const minTime = (this.item.min && this.item.min.pick) || 0;
     value -= type == 'min' ? 0 : (value - minTime) % interval;
     return value;
   }
@@ -186,7 +205,10 @@ export default class TimePicker {
   }; // TimePicker.prototype.scope
 
   parse(type, value, options) {
-    let hour; let minutes; let item; let parseValue;
+    let hour;
+    let minutes;
+    let item;
+    let parseValue;
     const clock = this;
     const parsingObject = {};
     if (!value || typeof value !== 'string') return value;
@@ -199,9 +221,7 @@ export default class TimePicker {
     clock.formats.toArray(options.format).map((label) => {
       let substring;
       const formattingLabel = clock.formats[label];
-      const formatLength = formattingLabel
-        ? _.trigger(formattingLabel, clock, [value, parsingObject])
-        : label.replace(/^!/, '').length;
+      const formatLength = formattingLabel ? _.trigger(formattingLabel, clock, [value, parsingObject]) : label.replace(/^!/, '').length;
       if (formattingLabel) {
         substring = value.substr(0, formatLength);
         parsingObject[label] = substring.match(/^\d+$/) ? +substring : substring;
@@ -254,7 +274,7 @@ export default class TimePicker {
               }
 
               return klasses.join(' ');
-            }([settings.klass.listItem])),
+            })([settings.klass.listItem]),
             `data-pick=${loopedTime.pick} ${_.ariaAttr({
               role: 'option',
               label: formattedTime,
@@ -264,18 +284,18 @@ export default class TimePicker {
             })}`,
           ];
         },
-      })
-      + _.node(
-        'li',
+      }) +
         _.node(
-          'button',
-          settings.clear,
-          settings.klass.buttonClear,
-          `type=button data-clear=1${isOpen ? '' : ' disabled'} ${_.ariaAttr({ controls: clock.$node[0].id })}`,
+          'li',
+          _.node(
+            'button',
+            settings.clear,
+            settings.klass.buttonClear,
+            `type=button data-clear=1${isOpen ? '' : ' disabled'} ${_.ariaAttr({ controls: clock.$node[0].id })}`,
+          ),
+          '',
+          _.ariaAttr({ role: 'presentation' }),
         ),
-        '',
-        _.ariaAttr({ role: 'presentation' }),
-      ),
       settings.klass.list,
       _.ariaAttr({ role: 'listbox', controls: clock.$node[0].id }),
     );
@@ -302,5 +322,5 @@ export default class TimePicker {
         buttonClear: `${prefix}__button--clear`,
       },
     };
-  }(Picker.klasses().picker));
+  })(Picker.klasses().picker);
 }

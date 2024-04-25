@@ -4,9 +4,7 @@ import superagent from 'superagent';
 import WebSocket from 'ws';
 import { pipeRequest } from '@hydrooj/utils';
 import { getConfig } from '../config';
-import {
-    Input, Output, Resize, SandboxRequest, SandboxResult, SandboxVersion,
-} from './interface';
+import { Input, Output, Resize, SandboxRequest, SandboxResult, SandboxVersion } from './interface';
 
 let url;
 
@@ -26,7 +24,7 @@ export class Stream extends EventEmitter {
                 case 2:
                     this.emit('output', {
                         index: (data[1] >> 4) & 0xf,
-                        fd: (data[1]) & 0xf,
+                        fd: data[1] & 0xf,
                         content: data.subarray(2),
                     });
                     break;
@@ -81,38 +79,47 @@ export class Stream extends EventEmitter {
     }
 }
 
-const client = new Proxy({
-    run(req: SandboxRequest): Promise<SandboxResult[]> {
-        return superagent.post(`${url}/run`).send(req).then((res) => res.body);
+const client = new Proxy(
+    {
+        run(req: SandboxRequest): Promise<SandboxResult[]> {
+            return superagent
+                .post(`${url}/run`)
+                .send(req)
+                .then((res) => res.body);
+        },
+        getFile(fileId: string, dest?: string): Promise<Buffer> {
+            if (dest) {
+                const w = fs.createWriteStream(dest);
+                return pipeRequest(superagent.get(`${url}/file/${fileId}`), w, 60000, fileId) as any;
+            }
+            return superagent
+                .get(`${url}/file/${fileId}`)
+                .responseType('arraybuffer')
+                .then((res) => res.body);
+        },
+        deleteFile(fileId: string): Promise<void> {
+            return superagent.delete(`${url}/file/${fileId}`).then((res) => res.body);
+        },
+        listFiles(): Promise<Record<string, string>> {
+            return superagent.get(`${url}/file`).then((res) => res.body);
+        },
+        version(): Promise<SandboxVersion> {
+            return superagent.get(`${url}/version`).then((res) => res.body);
+        },
+        config(): Promise<Record<string, any>> {
+            return superagent.get(`${url}/config`).then((res) => res.body);
+        },
+        stream(req: SandboxRequest): Stream {
+            return new Stream(url, req);
+        },
     },
-    getFile(fileId: string, dest?: string): Promise<Buffer> {
-        if (dest) {
-            const w = fs.createWriteStream(dest);
-            return pipeRequest(superagent.get(`${url}/file/${fileId}`), w, 60000, fileId) as any;
-        }
-        return superagent.get(`${url}/file/${fileId}`).responseType('arraybuffer').then((res) => res.body);
+    {
+        get(self, key) {
+            url = getConfig('sandbox_host');
+            if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+            return self[key];
+        },
     },
-    deleteFile(fileId: string): Promise<void> {
-        return superagent.delete(`${url}/file/${fileId}`).then((res) => res.body);
-    },
-    listFiles(): Promise<Record<string, string>> {
-        return superagent.get(`${url}/file`).then((res) => res.body);
-    },
-    version(): Promise<SandboxVersion> {
-        return superagent.get(`${url}/version`).then((res) => res.body);
-    },
-    config(): Promise<Record<string, any>> {
-        return superagent.get(`${url}/config`).then((res) => res.body);
-    },
-    stream(req: SandboxRequest): Stream {
-        return new Stream(url, req);
-    },
-}, {
-    get(self, key) {
-        url = getConfig('sandbox_host');
-        if (url.endsWith('/')) url = url.substring(0, url.length - 1);
-        return self[key];
-    },
-});
+);
 
 export default client;

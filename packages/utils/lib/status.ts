@@ -81,19 +81,9 @@ export const STATUS_CODES: Record<STATUS, string> = {
 
 export function getScoreColor(score: number | string): string {
     if (score === null || score === undefined || !Number.isFinite(+score)) return '#000000';
-    return [
-        '#ff4f4f',
-        '#ff694f',
-        '#f8603a',
-        '#fc8354',
-        '#fa9231',
-        '#f7bb3b',
-        '#ecdb44',
-        '#e2ec52',
-        '#b0d628',
-        '#93b127',
-        '#25ad40',
-    ][Math.floor((Number(score) || 0) / 10)];
+    return ['#ff4f4f', '#ff694f', '#f8603a', '#fc8354', '#fa9231', '#f7bb3b', '#ecdb44', '#e2ec52', '#b0d628', '#93b127', '#25ad40'][
+        Math.floor((Number(score) || 0) / 10)
+    ];
 }
 
 export const USER_GENDER_MALE = 0;

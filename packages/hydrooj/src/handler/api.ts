@@ -34,7 +34,9 @@ interface Context extends ApiHandler {
 }
 
 export function registerResolver(
-    typeName: string, key: string, value: string,
+    typeName: string,
+    key: string,
+    value: string,
     func: (args: any, ctx: Context, info: any) => any,
     description?: string,
 ) {

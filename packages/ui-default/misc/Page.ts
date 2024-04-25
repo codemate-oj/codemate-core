@@ -8,7 +8,10 @@ export class Page {
   constructor(pagename: string | string[], afterLoading?: Callback, beforeLoading?: Callback);
   constructor(pagename: string | string[], moduleName: string, afterLoading?: Callback, beforeLoading?: Callback);
   constructor(pagename: string | string[], ...args: any[]);
-  constructor(public name: string | string[], ...args: any[]) {
+  constructor(
+    public name: string | string[],
+    ...args: any[]
+  ) {
     if (typeof args[0] === 'string') {
       [this.moduleName, this.afterLoading, this.beforeLoading] = args;
     } else {
@@ -34,7 +37,7 @@ export class Page {
   }
 }
 
-export class NamedPage extends Page { }
+export class NamedPage extends Page {}
 
 export class AutoloadPage extends Page {
   constructor(pagename: string | string[], afterLoading?: Callback, beforeLoading?: Callback);

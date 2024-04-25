@@ -62,16 +62,8 @@ async function post(ctx: Context) {
         const db = Database.db(url.database);
         const coll = db.collection<any>('system');
         await Promise.all([
-            coll.updateOne(
-                { _id: 'server.url' },
-                { $set: { value: ctx.request.href } },
-                { upsert: true },
-            ),
-            coll.updateOne(
-                { _id: 'server.port' },
-                { $set: { value: parseInt(listenPort as string, 10) } },
-                { upsert: true },
-            ),
+            coll.updateOne({ _id: 'server.url' }, { $set: { value: ctx.request.href } }, { upsert: true }),
+            coll.updateOne({ _id: 'server.port' }, { $set: { value: parseInt(listenPort as string, 10) } }, { upsert: true }),
         ]);
         fs.ensureDirSync(path.resolve(os.homedir(), '.hydro'));
         fs.writeFileSync(path.resolve(os.homedir(), '.hydro', 'config.json'), JSON.stringify({ url: ctx.request.body.url }));
@@ -86,12 +78,10 @@ export function load() {
     const app = new Koa();
     const server = http.createServer(app.callback());
     app.keys = ['Hydro'];
-    app
-        .use(Body())
-        .use((ctx) => {
-            if (ctx.request.method.toLowerCase() === 'post') return post(ctx);
-            return get(ctx);
-        });
+    app.use(Body()).use((ctx) => {
+        if (ctx.request.method.toLowerCase() === 'post') return post(ctx);
+        return get(ctx);
+    });
     server.listen(listenPort);
     logger.success('Server listening at: %d', listenPort);
     return new Promise((r) => {

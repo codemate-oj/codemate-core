@@ -2,16 +2,19 @@ import { dirname, resolve } from 'path';
 import { PassThrough, Readable } from 'stream';
 import { URL } from 'url';
 import {
-    CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand,
-    GetObjectCommand, HeadObjectCommand, PutObjectCommand, PutObjectCommandInput, S3Client,
+    CopyObjectCommand,
+    DeleteObjectCommand,
+    DeleteObjectsCommand,
+    GetObjectCommand,
+    HeadObjectCommand,
+    PutObjectCommand,
+    PutObjectCommandInput,
+    S3Client,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import {
-    copyFile, createReadStream, createWriteStream, ensureDir,
-    existsSync, remove, stat, writeFile,
-} from 'fs-extra';
+import { copyFile, createReadStream, createWriteStream, ensureDir, existsSync, remove, stat, writeFile } from 'fs-extra';
 import { lookup } from 'mime-types';
 import { Logger } from '../logger';
 import { builtinConfig } from '../settings';
@@ -30,9 +33,7 @@ function parseAlternativeEndpointUrl(endpoint: string): (originalUrl: string) =>
     return (originalUrl) => {
         const parsedOriginUrl = new URL(originalUrl);
         const replaced = new URL(parsedOriginUrl.pathname.slice(1) + parsedOriginUrl.search + parsedOriginUrl.hash, url).toString();
-        return pathonly
-            ? replaced.replace('https://localhost', '')
-            : replaced;
+        return pathonly ? replaced.replace('https://localhost', '') : replaced;
     };
 }
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
@@ -70,16 +71,7 @@ class RemoteStorageService {
     async start() {
         try {
             logger.info('Starting storage service with endpoint:', builtinConfig.file.endPoint);
-            const {
-                endPoint,
-                accessKey,
-                secretKey,
-                bucket,
-                region,
-                pathStyle,
-                endPointForUser,
-                endPointForJudge,
-            } = builtinConfig.file;
+            const { endPoint, accessKey, secretKey, bucket, region, pathStyle, endPointForUser, endPointForJudge } = builtinConfig.file;
             this.bucket = bucket;
             const base = {
                 region,
@@ -147,10 +139,12 @@ class RemoteStorageService {
 
     async get(target: string, path?: string) {
         target = convertPath(target);
-        const res = await this.client.send(new GetObjectCommand({
-            Bucket: this.bucket,
-            Key: target,
-        }));
+        const res = await this.client.send(
+            new GetObjectCommand({
+                Bucket: this.bucket,
+                Key: target,
+            }),
+        );
         if (!res.Body) throw new Error();
         const stream = res.Body as Readable;
         if (path) {
@@ -174,25 +168,31 @@ class RemoteStorageService {
         if (typeof target === 'string') target = convertPath(target);
         else target = target.map(convertPath);
         if (typeof target === 'string') {
-            return await this.client.send(new DeleteObjectCommand({
-                Bucket: this.bucket,
-                Key: target,
-            }));
+            return await this.client.send(
+                new DeleteObjectCommand({
+                    Bucket: this.bucket,
+                    Key: target,
+                }),
+            );
         }
-        return await this.client.send(new DeleteObjectsCommand({
-            Bucket: this.bucket,
-            Delete: {
-                Objects: target.map((i) => ({ Key: i })),
-            },
-        }));
+        return await this.client.send(
+            new DeleteObjectsCommand({
+                Bucket: this.bucket,
+                Delete: {
+                    Objects: target.map((i) => ({ Key: i })),
+                },
+            }),
+        );
     }
 
     async getMeta(target: string) {
         target = convertPath(target);
-        const res = await this.client.send(new HeadObjectCommand({
-            Bucket: this.bucket,
-            Key: target,
-        }));
+        const res = await this.client.send(
+            new HeadObjectCommand({
+                Bucket: this.bucket,
+                Key: target,
+            }),
+        );
         return {
             size: res.ContentLength,
             lastModified: res.LastModified,
@@ -204,13 +204,17 @@ class RemoteStorageService {
     async signDownloadLink(target: string, filename?: string, noExpire = false, useAlternativeEndpointFor?: 'user' | 'judge'): Promise<string> {
         target = convertPath(target);
         const client = this.alternatives[useAlternativeEndpointFor] || this.client;
-        const url = await getSignedUrl(client, new GetObjectCommand({
-            Bucket: this.bucket,
-            Key: target,
-            ResponseContentDisposition: filename ? `attachment; filename="${encodeRFC5987ValueChars(filename)}"` : '',
-        }), {
-            expiresIn: noExpire ? 24 * 60 * 60 * 7 : 10 * 60,
-        });
+        const url = await getSignedUrl(
+            client,
+            new GetObjectCommand({
+                Bucket: this.bucket,
+                Key: target,
+                ResponseContentDisposition: filename ? `attachment; filename="${encodeRFC5987ValueChars(filename)}"` : '',
+            }),
+            {
+                expiresIn: noExpire ? 24 * 60 * 60 * 7 : 10 * 60,
+            },
+        );
         // using something like /fs/
         if (useAlternativeEndpointFor && this.replaceWithAlternativeUrlFor[useAlternativeEndpointFor]) {
             return this.replaceWithAlternativeUrlFor[useAlternativeEndpointFor](url);
@@ -223,12 +227,7 @@ class RemoteStorageService {
         const { url, fields } = await createPresignedPost(client, {
             Bucket: this.bucket,
             Key: target,
-            Conditions: [
-                { $key: target },
-                { acl: 'public-read' },
-                { bucket: this.bucket },
-                ['content-length-range', size - 50, size + 50],
-            ],
+            Conditions: [{ $key: target }, { acl: 'public-read' }, { bucket: this.bucket }, ['content-length-range', size - 50, size + 50]],
             Fields: {
                 acl: 'public-read',
             },
@@ -246,11 +245,13 @@ class RemoteStorageService {
     async copy(src: string, target: string) {
         src = convertPath(src);
         target = convertPath(target);
-        return await this.client.send(new CopyObjectCommand({
-            Bucket: this.bucket,
-            Key: target,
-            CopySource: src,
-        }));
+        return await this.client.send(
+            new CopyObjectCommand({
+                Bucket: this.bucket,
+                Key: target,
+                CopySource: src,
+            }),
+        );
     }
 
     async status() {
@@ -308,9 +309,7 @@ class LocalStorageService {
             etag: Buffer.from(target).toString('base64'),
             lastModified: file.mtime,
             metaData: {
-                'Content-Type': (target.endsWith('.ans') || target.endsWith('.out'))
-                    ? 'text/plain'
-                    : lookup(target) || 'application/octet-stream',
+                'Content-Type': target.endsWith('.ans') || target.endsWith('.out') ? 'text/plain' : lookup(target) || 'application/octet-stream',
                 'Content-Length': file.size,
             },
         };
@@ -358,8 +357,11 @@ export async function loadStorageService() {
     await service.start();
 }
 
-export default new Proxy({}, {
-    get(self, key) {
-        return service[key];
+export default new Proxy(
+    {},
+    {
+        get(self, key) {
+            return service[key];
+        },
     },
-}) as RemoteStorageService | LocalStorageService;
+) as RemoteStorageService | LocalStorageService;

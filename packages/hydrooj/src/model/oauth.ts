@@ -10,11 +10,7 @@ class OauthModel {
     }
 
     static async set(_id: string, uid: number) {
-        const res = await coll.findOneAndUpdate(
-            { _id },
-            { $set: { uid } },
-            { upsert: true, returnDocument: 'after' },
-        );
+        const res = await coll.findOneAndUpdate({ _id }, { $set: { uid } }, { upsert: true, returnDocument: 'after' });
         return res.value?.uid;
     }
 }

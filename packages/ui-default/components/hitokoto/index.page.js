@@ -5,7 +5,8 @@ import { i18n, request, tpl } from 'vj/utils';
 export default new NamedPage('homepage', () => {
   function getHitokoto($containers) {
     $containers.get().forEach((container) => {
-      request.get('https://v1.hitokoto.cn?c=a&c=b&c=c&c=d&c=e&c=f')
+      request
+        .get('https://v1.hitokoto.cn?c=a&c=b&c=c&c=d&c=e&c=f')
         .then((hitokoto) => {
           const dom = $(tpl`<p>${hitokoto.hitokoto}</p>`);
           dom.appendTo(container);

@@ -15,10 +15,12 @@ export default async function loadReactRedux<S, A extends Action = UnknownAction
 
   if (process.env.NODE_ENV !== 'production') {
     const { createLogger } = await import('redux-logger');
-    reduxMiddlewares.push(createLogger({
-      collapsed: true,
-      duration: true,
-    }));
+    reduxMiddlewares.push(
+      createLogger({
+        collapsed: true,
+        duration: true,
+      }),
+    );
   }
 
   const store = createStore(storeReducer, applyMiddleware(...reduxMiddlewares));

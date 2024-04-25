@@ -22,7 +22,7 @@ export * from './lazyload';
 import { load } from './lazyload';
 
 export default load;
-export interface EventMap { }
+export interface EventMap {}
 
 import AutoComplete from './components/autocomplete';
 import CustomSelectAutoComplete from './components/autocomplete/CustomSelectAutoComplete';
@@ -30,9 +30,7 @@ import DomainSelectAutoComplete from './components/autocomplete/DomainSelectAuto
 import ProblemSelectAutoComplete from './components/autocomplete/ProblemSelectAutoComplete';
 import UserSelectAutoComplete from './components/autocomplete/UserSelectAutoComplete';
 
-export {
-  AutoComplete, UserSelectAutoComplete, ProblemSelectAutoComplete, DomainSelectAutoComplete, CustomSelectAutoComplete,
-};
+export { AutoComplete, UserSelectAutoComplete, ProblemSelectAutoComplete, DomainSelectAutoComplete, CustomSelectAutoComplete };
 export function addPage(page: import('./misc/Page').Page | (() => Promise<void> | void)) {
   window.Hydro.extraPages.push(page);
 }
@@ -56,7 +54,11 @@ import ReactDOM from 'react-dom/client';
 import * as redux from 'react-redux';
 
 const modules = {
-  _, $, React, redux, ReactDOM,
+  _,
+  $,
+  React,
+  redux,
+  ReactDOM,
 };
 
 declare global {

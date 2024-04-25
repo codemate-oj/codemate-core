@@ -3,9 +3,7 @@ import './utils';
 
 import path from 'path';
 import cac from 'cac';
-import {
-    Counter, folderSize, fs, size,
-} from '@hydrooj/utils';
+import { Counter, folderSize, fs, size } from '@hydrooj/utils';
 import { getConfig } from './config';
 import { Logger } from './log';
 
@@ -55,7 +53,9 @@ export = async function main() {
             }
         }
         logger.info('Done! %d items deleted, %s freed.', cnt, size(totalSize));
-        const top10 = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const top10 = Object.entries(map)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
         for (const [domain, s] of top10) {
             logger.info('  %s: %s', domain, size(s));
         }

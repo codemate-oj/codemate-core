@@ -4,9 +4,7 @@ import { pick } from 'lodash';
 import moment from 'moment-timezone';
 import { ObjectId } from 'mongodb';
 import { sortFiles, Time } from '@hydrooj/utils/lib/utils';
-import {
-    ContestNotFoundError, FileLimitExceededError, FileUploadError, HomeworkNotLiveError, NotAssignedError, ValidationError,
-} from '../error';
+import { ContestNotFoundError, FileLimitExceededError, FileUploadError, HomeworkNotLiveError, NotAssignedError, ValidationError } from '../error';
 import { PenaltyRules, Tdoc } from '../interface';
 import { PERM } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -17,9 +15,7 @@ import record from '../model/record';
 import storage from '../model/storage';
 import * as system from '../model/system';
 import user from '../model/user';
-import {
-    Handler, param, post, Types,
-} from '../service/server';
+import { Handler, param, post, Types } from '../service/server';
 import { ContestCodeHandler, ContestScoreboardHandler } from './contest';
 
 const validatePenaltyRules = (input: string) => yaml.load(input);
@@ -29,25 +25,26 @@ class HomeworkMainHandler extends Handler {
     @param('group', Types.Name, true)
     @param('page', Types.PositiveInt, true)
     async get(domainId: string, group = '', page = 1) {
-        const groups = (await user.listGroup(domainId, this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK) ? undefined : this.user._id))
-            .map((i) => i.name);
+        const groups = (await user.listGroup(domainId, this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK) ? undefined : this.user._id)).map(
+            (i) => i.name,
+        );
         if (group && !groups.includes(group)) throw new NotAssignedError(group);
-        const cursor = contest.getMulti(domainId, {
-            rule: 'homework',
-            ...this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK) && !group
-                ? {}
-                : {
-                    $or: [
-                        { maintainer: this.user._id },
-                        { owner: this.user._id },
-                        { assign: { $in: groups } },
-                        { assign: { $size: 0 } },
-                    ],
-                },
-            ...group ? { assign: { $in: [group] } } : {},
-        }).sort({
-            penaltySince: -1, endAt: -1, beginAt: -1, _id: -1,
-        });
+        const cursor = contest
+            .getMulti(domainId, {
+                rule: 'homework',
+                ...(this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK) && !group
+                    ? {}
+                    : {
+                          $or: [{ maintainer: this.user._id }, { owner: this.user._id }, { assign: { $in: groups } }, { assign: { $size: 0 } }],
+                      }),
+                ...(group ? { assign: { $in: [group] } } : {}),
+            })
+            .sort({
+                penaltySince: -1,
+                endAt: -1,
+                beginAt: -1,
+                _id: -1,
+            });
         const [tdocs, tpcount] = await this.paginate(cursor, page, 'contest');
         const calendar = [];
         for (const tdoc of tdocs) {
@@ -61,7 +58,13 @@ class HomeworkMainHandler extends Handler {
         const qs = group ? `group=${group}` : '';
         const groupsFilter = groups.filter((i) => !Number.isSafeInteger(+i));
         this.response.body = {
-            tdocs, calendar, tpcount, page, qs, groups: groupsFilter, group,
+            tdocs,
+            calendar,
+            tpcount,
+            page,
+            qs,
+            groups: groupsFilter,
+            group,
         };
         this.response.template = 'homework_main.html';
     }
@@ -82,10 +85,7 @@ class HomeworkDetailHandler extends Handler {
     @param('tid', Types.ObjectId)
     @param('page', Types.PositiveInt, true)
     async get(domainId: string, tid: ObjectId, page = 1) {
-        const [tdoc, tsdoc] = await Promise.all([
-            contest.get(domainId, tid),
-            contest.getStatus(domainId, tid, this.user._id),
-        ]);
+        const [tdoc, tsdoc] = await Promise.all([contest.get(domainId, tid), contest.getStatus(domainId, tid, this.user._id)]);
         if (tdoc.rule !== 'homework') throw new ContestNotFoundError(domainId, tid);
         // discussion
         const [ddocs, dpcount, dcount] = await this.paginate(
@@ -98,16 +98,23 @@ class HomeworkDetailHandler extends Handler {
         const udict = await user.getList(domainId, uids);
         this.response.template = 'homework_detail.html';
         this.response.body = {
-            tdoc, tsdoc, udict, ddocs, page, dpcount, dcount,
+            tdoc,
+            tsdoc,
+            udict,
+            ddocs,
+            page,
+            dpcount,
+            dcount,
         };
         this.response.body.tdoc.content = this.response.body.tdoc.content
             .replace(/\(file:\/\//g, `(./${tdoc.docId}/file/`)
             .replace(/="file:\/\//g, `="./${tdoc.docId}/file/`);
         if (
-            (contest.isNotStarted(tdoc) || (!tsdoc?.attend && !contest.isDone(tdoc)))
-            && !this.user.own(tdoc)
-            && !this.user.hasPerm(PERM.PERM_VIEW_HOMEWORK_HIDDEN_SCOREBOARD)
-        ) return;
+            (contest.isNotStarted(tdoc) || (!tsdoc?.attend && !contest.isDone(tdoc))) &&
+            !this.user.own(tdoc) &&
+            !this.user.hasPerm(PERM.PERM_VIEW_HOMEWORK_HIDDEN_SCOREBOARD)
+        )
+            return;
         const pdict = await problem.getList(domainId, tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
         const psdict = {};
         let rdict = {};
@@ -147,11 +154,7 @@ class HomeworkEditHandler extends Handler {
         if (!tid) this.checkPerm(PERM.PERM_CREATE_HOMEWORK);
         else if (!this.user.own(tdoc)) this.checkPerm(PERM.PERM_EDIT_HOMEWORK);
         else this.checkPerm(PERM.PERM_EDIT_HOMEWORK_SELF);
-        const extensionDays = tid
-            ? Math.round(
-                (tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100),
-            ) / 100
-            : 1;
+        const extensionDays = tid ? Math.round((tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100)) / 100 : 1;
         const beginAt = tid
             ? moment(tdoc.beginAt).tz(this.user.timeZone)
             : moment().add(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
@@ -186,12 +189,26 @@ class HomeworkEditHandler extends Handler {
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
     async postUpdate(
-        domainId: string, tid: ObjectId, beginAtDate: string, beginAtTime: string,
-        penaltySinceDate: string, penaltySinceTime: string, extensionDays: number,
-        penaltyRules: PenaltyRules, title: string, content: string, _pids: string, rated = false,
-        maintainer: number[] = [], assign: string[] = [],
+        domainId: string,
+        tid: ObjectId,
+        beginAtDate: string,
+        beginAtTime: string,
+        penaltySinceDate: string,
+        penaltySinceTime: string,
+        extensionDays: number,
+        penaltyRules: PenaltyRules,
+        title: string,
+        content: string,
+        _pids: string,
+        rated = false,
+        maintainer: number[] = [],
+        assign: string[] = [],
     ) {
-        const pids = _pids.replace(/，/g, ',').split(',').map((i) => +i).filter((i) => i);
+        const pids = _pids
+            .replace(/，/g, ',')
+            .split(',')
+            .map((i) => +i)
+            .filter((i) => i);
         const tdoc = tid ? await contest.get(domainId, tid) : null;
         if (!tid) this.checkPerm(PERM.PERM_CREATE_HOMEWORK);
         else if (!this.user.own(tdoc)) this.checkPerm(PERM.PERM_EDIT_HOMEWORK);
@@ -205,9 +222,11 @@ class HomeworkEditHandler extends Handler {
         if (penaltySince.isAfter(endAt)) throw new ValidationError('extensionDays');
         await problem.getList(domainId, pids, this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id, true);
         if (!tid) {
-            tid = await contest.add(domainId, title, content, this.user._id,
-                'homework', beginAt.toDate(), endAt.toDate(), pids, rated,
-                { penaltySince: penaltySince.toDate(), penaltyRules, assign });
+            tid = await contest.add(domainId, title, content, this.user._id, 'homework', beginAt.toDate(), endAt.toDate(), pids, rated, {
+                penaltySince: penaltySince.toDate(),
+                penaltyRules,
+                assign,
+            });
         } else {
             await contest.edit(domainId, tid, {
                 title,
@@ -221,10 +240,12 @@ class HomeworkEditHandler extends Handler {
                 maintainer,
                 assign,
             });
-            if (tdoc.beginAt !== beginAt.toDate()
-                || tdoc.endAt !== endAt.toDate()
-                || tdoc.penaltySince !== penaltySince.toDate()
-                || tdoc.pids.sort().join(' ') !== pids.sort().join(' ')) {
+            if (
+                tdoc.beginAt !== beginAt.toDate() ||
+                tdoc.endAt !== endAt.toDate() ||
+                tdoc.penaltySince !== penaltySince.toDate() ||
+                tdoc.pids.sort().join(' ') !== pids.sort().join(' ')
+            ) {
                 await contest.recalcStatus(domainId, tdoc.docId);
             }
         }
@@ -294,7 +315,10 @@ export class HomeworkFilesHandler extends Handler {
     @post('files', Types.ArrayOf(Types.Filename))
     async postDeleteFiles(domainId: string, tid: ObjectId, files: string[]) {
         await Promise.all([
-            storage.del(files.map((t) => `contest/${domainId}/${tid}/${t}`), this.user._id),
+            storage.del(
+                files.map((t) => `contest/${domainId}/${tid}/${t}`),
+                this.user._id,
+            ),
             contest.edit(domainId, tid, { files: this.tdoc.files.filter((i) => !files.includes(i.name)) }),
         ]);
         this.back();
@@ -313,9 +337,7 @@ export class HomeworkFileDownloadHandler extends Handler {
             target,
             size: file?.size || 0,
         });
-        this.response.redirect = await storage.signDownloadLink(
-            target, noDisposition ? undefined : filename, false, 'user',
-        );
+        this.response.redirect = await storage.signDownloadLink(target, noDisposition ? undefined : filename, false, 'user');
     }
 }
 
@@ -325,8 +347,10 @@ export async function apply(ctx) {
     ctx.Route('homework_detail', '/homework/:tid', HomeworkDetailHandler, PERM.PERM_VIEW_HOMEWORK);
     ctx.Route('homework_scoreboard', '/homework/:tid/scoreboard', ContestScoreboardHandler, PERM.PERM_VIEW_HOMEWORK_SCOREBOARD);
     ctx.Route(
-        'homework_scoreboard_download', '/homework/:tid/scoreboard/download/:ext',
-        ContestScoreboardHandler, PERM.PERM_VIEW_HOMEWORK_SCOREBOARD,
+        'homework_scoreboard_download',
+        '/homework/:tid/scoreboard/download/:ext',
+        ContestScoreboardHandler,
+        PERM.PERM_VIEW_HOMEWORK_SCOREBOARD,
     );
     ctx.Route('homework_code', '/homework/:tid/code', ContestCodeHandler, PERM.PERM_VIEW_HOMEWORK);
     ctx.Route('homework_edit', '/homework/:tid/edit', HomeworkEditHandler);

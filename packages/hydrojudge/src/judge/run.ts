@@ -23,9 +23,7 @@ export const judge = async (ctx: JudgeTask) => {
         },
         1,
     );
-    const {
-        code, signalled, time, memory,
-    } = res;
+    const { code, signalled, time, memory } = res;
     let { status } = res;
     const message: string[] = [];
     if (time > parseTimeMS(ctx.config.time || '1s')) {

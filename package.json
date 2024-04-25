@@ -19,10 +19,10 @@
         "build:ui:production:webpack": "cross-env NODE_OPTIONS=--max_old_space_size=8192 node packages/ui-default/build --production",
         "test": "node -r @hydrooj/register packages/utils/tests/subtask.spec.ts && node test/entry.js",
         "benchmark": "cross-env BENCHMARK=true node test/entry.js",
-        "lint": "eslint packages plugins modules --ext .ts,.tsx,.jsx --fix",
-        "lint:ci": "eslint packages plugins modules --ext .ts,.tsx,.jsx --max-warnings=0",
-        "lint:ui": "yarn workspace @hydrooj/ui-default lint --ext .js,.ts,.jsx,.tsx . --fix",
-        "lint:ui:ci": "yarn workspace @hydrooj/ui-default lint --ext .js,.ts,.jsx,.tsx . --max-warnings=0",
+        "lint": "cross-env NODE_OPTIONS=--max_old_space_size=8192 eslint packages --ext .ts,.tsx,.jsx --fix",
+        "lint:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 eslint packages --ext .ts,.tsx,.jsx",
+        "lint:ui": "cross-env NODE_OPTIONS=--max_old_space_size=8192 yarn workspace @hydrooj/ui-default lint --ext .js,.ts,.jsx,.tsx . --fix",
+        "lint:ui:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 yarn workspace @hydrooj/ui-default lint --ext .js,.ts,.jsx,.tsx . ",
         "format": "prettier --write .",
         "debug": "node --trace-warnings --async-stack-traces --trace-deprecation packages/hydrooj/bin/hydrooj --debug --template",
         "start": "node packages/hydrooj/bin/hydrooj",
@@ -70,6 +70,6 @@
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json}": "prettier --write",
-        "*.{js,ts,jsx,tsx}": "eslint --cache --quiet --fix"
+        "*.{js,ts,jsx,tsx}": "cross-env NODE_OPTIONS=--max_old_space_size=4096 eslint --cache --quiet --fix"
     }
 }

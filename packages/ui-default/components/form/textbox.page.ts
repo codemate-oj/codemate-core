@@ -11,9 +11,7 @@ const textboxPage = new AutoloadPage('textboxPage', () => {
   });
 
   const $focusElement = $(document.activeElement);
-  if ($focusElement.prop('tagName') === 'INPUT'
-    && $focusElement.parent().is('.textbox.material')
-  ) {
+  if ($focusElement.prop('tagName') === 'INPUT' && $focusElement.parent().is('.textbox.material')) {
     $focusElement.focusin();
   }
 });

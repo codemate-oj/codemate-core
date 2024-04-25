@@ -7,9 +7,7 @@ import packageJson from 'package-json';
 import { gt } from 'semver';
 import { getWorkspaces, spawnAsync } from './utils';
 
-const {
-    CI, GITHUB_EVENT_NAME, GITHUB_REF,
-} = process.env;
+const { CI, GITHUB_EVENT_NAME, GITHUB_REF } = process.env;
 
 const tag = GITHUB_REF === 'refs/heads/master' ? 'latest' : GITHUB_REF === 'refs/heads/develop' ? 'dev' : undefined;
 
@@ -29,24 +27,26 @@ if (CI && (!tag || GITHUB_EVENT_NAME !== 'push')) {
 
     let progress = 0;
     spinner.start(`Loading workspaces (0/${folders.length})`);
-    await Promise.all(folders.map(async (name) => {
-        let meta;
-        try {
-            meta = require(`../${name}/package.json`);
-            if (!meta.private && /^[0-9.]+$/.test(meta.version)) {
-                try {
-                    const { version } = await packageJson(meta.name, { version: tag });
-                    if (typeof version === 'string' && gt(meta.version, version)) bumpMap[name] = meta.version;
-                } catch (e) {
-                    if (e.name === 'VersionNotFoundError') bumpMap[name] = meta.version;
-                    else throw e;
+    await Promise.all(
+        folders.map(async (name) => {
+            let meta;
+            try {
+                meta = require(`../${name}/package.json`);
+                if (!meta.private && /^[0-9.]+$/.test(meta.version)) {
+                    try {
+                        const { version } = await packageJson(meta.name, { version: tag });
+                        if (typeof version === 'string' && gt(meta.version, version)) bumpMap[name] = meta.version;
+                    } catch (e) {
+                        if (e.name === 'VersionNotFoundError') bumpMap[name] = meta.version;
+                        else throw e;
+                    }
                 }
+            } catch (e) {
+                console.error(e);
             }
-        } catch (e) {
-            console.error(e);
-        }
-        spinner.text = `Loading workspaces (${++progress}/${folders.length})`;
-    }));
+            spinner.text = `Loading workspaces (${++progress}/${folders.length})`;
+        }),
+    );
     spinner.succeed();
 
     if (Object.keys(bumpMap).length) {
@@ -57,10 +57,7 @@ if (CI && (!tag || GITHUB_EVENT_NAME !== 'push')) {
                 pkg.version += '-dev';
                 writeFileSync(path.resolve(`${name}/package.json`), JSON.stringify(pkg));
             }
-            await spawnAsync(
-                `yarn npm publish --access public --tag ${tag}`,
-                path.resolve(name),
-            );
+            await spawnAsync(`yarn npm publish --access public --tag ${tag}`, path.resolve(name));
         }
     }
     console.log('Release created successfully.');

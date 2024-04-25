@@ -56,7 +56,12 @@ registerResolver(
     'Boolean',
     async (args, ctx) => !!(await GroupModel.insertOrUpdate(ctx.parent._id, args.name, args.uids)).upsertedCount,
 );
-registerResolver('DomainGroup', 'del(name: String!)', 'Boolean', async (args, ctx) => !!(await GroupModel.del(ctx.parent._id, args.name)).deletedCount);
+registerResolver(
+    'DomainGroup',
+    'del(name: String!)',
+    'Boolean',
+    async (args, ctx) => !!(await GroupModel.del(ctx.parent._id, args.name)).deletedCount,
+);
 
 class DomainRankHandler extends Handler {
     @query('page', Types.PositiveInt, true)

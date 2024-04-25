@@ -41,28 +41,30 @@ function Reaction({ payload, ele }) {
     <Popover
       usePortal
       interactionKind="hover"
-      isOpen={finish ? false : (focus ? true : undefined)}
-      content={<div>
-        {chunk(emojiList, elesPerRow).map((line, i) => (
-          <div className="row" key={+i} style={{ paddingBottom: 4, paddingTop: 4 }}>
-            {line.map((emoji) => (
-              <div
-                key={emoji}
-                className={`medium-${12 / elesPerRow} small-${12 / elesPerRow} columns popover-reaction-item`}
-                onClick={() => handleEmojiClick(payload, emoji, ele).then(() => updateFinish(true))}
-              >
-                {emoji}
-              </div>
-            ))}
-          </div>
-        ))}
-        <div className="row" style={{ paddingTop: 7, paddingBottom: 4 }}>
-          <div className="medium-12 columns">
-            <input name="emojiSuggest" onFocus={() => updateFocus(true)} onBlur={() => updateFocus(false)}></input>
+      isOpen={finish ? false : focus ? true : undefined}
+      content={
+        <div>
+          {chunk(emojiList, elesPerRow).map((line, i) => (
+            <div className="row" key={+i} style={{ paddingBottom: 4, paddingTop: 4 }}>
+              {line.map((emoji) => (
+                <div
+                  key={emoji}
+                  className={`medium-${12 / elesPerRow} small-${12 / elesPerRow} columns popover-reaction-item`}
+                  onClick={() => handleEmojiClick(payload, emoji, ele).then(() => updateFinish(true))}
+                >
+                  {emoji}
+                </div>
+              ))}
+            </div>
+          ))}
+          <div className="row" style={{ paddingTop: 7, paddingBottom: 4 }}>
+            <div className="medium-12 columns">
+              <input name="emojiSuggest" onFocus={() => updateFocus(true)} onBlur={() => updateFocus(false)}></input>
+            </div>
           </div>
         </div>
-      </div>
-      }>
+      }
+    >
       <span className="icon icon-emoji"></span>
     </Popover>
   );

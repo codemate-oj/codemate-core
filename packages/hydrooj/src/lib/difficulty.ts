@@ -6,7 +6,7 @@ const _CACHE_INFO = {
 
 function _LOGP(x: number) {
     const sqrtPi = 2.506628274631; // Sqrt[Pi]
-    return (2 * Math.exp(-2.0 * (Math.log(x) ** 2))) / x / sqrtPi;
+    return (2 * Math.exp(-2.0 * Math.log(x) ** 2)) / x / sqrtPi;
 }
 
 function _intergrateEnsureCache(y: number) {

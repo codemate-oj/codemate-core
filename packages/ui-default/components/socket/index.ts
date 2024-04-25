@@ -5,7 +5,11 @@ export default class Sock {
   sock: ReconnectingWebSocket;
   interval: NodeJS.Timeout;
 
-  constructor(public url: string, nocookie = false, shorty = false) {
+  constructor(
+    public url: string,
+    nocookie = false,
+    shorty = false,
+  ) {
     const i = new URL(url, window.location.href);
     if (shorty) {
       i.searchParams.append('shorty', 'on');

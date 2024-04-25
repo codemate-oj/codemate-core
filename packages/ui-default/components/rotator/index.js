@@ -26,15 +26,11 @@ export default class Rotator extends DOMAttachedObject {
     super($dom);
     $dom.addClass('rotator');
     this.value = $dom.text();
-    this.$item = this
-      .createItem(this.value, POS_ORIGINAL)
-      .appendTo($dom.empty());
+    this.$item = this.createItem(this.value, POS_ORIGINAL).appendTo($dom.empty());
   }
 
   createItem(value, initialPosition) {
-    const $el = $('<div>')
-      .text(value)
-      .attr('class', this.getItemClass(initialPosition));
+    const $el = $('<div>').text(value).attr('class', this.getItemClass(initialPosition));
     return $el;
   }
 
@@ -64,9 +60,7 @@ export default class Rotator extends DOMAttachedObject {
     }
     this.animateOutItem(-fromPosition);
     this.value = value;
-    this.$item = this
-      .createItem(value, fromPosition)
-      .appendTo(this.$dom);
+    this.$item = this.createItem(value, fromPosition).appendTo(this.$dom);
     this.animateInItem();
   }
 

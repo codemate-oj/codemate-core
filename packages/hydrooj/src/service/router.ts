@@ -14,7 +14,10 @@ export class WebSocketLayer {
     clients = new Set<WebSocket>();
     regexp: RegExp;
 
-    constructor(path: Parameters<typeof pathToRegexp>[0], public callback?: WebSocketCallback) {
+    constructor(
+        path: Parameters<typeof pathToRegexp>[0],
+        public callback?: WebSocketCallback,
+    ) {
         this.regexp = pathToRegexp(path);
     }
 

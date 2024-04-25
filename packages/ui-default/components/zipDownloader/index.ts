@@ -2,9 +2,7 @@ import { dump } from 'js-yaml';
 import PQueue from 'p-queue';
 import streamsaver from 'streamsaver';
 import Notification from 'vj/components/notification';
-import {
-  api, createZipStream, gql, i18n, pipeStream, request,
-} from 'vj/utils';
+import { api, createZipStream, gql, i18n, pipeStream, request } from 'vj/utils';
 import { ctx } from '../../context';
 
 let isBeforeUnloadTriggeredByLibrary = !window.isSecureContext;
@@ -20,16 +18,18 @@ streamsaver.mitm = `${window.isSecureContext ? '' : 'https://hydro.ac'}/streamsa
 const waitForWritableStream = window.WritableStream
   ? Promise.resolve()
   : import('web-streams-polyfill').then(({ WritableStream }) => {
-    window.WritableStream = WritableStream as any;
-    streamsaver.WritableStream = window.WritableStream;
-  });
+      window.WritableStream = WritableStream as any;
+      streamsaver.WritableStream = window.WritableStream;
+    });
 
 export default async function download(filename, targets) {
   await waitForWritableStream;
   const fileStream = streamsaver.createWriteStream(filename);
   const queue = new PQueue({ concurrency: 5 });
   const abortCallbackReceiver: any = {};
-  function stopDownload() { abortCallbackReceiver.abort?.(); }
+  function stopDownload() {
+    abortCallbackReceiver.abort?.();
+  }
   let i = 0;
   async function downloadFile(target) {
     try {
@@ -88,7 +88,8 @@ export async function downloadProblemSet(pids, name = 'Export') {
   try {
     await ctx.serial('problemset/download', pids, name, targets);
     for (const pid of pids) {
-      const pdoc = await api(gql`
+      const pdoc = await api(
+        gql`
         problem(id: ${+pid}) {
           pid
           owner
@@ -104,7 +105,9 @@ export async function downloadProblemSet(pids, name = 'Export') {
             name
           }
         }
-      `, ['data', 'problem']);
+      `,
+        ['data', 'problem'],
+      );
       targets.push({
         filename: `${pid}/problem.yaml`,
         content: dump({
@@ -131,15 +134,18 @@ export async function downloadProblemSet(pids, name = 'Export') {
           content: pdoc.content,
         });
       }
-      let { links } = await request.post(
-        `/d/${UiContext.domainId}/p/${pid}/files`,
-        { operation: 'get_links', files: (pdoc.data || []).map((i) => i.name), type: 'testdata' },
-      );
+      let { links } = await request.post(`/d/${UiContext.domainId}/p/${pid}/files`, {
+        operation: 'get_links',
+        files: (pdoc.data || []).map((i) => i.name),
+        type: 'testdata',
+      });
       for (const filename of Object.keys(links)) {
         targets.push({ filename: `${pid}/testdata/${filename}`, url: links[filename] });
       }
       ({ links } = await request.post(`/d/${UiContext.domainId}/p/${pid}/files`, {
-        operation: 'get_links', files: (pdoc.additional_file || []).map((i) => i.name), type: 'additional_file',
+        operation: 'get_links',
+        files: (pdoc.additional_file || []).map((i) => i.name),
+        type: 'additional_file',
       }));
       for (const filename of Object.keys(links)) {
         targets.push({ filename: `${pid}/additional_file/${filename}`, url: links[filename] });

@@ -1,6 +1,4 @@
-import {
-    Context, ForbiddenError, PRIV, superagent, SystemModel, ValidationError,
-} from 'hydrooj';
+import { Context, ForbiddenError, PRIV, superagent, SystemModel, ValidationError } from 'hydrooj';
 
 export function apply(ctx: Context) {
     ctx.on('handler/before/UserRegister', async (thisArg) => {
@@ -11,7 +9,8 @@ export function apply(ctx: Context) {
         }
         if (thisArg.user.hasPriv(PRIV.PRIV_UNLIMITED_ACCESS)) return;
         if (!thisArg.args.captcha) throw new ValidationError('captcha');
-        const response = await superagent.post('https://recaptcha.net/recaptcha/api/siteverify')
+        const response = await superagent
+            .post('https://recaptcha.net/recaptcha/api/siteverify')
             .field('secret', SystemModel.get('recaptcha.secret'))
             .field('response', thisArg.args.captcha)
             .field('remoteip', thisArg.request.ip);

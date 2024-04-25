@@ -32,7 +32,9 @@ export class WorkerService extends Service {
         if (res.value) {
             this.ctx.logger.debug('%o', res.value);
             if (res.value.interval) {
-                const executeAfter = moment(res.value.executeAfter).add(...res.value.interval).toDate();
+                const executeAfter = moment(res.value.executeAfter)
+                    .add(...res.value.interval)
+                    .toDate();
                 await this.coll.insertOne({ ...res.value, executeAfter });
             }
             return res.value;

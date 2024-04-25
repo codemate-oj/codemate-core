@@ -31,7 +31,12 @@ export class Consumer {
     running?: any;
     notify: (res?: any) => void;
 
-    constructor(public filter: any, public func: (t: Task) => Promise<void>, public destroyOnError = true, private concurrency = 1) {
+    constructor(
+        public filter: any,
+        public func: (t: Task) => Promise<void>,
+        public destroyOnError = true,
+        private concurrency = 1,
+    ) {
         this.consuming = true;
         this.consume();
         bus.on('app/exit', this.destroy);
@@ -164,10 +169,7 @@ export async function apply(ctx: Context) {
         // eslint-disable-next-line no-constant-condition
         while (true) {
             // eslint-disable-next-line no-await-in-loop
-            const res = await collEvent.findOneAndUpdate(
-                { expire: { $gt: new Date() }, ack: { $nin: [id] } },
-                { $push: { ack: id } },
-            );
+            const res = await collEvent.findOneAndUpdate({ expire: { $gt: new Date() }, ack: { $nin: [id] } }, { $push: { ack: id } });
             if (argv.options.showEvent) logger.info('Event: %o', res.value);
             // eslint-disable-next-line no-await-in-loop
             await (res.value ? handleEvent(res.value) : sleep(500));

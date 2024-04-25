@@ -1,8 +1,6 @@
 import { Dialog } from 'vj/components/dialog/index';
 import Notification from 'vj/components/notification';
-import {
-  delay, i18n, pjax, request,
-} from 'vj/utils';
+import { delay, i18n, pjax, request } from 'vj/utils';
 
 function onBeforeUnload(e) {
   e.returnValue = '';
@@ -47,18 +45,22 @@ export default async function uploadFiles(endpoint = '', files: File[] | FileLis
           const xhr = new XMLHttpRequest();
           xhr.upload.addEventListener('loadstart', () => {
             $fileLabel.text(`[${+i + 1}/${files.length}] ${file.name}`);
-            $fileProgress.width(`${Math.round((+i + 1) / files.length * 100)}%`);
+            $fileProgress.width(`${Math.round(((+i + 1) / files.length) * 100)}%`);
             $uploadLabel.text(i18n('Uploading... ({0}%)', 0));
             $uploadProgress.width(0);
           });
-          xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-              const percentComplete = Math.round((e.loaded / e.total) * 100);
-              if (percentComplete === 100) $uploadLabel.text(i18n('Processing...'));
-              else $uploadLabel.text(i18n('Uploading... ({0}%)', percentComplete));
-              $uploadProgress.width(`${percentComplete}%`);
-            }
-          }, false);
+          xhr.upload.addEventListener(
+            'progress',
+            (e) => {
+              if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                if (percentComplete === 100) $uploadLabel.text(i18n('Processing...'));
+                else $uploadLabel.text(i18n('Uploading... ({0}%)', percentComplete));
+                $uploadProgress.width(`${percentComplete}%`);
+              }
+            },
+            false,
+          );
           return xhr;
         },
       });

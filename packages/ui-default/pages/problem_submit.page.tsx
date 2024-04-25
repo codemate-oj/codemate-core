@@ -28,13 +28,7 @@ const page = new NamedPage(['problem_submit', 'contest_detail_problem_submit', '
     if (window.LANGS[key].pretest?.split('.')[0] === preferences[0].split('.')[0]) preferences.push(key);
   }
 
-  renderLanguageSelect(
-    document.getElementById('codelang-selector'),
-    '[name="lang"]',
-    availableLangs,
-    mainLangs,
-    preferences,
-  );
+  renderLanguageSelect(document.getElementById('codelang-selector'), '[name="lang"]', availableLangs, mainLangs, preferences);
 
   if (localStorage.getItem('submit-hint') === 'dismiss') return;
   $(tpl`<div name="hint" class="typo"></div>`).prependTo('[name="submit_section"]');
@@ -44,12 +38,18 @@ const page = new NamedPage(['problem_submit', 'contest_detail_problem_submit', '
     localStorage.setItem('submit-hint', 'dismiss');
   }
 
-  root.render(<blockquote className="note">
-    <p>{i18n('This page is only for pasting code from other sources.')}</p>
-    <p>{i18n("To get a better editing experience, with code highlighting and test runs, \
-please go back to the problem detail page and use 'Open Scratchpad' button.")}</p>
-    <a onClick={() => root.unmount()}>{i18n('Dismiss')}</a> / <a onClick={ignore}>{i18n("Don't show again")}</a>
-  </blockquote>);
+  root.render(
+    <blockquote className="note">
+      <p>{i18n('This page is only for pasting code from other sources.')}</p>
+      <p>
+        {i18n(
+          "To get a better editing experience, with code highlighting and test runs, \
+please go back to the problem detail page and use 'Open Scratchpad' button.",
+        )}
+      </p>
+      <a onClick={() => root.unmount()}>{i18n('Dismiss')}</a> / <a onClick={ignore}>{i18n("Don't show again")}</a>
+    </blockquote>,
+  );
 });
 
 export default page;

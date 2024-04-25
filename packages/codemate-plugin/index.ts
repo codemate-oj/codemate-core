@@ -14,9 +14,7 @@ export async function apply(ctx: Context) {
         let _m;
         try {
             if (fs.statSync(pluginPath).isDirectory()) {
-                const entry = ['index.ts', 'index.js']
-                    .map((i) => path.resolve(pluginPath, i))
-                    .find((i) => fs.existsSync(i));
+                const entry = ['index.ts', 'index.js'].map((i) => path.resolve(pluginPath, i)).find((i) => fs.existsSync(i));
                 if (!entry) {
                     logger.error(`Plugin ${plugin} not found`);
                     continue;

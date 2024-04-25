@@ -15,9 +15,14 @@ import WebSocket from 'ws';
 import { Counter, isClass, parseMemoryMB } from '@hydrooj/utils/lib/utils';
 import { Context, Service } from '../context';
 import {
-    CsrfTokenError, HydroError, InvalidOperationError,
-    MethodNotAllowedError, NotFoundError, PermissionError,
-    PrivilegeError, UserFacingError,
+    CsrfTokenError,
+    HydroError,
+    InvalidOperationError,
+    MethodNotAllowedError,
+    NotFoundError,
+    PermissionError,
+    PrivilegeError,
+    UserFacingError,
 } from '../error';
 import { DomainDoc } from '../interface';
 import paginate from '../lib/paginate';
@@ -88,7 +93,7 @@ interface HydroContext {
 export interface KoaContext extends Koa.Context {
     HydroContext: HydroContext;
     handler: any;
-    request: Koa.Request & { body: any, files: Files };
+    request: Koa.Request & { body: any; files: Files };
     session: Record<string, any>;
     render: (name: string, args: any) => Promise<void>;
     renderHTML: (name: string, args: any) => string | Promise<string>;
@@ -112,7 +117,7 @@ app.on('error', (error) => {
     }
 });
 wsServer.on('error', (error) => {
-    console.log('Websocket server error:', error);
+    console.error('Websocket server error:', error);
 });
 
 const ignoredLimit = `,${argv.options.ignoredLimit},`;
@@ -128,9 +133,13 @@ export class HandlerCommon {
     domainId: string;
 
     constructor(
-        public context: KoaContext, public readonly args: Record<string, any>,
-        public readonly request: HydroRequest, public response: HydroResponse,
-        public user: User, public domain: DomainDoc, public UiContext: Record<string, any>,
+        public context: KoaContext,
+        public readonly args: Record<string, any>,
+        public readonly request: HydroRequest,
+        public response: HydroResponse,
+        public user: User,
+        public domain: DomainDoc,
+        public UiContext: Record<string, any>,
     ) {
         this.render = context.render.bind(context);
         this.renderHTML = context.renderHTML.bind(context);
@@ -210,12 +219,11 @@ export class Handler extends HandlerCommon {
         }
         if (!argv.options.benchmark && !this.notUsage) await this.limitRate('global', 5, 100);
         if (!this.noCheckPermView && !this.user.hasPriv(PRIV.PRIV_VIEW_ALL_DOMAIN)) this.checkPerm(PERM.PERM_VIEW);
-        this.loginMethods = Object.keys(global.Hydro.module.oauth)
-            .map((key) => ({
-                id: key,
-                icon: global.Hydro.module.oauth[key].icon,
-                text: global.Hydro.module.oauth[key].text,
-            }));
+        this.loginMethods = Object.keys(global.Hydro.module.oauth).map((key) => ({
+            id: key,
+            icon: global.Hydro.module.oauth[key].icon,
+            text: global.Hydro.module.oauth[key].text,
+        }));
         if (this.context.pendingError) throw this.context.pendingError;
     }
 
@@ -224,7 +232,11 @@ export class Handler extends HandlerCommon {
         if (error instanceof UserFacingError && !process.env.DEV) error.stack = '';
         if (!(error instanceof NotFoundError) && !('nolog' in error)) {
             // eslint-disable-next-line max-len
-            logger.error(`User: ${this.user._id}(${this.user.uname}) ${this.request.method}: /d/${this.domain._id}${this.request.path}`, error.msg(), error.params);
+            logger.error(
+                `User: ${this.user._id}(${this.user.uname}) ${this.request.method}: /d/${this.domain._id}${this.request.path}`,
+                error.msg(),
+                error.params,
+            );
             if (error.stack) logger.error(error.stack);
         }
         if (this.user?._id === 0 && (error instanceof PermissionError || error instanceof PrivilegeError)) {
@@ -251,18 +263,15 @@ async function serial(name: string, ...args: any[]) {
 }
 
 async function handle(ctx: KoaContext, HandlerClass, checker) {
-    const {
-        args, request, response, user, domain, UiContext,
-    } = ctx.HydroContext;
+    const { args, request, response, user, domain, UiContext } = ctx.HydroContext;
     Object.assign(args, ctx.params);
     const init = Date.now();
     const h = new HandlerClass(ctx, args, request, response, user, domain, UiContext);
     ctx.handler = h;
     const method = ctx.method.toLowerCase();
     try {
-        const operation = (method === 'post' && ctx.request.body?.operation)
-            ? `_${ctx.request.body.operation}`.replace(/_([a-z])/gm, (s) => s[1].toUpperCase())
-            : '';
+        const operation =
+            method === 'post' && ctx.request.body?.operation ? `_${ctx.request.body.operation}`.replace(/_([a-z])/gm, (s) => s[1].toUpperCase()) : '';
 
         await bus.parallel('handler/create', h);
 
@@ -281,18 +290,32 @@ async function handle(ctx: KoaContext, HandlerClass, checker) {
 
         const name = HandlerClass.name.replace(/Handler$/, '');
         const steps = [
-            'init', 'handler/init',
-            `handler/before-prepare/${name}#${method}`, `handler/before-prepare/${name}`, 'handler/before-prepare',
-            'log/__prepare', '__prepare', '_prepare', 'prepare', 'log/__prepareDone',
-            `handler/before/${name}#${method}`, `handler/before/${name}`, 'handler/before',
-            'log/__method', 'all', method, 'log/__methodDone',
-            ...operation ? [
-                `handler/before-operation/${name}`, 'handler/before-operation',
-                `post${operation}`, 'log/__operationDone',
-            ] : [], 'after',
-            `handler/after/${name}#${method}`, `handler/after/${name}`, 'handler/after',
+            'init',
+            'handler/init',
+            `handler/before-prepare/${name}#${method}`,
+            `handler/before-prepare/${name}`,
+            'handler/before-prepare',
+            'log/__prepare',
+            '__prepare',
+            '_prepare',
+            'prepare',
+            'log/__prepareDone',
+            `handler/before/${name}#${method}`,
+            `handler/before/${name}`,
+            'handler/before',
+            'log/__method',
+            'all',
+            method,
+            'log/__methodDone',
+            ...(operation ? [`handler/before-operation/${name}`, 'handler/before-operation', `post${operation}`, 'log/__operationDone'] : []),
+            'after',
+            `handler/after/${name}#${method}`,
+            `handler/after/${name}`,
+            'handler/after',
             'cleanup',
-            `handler/finish/${name}#${method}`, `handler/finish/${name}`, 'handler/finish',
+            `handler/finish/${name}#${method}`,
+            `handler/finish/${name}`,
+            'handler/finish',
         ];
 
         let current = 0;
@@ -336,7 +359,7 @@ async function handle(ctx: KoaContext, HandlerClass, checker) {
 const Checker = (permPrivChecker) => {
     let perm: bigint;
     let priv: number;
-    let checker = () => { };
+    let checker = () => {};
     for (const item of permPrivChecker) {
         if (typeof item === 'object') {
             if (typeof item.call !== 'undefined') {
@@ -376,9 +399,12 @@ export class ConnectionHandler extends HandlerCommon {
     }
 
     send(data: any) {
-        let payload = JSON.stringify(data, serializer({
-            showDisplayName: this.user?.hasPerm(PERM.PERM_VIEW_DISPLAYNAME),
-        }));
+        let payload = JSON.stringify(
+            data,
+            serializer({
+                showDisplayName: this.user?.hasPerm(PERM.PERM_VIEW_DISPLAYNAME),
+            }),
+        );
         if (this.compression) {
             if (this.counter > 1000) this.resetCompression();
             payload = this.compression.deflate(payload);
@@ -393,8 +419,7 @@ export class ConnectionHandler extends HandlerCommon {
 
     onerror(err: HydroError) {
         if (err instanceof UserFacingError) err.stack = this.request.path;
-        if (!(err instanceof NotFoundError)
-            && !((err instanceof PrivilegeError || err instanceof PermissionError) && this.user?._id === 0)) {
+        if (!(err instanceof NotFoundError) && !((err instanceof PrivilegeError || err instanceof PermissionError) && this.user?._id === 0)) {
             logger.error(`Path:${this.request.path}, User:${this.user?._id}(${this.user?.uname})`);
             logger.error(err);
         }
@@ -408,16 +433,10 @@ export class ConnectionHandler extends HandlerCommon {
     }
 }
 
-export function Connection(
-    name: string, prefix: string,
-    RouteConnHandler: any,
-    ...permPrivChecker: Array<number | bigint | Function>
-) {
+export function Connection(name: string, prefix: string, RouteConnHandler: any, ...permPrivChecker: Array<number | bigint | Function>) {
     const checker = Checker(permPrivChecker);
     const layer = router.ws(prefix, async (conn, _, ctx) => {
-        const {
-            args, request, response, user, domain, UiContext,
-        } = ctx.HydroContext;
+        const { args, request, response, user, domain, UiContext } = ctx.HydroContext;
         const h = new RouteConnHandler(ctx, args, request, response, user, domain, UiContext);
         await bus.parallel('connection/create', h);
         ctx.handler = h;
@@ -484,8 +503,11 @@ export function Connection(
 }
 
 class NotFoundHandler extends Handler {
-    prepare() { throw new NotFoundError(this.request.path); }
-    all() { }
+    prepare() {
+        throw new NotFoundError(this.request.path);
+    }
+
+    all() {}
 }
 
 export class RouteService extends Service {
@@ -578,9 +600,11 @@ export async function apply(pluginContext: Context) {
     for (const addon of [...global.addons].reverse()) {
         const dir = resolve(addon, 'public');
         if (!fs.existsSync(dir)) continue;
-        app.use(cache(dir, {
-            maxAge: argv.options.public ? 0 : 24 * 3600 * 1000,
-        }));
+        app.use(
+            cache(dir, {
+                maxAge: argv.options.public ? 0 : 24 * 3600 * 1000,
+            }),
+        );
     }
     if (process.env.DEV) {
         app.use(async (ctx: Koa.Context, next: Function) => {
@@ -599,28 +623,24 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
     const uploadDir = join(tmpdir(), 'hydro', 'upload', process.env.NODE_APP_INSTANCE || '0');
     fs.ensureDirSync(uploadDir);
     logger.debug('Using upload dir: %s', uploadDir);
-    app.use(Body({
-        multipart: true,
-        jsonLimit: '8mb',
-        formLimit: '8mb',
-        formidable: {
-            uploadDir,
-            maxFileSize: parseMemoryMB(system.get('server.upload') || '256m') * 1024 * 1024,
-            keepExtensions: true,
-        },
-    }));
+    app.use(
+        Body({
+            multipart: true,
+            jsonLimit: '8mb',
+            formLimit: '8mb',
+            formidable: {
+                uploadDir,
+                maxFileSize: parseMemoryMB(system.get('server.upload') || '256m') * 1024 * 1024,
+                keepExtensions: true,
+            },
+        }),
+    );
     pluginContext.on('app/exit', () => {
         fs.emptyDirSync(uploadDir);
     });
     const jsonCheckLayer = async (ctx: KoaContext, next: Next) => {
         const { user, request } = ctx.HydroContext;
-        const allowPaths = [
-            /^\/login/,
-            /^\/logout/,
-            /^\/constant\/\w*/,
-            /^\/lazy\/\w*\/\w*/,
-            /^\/resource\/\w*\/\w*/,
-        ];
+        const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/];
         if (allowPaths.some((p) => p.test(request.path)) || request.json || user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
             await next();
             return;
@@ -640,11 +660,11 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
             logger.warn('Websocket Error: %s', err.message);
             try {
                 socket.close(1003, 'Websocket Error');
-            } catch (e) { }
+            } catch (e) {}
         });
         socket.pause();
         const ctx: any = app.createContext(request, {} as any);
-        await domainLayer(ctx, () => baseLayer(ctx, () => layers[1](ctx, () => userLayer(ctx, () => { }))));
+        await domainLayer(ctx, () => baseLayer(ctx, () => layers[1](ctx, () => userLayer(ctx, () => {}))));
         for (const manager of router.wsStack) {
             if (manager.accept(socket, request, ctx)) return;
         }

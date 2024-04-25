@@ -38,16 +38,16 @@ export default class Hydro implements Session {
 
     post(url: string, data?: any) {
         url = new URL(url, this.config.server_url).toString();
-        const t = superagent.post(url)
-            .set('Cookie', this.config.cookie)
-            .set('Accept', 'application/json');
+        const t = superagent.post(url).set('Cookie', this.config.cookie).set('Accept', 'application/json');
         return data ? t.send(data) : t;
     }
 
     async init() {
         await this.setCookie(this.config.cookie || '');
         await this.ensureLogin();
-        setInterval(() => { this.get(''); }, 30000000); // Cookie refresh only
+        setInterval(() => {
+            this.get('');
+        }, 30000000); // Cookie refresh only
     }
 
     async cacheOpen(source: string, files: any[], next?) {
@@ -70,7 +70,9 @@ export default class Hydro implements Session {
         let etags: Record<string, string> = {};
         try {
             etags = JSON.parse(await fs.readFile(path.join(filePath, 'etags'), 'utf-8'));
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            /* ignore */
+        }
         const version = {};
         const filenames = [];
         const allFiles = new Set<string>();
@@ -94,11 +96,13 @@ export default class Hydro implements Session {
             const tasks = [];
             const queue = new PQueue({ concurrency: 10 });
             for (const name in res.body.links) {
-                tasks.push(queue.add(async () => {
-                    if (name.includes('/')) await fs.ensureDir(path.join(filePath, name.split('/')[0]));
-                    const w = fs.createWriteStream(path.join(filePath, name));
-                    await pipeRequest(this.get(res.body.links[name]), w, 60000, name);
-                }));
+                tasks.push(
+                    queue.add(async () => {
+                        if (name.includes('/')) await fs.ensureDir(path.join(filePath, name.split('/')[0]));
+                        const w = fs.createWriteStream(path.join(filePath, name));
+                        await pipeRequest(this.get(res.body.links[name]), w, 60000, name);
+                    }),
+                );
             }
             await Promise.all(tasks);
             await fs.writeFile(path.join(filePath, 'etags'), JSON.stringify(version));
@@ -116,10 +120,7 @@ export default class Hydro implements Session {
     }
 
     async postFile(target: string, filename: string, file: string) {
-        await this.post('judge/upload')
-            .field('rid', target)
-            .field('name', filename)
-            .attach('file', fs.createReadStream(file));
+        await this.post('judge/upload').field('rid', target).field('name', filename).attach('file', fs.createReadStream(file));
     }
 
     getLang(name: string, doThrow = true) {
@@ -166,13 +167,11 @@ export default class Hydro implements Session {
                 Authorization: `Bearer ${this.config.cookie.split('sid=')[1].split(';')[0]}`,
             },
         });
-        const config: { prio?: number, concurrency?: number, lang?: string[] } = {};
+        const config: { prio?: number; concurrency?: number; lang?: string[] } = {};
         if (this.config.minPriority !== undefined) config.prio = this.config.minPriority;
         if (this.config.concurrency !== undefined) config.concurrency = this.config.concurrency;
         if (this.config.lang?.length) config.lang = this.config.lang;
-        const content = Object.keys(config).length
-            ? JSON.stringify({ key: 'config', ...config })
-            : '{"key":"ping"}';
+        const content = Object.keys(config).length ? JSON.stringify({ key: 'config', ...config }) : '{"key":"ping"}';
         this.ws.on('message', (data) => {
             if (data.toString() === 'ping') {
                 this.ws.send('pong');
@@ -219,7 +218,9 @@ export default class Hydro implements Session {
     async login() {
         log.info('[%s] Updating session', this.config.host);
         const res = await this.post('login', {
-            uname: this.config.uname, password: this.config.password, rememberme: 'on',
+            uname: this.config.uname,
+            password: this.config.password,
+            rememberme: 'on',
         });
         const setCookie = res.headers['set-cookie'];
         await this.setCookie(Array.isArray(setCookie) ? setCookie.join(';') : setCookie);

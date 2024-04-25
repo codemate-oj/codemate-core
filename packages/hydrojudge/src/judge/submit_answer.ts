@@ -9,26 +9,30 @@ import { Context } from './interface';
 function judgeCase(c: NormalizedCase) {
     return async (ctx: Context) => {
         const chars = /[a-zA-Z0-9_.-]/;
-        const name = (ctx.config.filename && /^[a-zA-Z0-9-_#.]+$/.test(ctx.config.filename))
-            ? ctx.config.filename.replace('#', c.id.toString())
-            : await fs.readFile(c.input, 'utf-8').then((res) => res.trim().split('').filter((i) => chars.test(i)).join(''));
+        const name =
+            ctx.config.filename && /^[a-zA-Z0-9-_#.]+$/.test(ctx.config.filename)
+                ? ctx.config.filename.replace('#', c.id.toString())
+                : await fs.readFile(c.input, 'utf-8').then((res) =>
+                      res
+                          .trim()
+                          .split('')
+                          .filter((i) => chars.test(i))
+                          .join(''),
+                  );
         let file = ctx.code;
         let status = STATUS.STATUS_ACCEPTED;
         let message: any = '';
         let score = 0;
         const fileIds = [];
         if (ctx.config.subType === 'multi') {
-            const res = await runQueued(
-                '/usr/bin/unzip foo.zip',
-                {
-                    stdin: null,
-                    copyIn: { 'foo.zip': ctx.code },
-                    copyOutCached: [`${name}?`],
-                    time: 1000,
-                    memory: 128,
-                    cacheStdoutAndStderr: true,
-                },
-            );
+            const res = await runQueued('/usr/bin/unzip foo.zip', {
+                stdin: null,
+                copyIn: { 'foo.zip': ctx.code },
+                copyOutCached: [`${name}?`],
+                time: 1000,
+                memory: 128,
+                cacheStdoutAndStderr: true,
+            });
             if (res.status === STATUS.STATUS_RUNTIME_ERROR && res.code) {
                 message = { message: 'Unzip failed.' };
                 status = STATUS.STATUS_WRONG_ANSWER;

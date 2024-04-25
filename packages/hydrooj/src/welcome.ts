@@ -92,9 +92,7 @@ export default async function apply() {
     await DomainModel.edit('system', { bulletin });
     const docId = await ProblemModel.add('system', 'P1000', 'A+B Problem', defaultProblem, 1, ['系统测试']);
     // This might fail so we are doing it asynchronously.
-    Promise.all(
-        Object.keys(testdatas).map(
-            (i) => ProblemModel.addTestdata('system', docId, i, Buffer.from(testdatas[i])),
-        ),
-    ).then(() => RecordModel.add('system', docId, 1, 'cc', std, true));
+    Promise.all(Object.keys(testdatas).map((i) => ProblemModel.addTestdata('system', docId, i, Buffer.from(testdatas[i])))).then(() =>
+        RecordModel.add('system', docId, 1, 'cc', std, true),
+    );
 }

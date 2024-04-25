@@ -2,14 +2,12 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
 export default function ToolbarComponent(props) {
-  const {
-    className,
-    children,
-    ...rest
-  } = props;
+  const { className, children, ...rest } = props;
   const cn = classNames(className, 'scratchpad__toolbar flex-row flex-cross-center');
   return (
-    <div {...rest} className={cn}>{children}</div>
+    <div {...rest} className={cn}>
+      {children}
+    </div>
   );
 }
 
@@ -19,26 +17,14 @@ ToolbarComponent.propTypes = {
 };
 
 export function ToolbarButtonComponent(props) {
-  const {
-    activated,
-    disabled,
-    onClick,
-    className,
-    children,
-    ...rest
-  } = props;
+  const { activated, disabled, onClick, className, children, ...rest } = props;
   const cn = classNames(className, 'scratchpad__toolbar__item scratchpad__toolbar__button', {
     activated,
     disabled,
     enabled: !disabled,
   });
   return (
-    <button
-      {...rest}
-      tabIndex="-1"
-      className={cn}
-      onClick={() => !disabled && onClick && onClick()}
-    >
+    <button {...rest} tabIndex="-1" className={cn} onClick={() => !disabled && onClick && onClick()}>
       <div>{children}</div>
     </button>
   );
@@ -58,14 +44,9 @@ ToolbarButtonComponent.defaultProps = {
 };
 
 export function ToolbarSplitComponent(props) {
-  const {
-    className,
-    ...rest
-  } = props;
+  const { className, ...rest } = props;
   const cn = classNames(className, 'scratchpad__toolbar__item scratchpad__toolbar__split');
-  return (
-    <div {...rest} className={cn} />
-  );
+  return <div {...rest} className={cn} />;
 }
 
 ToolbarSplitComponent.propTypes = {
@@ -73,14 +54,12 @@ ToolbarSplitComponent.propTypes = {
 };
 
 export function ToolbarItemComponent(props) {
-  const {
-    className,
-    children,
-    ...rest
-  } = props;
+  const { className, children, ...rest } = props;
   const cn = classNames(className, 'scratchpad__toolbar__item');
   return (
-    <div {...rest} className={cn}>{children}</div>
+    <div {...rest} className={cn}>
+      {children}
+    </div>
   );
 }
 

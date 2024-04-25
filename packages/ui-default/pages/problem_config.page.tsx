@@ -10,9 +10,7 @@ import { configYamlFormat } from 'vj/components/problemconfig/ProblemConfigEdito
 import uploadFiles from 'vj/components/upload';
 import download from 'vj/components/zipDownloader';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  i18n, loadReactRedux, pjax, request, tpl,
-} from 'vj/utils';
+import { i18n, loadReactRedux, pjax, request, tpl } from 'vj/utils';
 
 const page = new NamedPage('problem_config', () => {
   let reduxStore;
@@ -22,7 +20,9 @@ const page = new NamedPage('problem_config', () => {
     input.type = 'file';
     input.multiple = true;
     input.click();
-    await new Promise((resolve) => { input.onchange = resolve; });
+    await new Promise((resolve) => {
+      input.onchange = resolve;
+    });
     await uploadFiles('./files', input.files, {
       type: 'testdata',
       sidebar: true,
@@ -85,7 +85,7 @@ const page = new NamedPage('problem_config', () => {
   async function handleClickDownloadAll() {
     const files = reduxStore.getState().testdata.map((i) => i.name);
     const { links, pdoc } = await request.post('./files', { operation: 'get_links', files, type: 'testdata' });
-    const targets: { filename: string, url: string }[] = [];
+    const targets: { filename: string; url: string }[] = [];
     for (const filename of Object.keys(links)) targets.push({ filename, url: links[filename] });
     await download(`${pdoc.docId} ${pdoc.title}.zip`, targets);
   }
@@ -123,12 +123,14 @@ const page = new NamedPage('problem_config', () => {
       if (!state.config.__loaded) return;
       if (state.config.cases) {
         const score = state.config.score * state.config.cases.length;
-        state.config.subtasks = [{
-          type: 'sum' as SubtaskType,
-          score: score && score < 100 ? score : 100,
-          cases: state.config.cases,
-          id: 1,
-        }];
+        state.config.subtasks = [
+          {
+            type: 'sum' as SubtaskType,
+            score: score && score < 100 ? score : 100,
+            cases: state.config.cases,
+            id: 1,
+          },
+        ];
         delete state.config.cases;
         delete state.config.score;
       }

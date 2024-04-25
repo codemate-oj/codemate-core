@@ -1,9 +1,26 @@
 /* eslint-disable no-await-in-loop */
 import mariadb from 'mariadb';
 import {
-    buildContent, ContestModel, DiscussionDoc, DiscussionReplyDoc, DocumentModel, DomainModel,
-    fs, noop, NotFoundError, ObjectId, PERM, postJudge, ProblemModel, RecordDoc, RecordModel,
-    STATUS, SystemModel, Time, UserModel, yaml,
+    buildContent,
+    ContestModel,
+    DiscussionDoc,
+    DiscussionReplyDoc,
+    DocumentModel,
+    DomainModel,
+    fs,
+    noop,
+    NotFoundError,
+    ObjectId,
+    PERM,
+    postJudge,
+    ProblemModel,
+    RecordDoc,
+    RecordModel,
+    STATUS,
+    SystemModel,
+    Time,
+    UserModel,
+    yaml,
 } from 'hydrooj';
 
 const contentTypeMap = {
@@ -71,11 +88,10 @@ const langMap = {
     ruby: 'rb',
     haskell: 'hs',
 };
-export async function run({
-    host = 'localhost', port = 3306, name = 'syzoj',
-    username, password, domainId, dataDir,
-    rerun = true, randomMail = false,
-}, report: Function) {
+export async function run(
+    { host = 'localhost', port = 3306, name = 'syzoj', username, password, domainId, dataDir, rerun = true, randomMail = false },
+    report: Function,
+) {
     const src = await mariadb.createConnection({
         host,
         port,
@@ -83,9 +99,12 @@ export async function run({
         password,
         database: name,
     });
-    const query = (q: string) => new Promise<any[]>((res, rej) => {
-        src.query(q).then((r) => res(r)).catch((e) => rej(e));
-    });
+    const query = (q: string) =>
+        new Promise<any[]>((res, rej) => {
+            src.query(q)
+                .then((r) => res(r))
+                .catch((e) => rej(e));
+        });
     const target = await DomainModel.get(domainId);
     if (!target) throw new NotFoundError(domainId);
     report({ message: 'Connected to database' });
@@ -122,8 +141,12 @@ export async function run({
             uidMap[udoc.id] = current._id;
         } else {
             const uid = await UserModel.create(
-                udoc.email || `${udoc.username}@syzoj.local`, udoc.username, '',
-                null, udoc.ip, SystemModel.get('default.priv'),
+                udoc.email || `${udoc.username}@syzoj.local`,
+                udoc.username,
+                '',
+                null,
+                udoc.ip,
+                SystemModel.get('default.priv'),
             );
             if (udoc.is_admin) {
                 await UserModel.setSuperAdmin(uid);
@@ -147,9 +170,18 @@ export async function run({
     }
 
     // I think manage_problem_tag is a useless role
-    await DomainModel.addRole(domainId, 'manage_problem',
-        PERM.PERM_DEFAULT | PERM.PERM_CREATE_PROBLEM | PERM.PERM_EDIT_PROBLEM | PERM.PERM_VIEW_PROBLEM_HIDDEN | PERM.PERM_READ_PROBLEM_DATA
-        | PERM.PERM_EDIT_PROBLEM_SOLUTION | PERM.PERM_DELETE_PROBLEM_SOLUTION | PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY);
+    await DomainModel.addRole(
+        domainId,
+        'manage_problem',
+        PERM.PERM_DEFAULT |
+            PERM.PERM_CREATE_PROBLEM |
+            PERM.PERM_EDIT_PROBLEM |
+            PERM.PERM_VIEW_PROBLEM_HIDDEN |
+            PERM.PERM_READ_PROBLEM_DATA |
+            PERM.PERM_EDIT_PROBLEM_SOLUTION |
+            PERM.PERM_DELETE_PROBLEM_SOLUTION |
+            PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY,
+    );
     await DomainModel.addRole(domainId, 'manage_user', PERM.PERM_DEFAULT | PERM.PERM_EDIT_DOMAIN);
     const privileges = await query('SELECT user_id,group_concat(privilege) as privilege FROM `user_privilege` group by user_id');
     for (const privilege of privileges) {
@@ -233,14 +265,18 @@ export async function run({
                 hidden: pdoc.is_public !== 1,
                 tag: tagList,
             });
-            configMap[`P${pdoc.id}`] = `type: ${({ traditional: 'default', 'submit-answer': 'submit_answer' })[pdoc.type] || pdoc.type}
+            configMap[`P${pdoc.id}`] = `type: ${{ traditional: 'default', 'submit-answer': 'submit_answer' }[pdoc.type] || pdoc.type}
 \ntime: ${pdoc.time_limit}ms\nmemory: ${pdoc.memory_limit}m${pdoc.file_io ? `\nfilename: ${pdoc.file_io_input_name.split('.')[0]}` : ''}`;
             if (pdoc.additional_file_id) {
                 const additionalFile = await query(`SELECT * FROM \`file\` WHERE \`id\` = ${pdoc.additional_file_id}`);
                 if (additionalFile.length) {
                     const [afdoc] = additionalFile;
-                    await ProblemModel.addAdditionalFile(domainId, pidMap[pdoc.id],
-                        `additional_file_${pdoc.additional_file_id}.zip`, `${dataDir}/additional_file/${afdoc.md5}`);
+                    await ProblemModel.addAdditionalFile(
+                        domainId,
+                        pidMap[pdoc.id],
+                        `additional_file_${pdoc.additional_file_id}.zip`,
+                        `${dataDir}/additional_file/${afdoc.md5}`,
+                    );
                 }
             }
         }
@@ -272,9 +308,16 @@ export async function run({
         const pids = pdocs.map((i) => pidMap[i]).filter((i) => i);
         const admin = uidMap[tdoc.holder_id] || uidMap[tdoc.admins.split('|')[0]];
         const tid = await ContestModel.add(
-            domainId, tdoc.title, `${tdoc.subtitle ? `#### ${tdoc.subtitle}\n` : ''}${tdoc.information || 'No Description'}`,
-            admin, contentTypeMap[tdoc.type], new Date(tdoc.start_time * 1000), new Date(tdoc.end_time * 1000),
-            pids, ratedTids.includes(tdoc.id), { maintainer: tdoc.admins.split('|').map((i) => uidMap[i]) },
+            domainId,
+            tdoc.title,
+            `${tdoc.subtitle ? `#### ${tdoc.subtitle}\n` : ''}${tdoc.information || 'No Description'}`,
+            admin,
+            contentTypeMap[tdoc.type],
+            new Date(tdoc.start_time * 1000),
+            new Date(tdoc.end_time * 1000),
+            pids,
+            ratedTids.includes(tdoc.id),
+            { maintainer: tdoc.admins.split('|').map((i) => uidMap[i]) },
         );
         tidMap[tdoc.id] = tid.toHexString();
     }
@@ -438,12 +481,16 @@ export async function run({
             await ProblemModel.addTestdata(domainId, pdoc.docId, data.name, `${dataDir}/testdata/${file.name}/${data.name}`);
             if (data.name.startsWith('spj_')) {
                 report({ message: `Syncing spj for ${file.name}` });
-                await ProblemModel.addTestdata(domainId, pdoc.docId,
-                    `spj.${langMap[data.name.split('spj_')[1].split('.')[0]]}`, `${dataDir}/testdata/${file.name}/${data.name}`);
+                await ProblemModel.addTestdata(
+                    domainId,
+                    pdoc.docId,
+                    `spj.${langMap[data.name.split('spj_')[1].split('.')[0]]}`,
+                    `${dataDir}/testdata/${file.name}/${data.name}`,
+                );
                 pdoc.config += `\nchecker_type: syzoj\nchecker: spj.${langMap[data.name.split('spj_')[1].split('.')[0]]}`;
             }
         }
-        if (!(datas.find((i) => i.name === 'data.yml'))) {
+        if (!datas.find((i) => i.name === 'data.yml')) {
             await ProblemModel.addTestdata(domainId, pdoc.docId, 'config.yaml', Buffer.from(configMap[`P${file.name}`]));
         } else {
             report({ message: `Transfering data.yml for ${file.name}` });
@@ -452,8 +499,12 @@ export async function run({
             if (syzojConfig.specialJudge) {
                 report({ message: `Syncing spj config for ${file.name}` });
                 config.checker_type = 'syzoj';
-                await ProblemModel.addTestdata(domainId, pdoc.docId,
-                    `spj.${langMap[syzojConfig.specialJudge.language]}`, `${dataDir}/testdata/${file.name}/${syzojConfig.specialJudge.fileName}`);
+                await ProblemModel.addTestdata(
+                    domainId,
+                    pdoc.docId,
+                    `spj.${langMap[syzojConfig.specialJudge.language]}`,
+                    `${dataDir}/testdata/${file.name}/${syzojConfig.specialJudge.fileName}`,
+                );
                 config.checker = `spj.${langMap[syzojConfig.specialJudge.language]}`;
             }
             if (syzojConfig.subtasks) {
@@ -469,8 +520,7 @@ export async function run({
             }
             if (syzojConfig.extraSourceFiles?.length === 1) {
                 for (const { name: sourceName, dest } of syzojConfig.extraSourceFiles[0].files) {
-                    await ProblemModel.addTestdata(domainId, pdoc.docId, dest,
-                        `${dataDir}/testdata/${file.name}/${sourceName}`);
+                    await ProblemModel.addTestdata(domainId, pdoc.docId, dest, `${dataDir}/testdata/${file.name}/${sourceName}`);
                 }
                 config.user_extra_files = syzojConfig.extraSourceFiles[0].files.map((x) => x.dest);
             } else if (syzojConfig.extraSourceFiles?.length > 1) {
@@ -483,8 +533,12 @@ export async function run({
             if (syzojConfig.interactor) {
                 report({ message: `Syncing interactor config for ${file.name}` });
                 config.type = 'interactive';
-                await ProblemModel.addTestdata(domainId, pdoc.docId,
-                    `spj.${langMap[syzojConfig.interactor.language]}`, `${dataDir}/testdata/${file.name}/${syzojConfig.interactor.fileName}`);
+                await ProblemModel.addTestdata(
+                    domainId,
+                    pdoc.docId,
+                    `spj.${langMap[syzojConfig.interactor.language]}`,
+                    `${dataDir}/testdata/${file.name}/${syzojConfig.interactor.fileName}`,
+                );
                 config.interactor = `spj.${langMap[syzojConfig.interactor.language]}`;
             }
             await ProblemModel.addTestdata(domainId, pdoc.docId, 'config.yaml', Buffer.from(yaml.dump(config)));
@@ -493,8 +547,12 @@ export async function run({
             report({ message: `Syncing additional_file for ${file.name}` });
             for (const data of problemAdditionalFile[`P${file.name}`]) {
                 if (!fs.existsSync(`${dataDir}/testdata/${data.fromPid}/${decodeURIComponent(data.filename)}`)) continue;
-                await ProblemModel.addAdditionalFile(domainId, pdoc.docId, data.filename,
-                    `${dataDir}/testdata/${data.fromPid}/${decodeURIComponent(data.filename)}`);
+                await ProblemModel.addAdditionalFile(
+                    domainId,
+                    pdoc.docId,
+                    data.filename,
+                    `${dataDir}/testdata/${data.fromPid}/${decodeURIComponent(data.filename)}`,
+                );
             }
         }
     }

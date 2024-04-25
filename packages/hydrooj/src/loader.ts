@@ -159,7 +159,9 @@ export function addScript(name: string, description: string) {
         args: <K extends Schema>(validate: K) => ({
             action: (run: (args: ReturnType<K>, report: any) => boolean | Promise<boolean>) => {
                 global.Hydro.script[name] = {
-                    description, validate, run,
+                    description,
+                    validate,
+                    run,
                 };
             },
         }),
@@ -207,7 +209,7 @@ export async function load() {
                 // await sleep(5000);
             }
         }
-    } catch (e) { }
+    } catch (e) {}
     await require('./entry/worker').apply(app);
     global.gc?.();
 }

@@ -3,9 +3,7 @@ import UserSelectAutoComplete from 'vj/components/autocomplete/UserSelectAutoCom
 import { ActionDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  i18n, pjax, request, tpl,
-} from 'vj/utils';
+import { i18n, pjax, request, tpl } from 'vj/utils';
 
 const page = new NamedPage('contest_user', () => {
   const addUserDialogContent = $(tpl`
@@ -31,10 +29,10 @@ const page = new NamedPage('contest_user', () => {
     </div>
   `);
   addUserDialogContent.appendTo(document.body);
-  const userSelect = UserSelectAutoComplete.getOrConstruct<UserSelectAutoComplete<true>>(
-    addUserDialogContent.find('[name="add_user_users"]'),
-    { multi: true, height: 'auto' },
-  );
+  const userSelect = UserSelectAutoComplete.getOrConstruct<UserSelectAutoComplete<true>>(addUserDialogContent.find('[name="add_user_users"]'), {
+    multi: true,
+    height: 'auto',
+  });
 
   const addUserDialog = new ActionDialog({
     $body: addUserDialogContent,

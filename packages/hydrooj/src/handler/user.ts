@@ -77,9 +77,7 @@ registerResolver(
             (await user.getById(ctx.args.domainId, +arg.search)) ||
             (await user.getByUname(ctx.args.domainId, arg.search)) ||
             (await user.getByEmail(ctx.args.domainId, arg.search));
-        const udocs: User[] = arg.exact
-            ? []
-            : await user.getPrefixList(ctx.args.domainId, arg.search, Math.min(arg.limit || 10, 10));
+        const udocs: User[] = arg.exact ? [] : await user.getPrefixList(ctx.args.domainId, arg.search, Math.min(arg.limit || 10, 10));
         if (udoc && !udocs.find((i) => i._id === udoc._id)) {
             udocs.pop();
             udocs.unshift(udoc);
@@ -106,15 +104,7 @@ class UserLoginHandler extends Handler {
     @param('redirect', Types.String, true)
     @param('tfa', Types.String, true)
     @param('authnChallenge', Types.String, true)
-    async post(
-        domainId: string,
-        uname: string,
-        password: string,
-        rememberme = false,
-        redirect = '',
-        tfa = '',
-        authnChallenge = '',
-    ) {
+    async post(domainId: string, uname: string, password: string, rememberme = false, redirect = '', tfa = '', authnChallenge = '') {
         if (!system.get('server.login')) throw new BuiltinLoginError();
         let udoc = await user.getByEmail(domainId, uname);
         udoc ||= await user.getByUname(domainId, uname);
@@ -136,8 +126,7 @@ class UserLoginHandler extends Handler {
                 if (!verifyTFA(udoc._tfa, tfa)) throw new InvalidTokenError('2FA');
             } else if (udoc.authn && authnChallenge) {
                 const challenge = await token.get(authnChallenge, token.TYPE_WEBAUTHN);
-                if (!challenge || challenge.uid !== udoc._id)
-                    throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_WEBAUTHN]);
+                if (!challenge || challenge.uid !== udoc._id) throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_WEBAUTHN]);
                 if (!challenge.verified) throw new ValidationError('challenge');
                 await token.del(authnChallenge, token.TYPE_WEBAUTHN);
             } else throw new ValidationError('2FA', 'Authn');
@@ -151,9 +140,7 @@ class UserLoginHandler extends Handler {
         this.session.scope = PERM.PERM_ALL.toString();
         this.session.save = rememberme;
         this.session.recreate = true;
-        this.response.redirect =
-            redirect ||
-            ((this.request.referer || '/login').endsWith('/login') ? this.url('homepage') : this.request.referer);
+        this.response.redirect = redirect || ((this.request.referer || '/login').endsWith('/login') ? this.url('homepage') : this.request.referer);
     }
 }
 
@@ -197,9 +184,7 @@ class UserWebauthnHandler extends Handler {
 
     @param('uname', Types.Username, true)
     async get(domainId: string, uname: string) {
-        const udoc = this.user._id
-            ? this.user
-            : (await user.getByEmail(domainId, uname)) || (await user.getByUname(domainId, uname));
+        const udoc = this.user._id ? this.user : (await user.getByEmail(domainId, uname)) || (await user.getByUname(domainId, uname));
         if (!udoc._id) throw new UserNotFoundError(uname || 'user');
         if (!udoc.authn) throw new AuthOperationError('authn', 'disabled');
         const options = generateAuthenticationOptions({
@@ -330,9 +315,7 @@ class UserLostPassHandler extends Handler {
         const [tid] = await token.add(token.TYPE_LOSTPASS, system.get('session.unsaved_expire_seconds'), {
             uid: udoc._id,
         });
-        const prefix = this.domain.host
-            ? `${this.domain.host instanceof Array ? this.domain.host[0] : this.domain.host}`
-            : system.get('server.url');
+        const prefix = this.domain.host ? `${this.domain.host instanceof Array ? this.domain.host[0] : this.domain.host}` : system.get('server.url');
         const m = await this.renderHTML('user_lostpass_mail.html', {
             url: `/lostpass/${tid}`,
             url_prefix: prefix.endsWith('/') ? prefix.slice(0, -1) : prefix,

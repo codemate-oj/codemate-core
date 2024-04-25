@@ -1,10 +1,5 @@
-import {
-    Ingest, PushOptions, QueryOptions,
-    Search, SuggestOptions,
-} from 'sonic-channel';
-import {
-    Context, Logger, Service, SystemModel,
-} from 'hydrooj';
+import { Ingest, PushOptions, QueryOptions, Search, SuggestOptions } from 'sonic-channel';
+import { Context, Logger, Service, SystemModel } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface SystemKeys {
@@ -101,9 +96,6 @@ export class SonicService extends Service {
     }
 
     async stop() {
-        await Promise.all([
-            this.search.close(),
-            this.ingest.close(),
-        ]);
+        await Promise.all([this.search.close(), this.ingest.close()]);
     }
 }

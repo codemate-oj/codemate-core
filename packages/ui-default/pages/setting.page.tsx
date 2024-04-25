@@ -18,11 +18,14 @@ const page = new NamedPage('manage_config', async () => {
   }, 1000);
   $('#submit').on('click', () => {
     const value = $('#config').val();
-    request.post('', { value }).then(() => {
-      Notification.success('保存成功');
-    }).catch((e) => {
-      Notification.error('保存失败:', e.message);
-    });
+    request
+      .post('', { value })
+      .then(() => {
+        Notification.success('保存成功');
+      })
+      .catch((e) => {
+        Notification.error('保存失败:', e.message);
+      });
   });
 });
 
