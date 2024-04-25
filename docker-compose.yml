@@ -1,8 +1,8 @@
 version: '3.7'
 
 services:
-  hydro:
-    build: .
+  backend:
+    image: ghcr.io/codemate-oj/codemate-core/backend:latest
     ports:
       - "8888:8888"
     restart: always
@@ -10,4 +10,4 @@ services:
     image: mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: db_password
+      MONGO_INITDB_ROOT_PASSWORD: admin
