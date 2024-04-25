@@ -36,25 +36,30 @@ jobs:
   deploy-test:
     name: Deploy-Test
     runs-on: [self-hosted]
+    # i know this is wierd, but it works
     steps:
-      - uses: actions/checkout@v3
-        name: Check Out
-        with:
-          submodules: recursive
-      - name: Get specific changed files
-        id: ui-changed-files
-        uses: tj-actions/changed-files@v41
-        with:
-          files: |
-            /package.json
-            .eslint*
-            packages/ui-default/**
-            packages/utils/**
-            .github/workflows/**
+      - name: Change Work Dir & Install
+        run: |
+          sudo su root
+          cd ~/codemate-core
+          yarn
+      # - uses: actions/checkout@v3
+      #   name: Check Out
+      #   with:
+      #     submodules: recursive
+      # - name: Get specific changed files
+      #   id: ui-changed-files
+      #   uses: tj-actions/changed-files@v41
+      #   with:
+      #     files: |
+      #       /package.json
+      #       .eslint*
+      #       packages/ui-default/**
+      #       packages/utils/**
+      #       .github/workflows/**
       - name: Install & Build UI
         if: steps.ui-changed-files.outputs.any_changed
         run: |
-          yarn install
           yarn build:ui:production
       - name: Restart Server
         run: pm2 restart hydrooj
