@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 require('@hydrooj/register');
 
 const packageBasedir = require('path').resolve(__dirname, '..');

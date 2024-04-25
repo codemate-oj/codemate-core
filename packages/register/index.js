@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 const map = {};
 require('source-map-support').install({
     handleUncaughtExceptions: false,

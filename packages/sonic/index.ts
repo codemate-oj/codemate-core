@@ -38,6 +38,7 @@ export function apply(ctx: Context) {
                     pdoc.content.toString() && ctx.sonic.push('problem', `${did}@content`, `${pdoc.domainId}/${pdoc.docId}`, pdoc.content.toString()),
                 );
             }
+            // eslint-disable-next-line no-console
             await Promise.all(tasks).catch((e) => console.log(`${pdoc.domainId}/${pdoc.docId}`, e));
         };
         if (domainId) await iterateAllProblemInDomain(domainId, ['title', 'content'], cb);

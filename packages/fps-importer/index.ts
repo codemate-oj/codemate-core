@@ -137,7 +137,7 @@ class FpsProblemImportHandler extends Handler {
             tasks.push(result);
         } catch (e) {
             if (e instanceof FileTooLargeError) throw e;
-            console.log(e);
+            console.error(e);
             let zip: AdmZip;
             try {
                 zip = new AdmZip(this.request.files.file.filepath);

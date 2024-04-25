@@ -180,6 +180,7 @@ export class JudgeTask {
             });
             const out = r.stdout.toString();
             if (out.length) this.next({ compilerText: out.substring(0, 1024) });
+            // eslint-disable-next-line no-console
             if (process.env.DEV) console.log(r);
         } catch (e) {
             logger.info('Failed to run analysis');

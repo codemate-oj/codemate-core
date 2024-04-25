@@ -70,6 +70,6 @@
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json}": "prettier --write",
-        "*.{js,ts,jsx,tsx}": "eslint --cache --quiet --fix"
+        "*.{js,ts,jsx,tsx}": "cross-env NODE_OPTIONS=--max_old_space_size=4096 eslint --cache --quiet --fix"
     }
 }

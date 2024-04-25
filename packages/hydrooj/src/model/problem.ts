@@ -526,6 +526,7 @@ export class ProblemModel {
     }
 
     static async export(domainId: string) {
+        // eslint-disable-next-line no-console
         console.log('Exporting problems...');
         const tmpdir = path.join(os.tmpdir(), 'hydro', `${Math.random()}.export`);
         await fs.mkdir(tmpdir);
@@ -581,6 +582,7 @@ export class ProblemModel {
         if (res.error) throw res.error;
         if (res.status) throw new Error(`Error: Exited with code ${res.status}`);
         const stat = fs.statSync(target);
+        // eslint-disable-next-line no-console
         console.log(`Domain ${domainId} problems export saved at ${target} , size: ${size(stat.size)}`);
     }
 }

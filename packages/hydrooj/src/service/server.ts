@@ -117,7 +117,7 @@ app.on('error', (error) => {
     }
 });
 wsServer.on('error', (error) => {
-    console.log('Websocket server error:', error);
+    console.error('Websocket server error:', error);
 });
 
 const ignoredLimit = `,${argv.options.ignoredLimit},`;
@@ -506,6 +506,7 @@ class NotFoundHandler extends Handler {
     prepare() {
         throw new NotFoundError(this.request.path);
     }
+
     all() {}
 }
 

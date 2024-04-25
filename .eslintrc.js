@@ -42,7 +42,7 @@ module.exports = {
                 ],
             },
         ],
-        'no-console': ['error', { allow: ['error'] }],
+        'no-console': ['error', { allow: ['error', 'warn'] }],
         'template-tag-spacing': 'off',
     },
     settings: {

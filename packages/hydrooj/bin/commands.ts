@@ -40,7 +40,7 @@ if (!argv.args[0] || argv.args[0] === 'cli') {
         }
         cli.parse();
         if (!cli.matchedCommand) {
-            console.log('Unknown command.');
+            console.error('Unknown command.');
             cli.outputHelp();
         }
     }

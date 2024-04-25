@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop */
+/* eslint-disable no-console */
 import mariadb from 'mariadb';
 import xml2js from 'xml2js';
 import {
@@ -480,7 +481,7 @@ export async function run(
                     }
                     data.status = Math.max(...data.testCases.map((x) => x.status));
                 } catch (e) {
-                    console.log(rdoc.id, result);
+                    console.error(rdoc.id, result);
                 }
             }
             if (rdoc.contest_id) {

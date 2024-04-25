@@ -1,5 +1,6 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable no-await-in-loop */
+/* eslint-disable no-console */
 import path from 'path';
 import cac from 'cac';
 import fs from 'fs-extra';

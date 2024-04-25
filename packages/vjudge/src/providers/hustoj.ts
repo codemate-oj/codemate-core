@@ -144,6 +144,7 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
             [c.passwordField]: password,
             ...ex,
         });
+        // eslint-disable-next-line no-console
         console.log(res.text);
         this.state.username = username;
         if (res.headers['set-cookie']) this.setCookie(res.headers['set-cookie']);
@@ -171,6 +172,7 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
             ...this.config.submit.extra,
         });
         // if (res.text.includes(this.config.submit.tooFrequent)) throw new TooFrequentError();
+        // eslint-disable-next-line no-console
         console.log(res.text);
         if (this.config.submit.noRefetch) {
             const match = res.text.match(this.config.submit.rid);

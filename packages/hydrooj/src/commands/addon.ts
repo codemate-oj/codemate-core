@@ -12,7 +12,7 @@ const addonDir = path.resolve(os.homedir(), '.hydro', 'addons');
 export function register(cli: CAC) {
     cli.command('addon [operation] [name]').action((operation, name) => {
         if (operation && !['add', 'remove', 'create', 'list'].includes(operation)) {
-            console.log('Unknown operation.');
+            console.error('Unknown operation.');
             return;
         }
         let addons = JSON.parse(fs.readFileSync(addonPath).toString());
@@ -47,6 +47,7 @@ export function register(cli: CAC) {
         }
         addons = Array.from(new Set(addons));
         logger.info('Current Addons: ');
+        // eslint-disable-next-line no-console
         console.log(addons);
         fs.writeFileSync(addonPath, JSON.stringify(addons, null, 2));
     });

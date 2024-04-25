@@ -36,7 +36,7 @@ class DataReportHandler extends Handler {
         try {
             assert(typeof payload.url === 'string');
         } catch (e) {
-            console.log(payload);
+            console.error(payload);
             throw new ForbiddenError();
         }
         const old = await coll.findOne({ _id: installId });
