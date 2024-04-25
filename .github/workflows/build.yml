@@ -49,11 +49,12 @@ jobs:
         parallel --tty -j+0 yarn ::: lint:ci lint:ui:ci
     - name: Test
       run: yarn test
-    - name: Build UI
-      run: yarn build:ui:production:webpack
-    - name: Build
-      run: |
-        yarn build
+    # Steps below are omitted cuz docker will do the same thing.
+    # - name: Build UI
+    #   run: yarn build:ui:production:webpack
+    # - name: Build
+    #   run: |
+    #     yarn build
   build-docker:
     needs: build
     permissions:
