@@ -52,7 +52,7 @@ module.exports = {
     // FIXME A bug with eslint-parser
     'object-curly-newline': 'off', // styling should be prettier stuff
     'template-tag-spacing': 'off',
-    '@typescript-eslint/indent': ['warn', 2, { SwitchCase: 1 }],
+    '@typescript-eslint/indent': 'off',
     'github/array-foreach': 'off',
     'function-paren-newline': 'off',
     'no-mixed-operators': 'off',
