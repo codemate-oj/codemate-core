@@ -35,7 +35,7 @@ jobs:
 
   deploy-test:
     name: Deploy-Test
-    runs-on: [self-hosted, test1]
+    runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v3
         name: Check Out
@@ -51,9 +51,11 @@ jobs:
             packages/ui-default/**
             packages/utils/**
             .github/workflows/**
-      - name: Build UI
+      - name: Install & Build UI
         if: steps.ui-changed-files.outputs.any_changed
-        run: yarn build:ui:production
+        run: |
+          yarn install
+          yarn build:ui:production
       - name: Restart Server
         run: pm2 restart hydrooj
 
