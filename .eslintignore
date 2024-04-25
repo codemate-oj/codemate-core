@@ -2,5 +2,5 @@ dist
 *.d.ts
 node_modules
 public/**/*.js
-frontend/**/*
+frontend/**/*.js
 /packages/hydrooj/bin/*

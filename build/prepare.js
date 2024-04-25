@@ -53,7 +53,7 @@ const configFlat = (name) => ({
         },
     },
     include: ['**/*.ts'],
-    exclude: ['public', 'frontend'],
+    exclude: ['public'],
 });
 
 for (const name of ['plugins', 'modules']) {

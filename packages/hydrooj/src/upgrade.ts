@@ -382,8 +382,8 @@ const scripts: UpgradeScript[] = [
                         config.answers[cnt] = l;
                     }
 
+                    // eslint-disable-next-line no-inner-declarations
                     function processSingleLanguage(content: string) {
-                        // eslint-disable-line no-inner-declarations
                         let text = '';
                         try {
                             let scnt = 0;
