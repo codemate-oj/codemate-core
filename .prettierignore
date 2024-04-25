@@ -1,0 +1,8 @@
+*.yaml
+*.yml
+*.html
+
+dist
+*.d.ts
+node_modules
+public/**/*.js

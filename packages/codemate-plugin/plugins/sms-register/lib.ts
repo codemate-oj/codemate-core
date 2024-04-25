@@ -1,6 +1,4 @@
-import {
-    Err, Logger, PermissionError, SystemError,
-} from 'hydrooj';
+import { Err, Logger, PermissionError, SystemError } from 'hydrooj';
 
 export const VerifyTokenCheckNotPassedError = Err('VerifyTokenCheckNotPassedError', PermissionError);
 export const SendSMSFailedError = Err('SendSMSFailedError', SystemError);

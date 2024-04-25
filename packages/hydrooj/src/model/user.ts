@@ -2,10 +2,7 @@ import { escapeRegExp, pick, uniq } from 'lodash';
 import { LRUCache } from 'lru-cache';
 import { Collection, Filter, ObjectId } from 'mongodb';
 import { LoginError, UserAlreadyExistError, UserNotFoundError } from '../error';
-import {
-    Authenticator, BaseUserDict, FileInfo, GDoc,
-    ownerInfo, Udict, Udoc, VUdoc,
-} from '../interface';
+import { Authenticator, BaseUserDict, FileInfo, GDoc, ownerInfo, Udict, Udoc, VUdoc } from '../interface';
 import avatar from '../lib/avatar';
 import pwhash from '../lib/hash.hydro';
 import serializer from '../lib/serializer';
@@ -25,13 +22,10 @@ export const collV: Collection<VUdoc> = db.collection('vuser');
 export const collGroup: Collection<GDoc> = db.collection('user.group');
 const cache = new LRUCache<string, User>({ max: 10000, ttl: 300 * 1000 });
 
-export function deleteUserCache(udoc: { _id: number, uname: string, mail: string } | string | true | undefined | null, receiver = false) {
+export function deleteUserCache(udoc: { _id: number; uname: string; mail: string } | string | true | undefined | null, receiver = false) {
     if (!udoc) return false;
     if (!receiver) {
-        bus.broadcast(
-            'user/delcache',
-            JSON.stringify(typeof udoc === 'string' ? udoc : pick(udoc, ['uname', 'mail', '_id'])),
-        );
+        bus.broadcast('user/delcache', JSON.stringify(typeof udoc === 'string' ? udoc : pick(udoc, ['uname', 'mail', '_id'])));
     }
     if (udoc === true) return cache.clear();
     if (typeof udoc === 'string') {
@@ -74,6 +68,12 @@ export class User {
     tfa: boolean;
     authn: boolean;
     group?: string[];
+    verifyInfo: {
+        realName?: string;
+        idNumber?: string;
+        verifyPassed: boolean;
+    };
+
     [key: string]: any;
 
     constructor(udoc: Udoc, dudoc, scope = PERM.PERM_ALL) {
@@ -102,6 +102,11 @@ export class User {
         this.tfa = !!udoc.tfa;
         this.authn = (udoc.authenticators || []).length > 0;
         this.phoneNumber = udoc.phoneNumber;
+        this.verifyInfo = {
+            realName: udoc.realName,
+            idNumber: udoc.idNumber,
+            verifyPassed: udoc.verifyPassed ?? false,
+        };
         if (dudoc.group) this.group = dudoc.group;
 
         for (const key in setting.SETTINGS_BY_KEY) {
@@ -121,12 +126,10 @@ export class User {
     own<T extends ownerInfo>(doc: T, checkPerm: bigint): boolean;
     own<T extends ownerInfo>(doc: T, exact: boolean): boolean;
     own<T extends ownerInfo>(doc: T): boolean;
-    own<T extends { owner: number, maintainer?: number[] }>(doc: T): boolean;
+    own<T extends { owner: number; maintainer?: number[] }>(doc: T): boolean;
     own(doc: any, arg1: any = false): boolean {
         if (typeof arg1 === 'bigint' && !this.hasPerm(arg1)) return false;
-        return (typeof arg1 === 'boolean' && arg1)
-            ? doc.owner === this._id
-            : doc.owner === this._id || (doc.maintainer || []).includes(this._id);
+        return typeof arg1 === 'boolean' && arg1 ? doc.owner === this._id : doc.owner === this._id || (doc.maintainer || []).includes(this._id);
     }
 
     hasPerm(...perm: bigint[]) {
@@ -223,10 +226,7 @@ class UserModel {
         if (cache.has(`id/${_id}/${domainId}`)) return cache.get(`id/${_id}/${domainId}`) || null;
         const udoc = await (_id < -999 ? collV : coll).findOne({ _id });
         if (!udoc) return null;
-        const [dudoc, groups] = await Promise.all([
-            domain.getDomainUser(domainId, udoc),
-            UserModel.listGroup(domainId, _id),
-        ]);
+        const [dudoc, groups] = await Promise.all([domain.getDomainUser(domainId, udoc), UserModel.listGroup(domainId, _id)]);
         dudoc.group = groups.map((i) => i.name);
         if (typeof scope === 'string') scope = BigInt(scope);
         return initAndCache(udoc, dudoc, scope);
@@ -242,9 +242,11 @@ class UserModel {
 
     static async getList(domainId: string, uids: number[]): Promise<Udict> {
         const r: Udict = {};
-        await Promise.all(uniq(uids).map(async (uid) => {
-            r[uid] = (await UserModel.getById(domainId, uid)) || new User(UserModel.defaultUser, {});
-        }));
+        await Promise.all(
+            uniq(uids).map(async (uid) => {
+                r[uid] = (await UserModel.getById(domainId, uid)) || new User(UserModel.defaultUser, {});
+            }),
+        );
         return r;
     }
 
@@ -252,7 +254,7 @@ class UserModel {
     static async getByUname(domainId: string, uname: string): Promise<User | null> {
         const unameLower = uname.trim().toLowerCase();
         if (cache.has(`name/${unameLower}/${domainId}`)) return cache.get(`name/${unameLower}/${domainId}`);
-        const udoc = (await coll.findOne({ unameLower })) || await collV.findOne({ unameLower });
+        const udoc = (await coll.findOne({ unameLower })) || (await collV.findOne({ unameLower }));
         if (!udoc) return null;
         const dudoc = await domain.getDomainUser(domainId, udoc);
         return initAndCache(udoc, dudoc);
@@ -320,8 +322,12 @@ class UserModel {
 
     @ArgMethod
     static async create(
-        mail: string, uname: string, password: string,
-        uid?: number, regip: string = '127.0.0.1', priv: number = system.get('default.priv'),
+        mail: string,
+        uname: string,
+        password: string,
+        uid?: number,
+        regip: string = '127.0.0.1',
+        priv: number = system.get('default.priv'),
     ) {
         let autoAlloc = false;
         if (typeof uid !== 'number') {
@@ -330,7 +336,8 @@ class UserModel {
             autoAlloc = true;
         }
         const salt = String.random();
-        while (true) { // eslint-disable-line no-constant-condition
+        while (true) {
+            // eslint-disable-line no-constant-condition
             try {
                 // eslint-disable-next-line no-await-in-loop
                 await coll.insertOne({
@@ -417,8 +424,7 @@ class UserModel {
     @ArgMethod
     static async getPrefixList(domainId: string, prefix: string, limit: number = 50) {
         const $regex = `^${escapeRegExp(prefix.toLowerCase())}`;
-        const udocs = await coll.find({ unameLower: { $regex } })
-            .limit(limit).project({ _id: 1 }).toArray();
+        const udocs = await coll.find({ unameLower: { $regex } }).limit(limit).project({ _id: 1 }).toArray();
         const dudocs = await domain.getMultiUserInDomain(domainId, { displayName: { $regex } }).limit(limit).project({ uid: 1 }).toArray();
         const uids = uniq([...udocs.map(({ _id }) => _id), ...dudocs.map(({ uid }) => uid)]);
         return await Promise.all(uids.map((_id) => UserModel.getById(domainId, _id)));
@@ -426,11 +432,7 @@ class UserModel {
 
     @ArgMethod
     static async setPriv(uid: number, priv: number): Promise<Udoc> {
-        const res = await coll.findOneAndUpdate(
-            { _id: uid },
-            { $set: { priv } },
-            { returnDocument: 'after' },
-        );
+        const res = await coll.findOneAndUpdate({ _id: uid }, { $set: { priv } }, { returnDocument: 'after' });
         deleteUserCache(res.value);
         return res.value;
     }
@@ -444,17 +446,13 @@ class UserModel {
     static async setJudge(uid: number) {
         return await UserModel.setPriv(
             uid,
-            PRIV.PRIV_USER_PROFILE | PRIV.PRIV_JUDGE | PRIV.PRIV_VIEW_ALL_DOMAIN
-            | PRIV.PRIV_READ_PROBLEM_DATA | PRIV.PRIV_UNLIMITED_ACCESS,
+            PRIV.PRIV_USER_PROFILE | PRIV.PRIV_JUDGE | PRIV.PRIV_VIEW_ALL_DOMAIN | PRIV.PRIV_READ_PROBLEM_DATA | PRIV.PRIV_UNLIMITED_ACCESS,
         );
     }
 
     @ArgMethod
     static ban(uid: number, reason = '') {
-        return Promise.all([
-            UserModel.setById(uid, { priv: PRIV.PRIV_NONE, banReason: reason }),
-            token.delByUid(uid),
-        ]);
+        return Promise.all([UserModel.setById(uid, { priv: PRIV.PRIV_NONE, banReason: reason }), token.delByUid(uid)]);
     }
 
     /** @deprecated use codemate-plugin GroupModel instead */
@@ -462,7 +460,10 @@ class UserModel {
         const groups = await collGroup.find(typeof uid === 'number' ? { domainId, uids: uid } : { domainId }).toArray();
         if (uid) {
             groups.push({
-                _id: new ObjectId(), domainId, uids: [uid], name: uid.toString(),
+                _id: new ObjectId(),
+                domainId,
+                uids: [uid],
+                name: uid.toString(),
             });
         }
         return groups;
@@ -481,22 +482,12 @@ class UserModel {
     }
 }
 
-bus.on('ready', () => Promise.all([
-    db.ensureIndexes(
-        coll,
-        { key: { unameLower: 1 }, name: 'uname', unique: true },
-        { key: { mailLower: 1 }, name: 'mail', unique: true },
-    ),
-    db.ensureIndexes(
-        collV,
-        { key: { unameLower: 1 }, name: 'uname', unique: true },
-        { key: { mailLower: 1 }, name: 'mail', unique: true },
-    ),
-    db.ensureIndexes(
-        collGroup,
-        { key: { domainId: 1, name: 1 }, name: 'name', unique: true },
-        { key: { domainId: 1, uids: 1 }, name: 'uid' },
-    ),
-]));
+bus.on('ready', () =>
+    Promise.all([
+        db.ensureIndexes(coll, { key: { unameLower: 1 }, name: 'uname', unique: true }, { key: { mailLower: 1 }, name: 'mail', unique: true }),
+        db.ensureIndexes(collV, { key: { unameLower: 1 }, name: 'uname', unique: true }, { key: { mailLower: 1 }, name: 'mail', unique: true }),
+        db.ensureIndexes(collGroup, { key: { domainId: 1, name: 1 }, name: 'name', unique: true }, { key: { domainId: 1, uids: 1 }, name: 'uid' }),
+    ]),
+);
 export default UserModel;
 global.Hydro.model.user = UserModel;
