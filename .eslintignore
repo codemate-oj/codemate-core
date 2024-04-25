@@ -4,6 +4,3 @@ node_modules
 public/**/*.js
 frontend/**/*
 /packages/hydrooj/bin/*
-/plugins/*
-/modules/*
-
