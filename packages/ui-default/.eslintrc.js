@@ -10,7 +10,7 @@ module.exports = {
     jquery: true,
     commonjs: true,
   },
-  extends: ['@hydrooj/eslint-config'],
+  extends: ['@hydrooj/eslint-config', 'plugin:prettier/recommended'],
   parserOptions: {
     sourceType: 'module',
     ecmaVersion: 2020,
