@@ -3,9 +3,17 @@ import moment from 'moment-timezone';
 import type { Binary } from 'mongodb';
 import { Time } from '@hydrooj/utils';
 import {
-    AuthOperationError, BlacklistedError, BuiltinLoginError, ForbiddenError, InvalidTokenError,
-    SystemError, UserAlreadyExistError, UserFacingError,
-    UserNotFoundError, ValidationError, VerifyPasswordError,
+    AuthOperationError,
+    BlacklistedError,
+    BuiltinLoginError,
+    ForbiddenError,
+    InvalidTokenError,
+    SystemError,
+    UserAlreadyExistError,
+    UserFacingError,
+    UserNotFoundError,
+    ValidationError,
+    VerifyPasswordError,
 } from '../error';
 import { Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
@@ -23,9 +31,7 @@ import SolutionModel from '../model/solution';
 import * as system from '../model/system';
 import token from '../model/token';
 import user, { deleteUserCache } from '../model/user';
-import {
-    Handler, param, post, Types,
-} from '../service/server';
+import { Handler, param, post, Types } from '../service/server';
 import { registerResolver, registerValue } from './api';
 
 registerValue('User', [
@@ -43,35 +49,48 @@ registerValue('User', [
     ['displayName', 'String'],
 ]);
 
-registerResolver('Query', 'user(id: Int, uname: String, mail: String)', 'User', (arg, ctx) => {
-    if (arg.id) return user.getById(ctx.args.domainId, arg.id);
-    if (arg.mail) return user.getByEmail(ctx.args.domainId, arg.mail);
-    if (arg.uname) return user.getByUname(ctx.args.domainId, arg.uname);
-    return ctx.user;
-}, `Get a user by id, uname, or mail.
-Returns current user if no argument is provided.`);
+registerResolver(
+    'Query',
+    'user(id: Int, uname: String, mail: String)',
+    'User',
+    (arg, ctx) => {
+        if (arg.id) return user.getById(ctx.args.domainId, arg.id);
+        if (arg.mail) return user.getByEmail(ctx.args.domainId, arg.mail);
+        if (arg.uname) return user.getByUname(ctx.args.domainId, arg.uname);
+        return ctx.user;
+    },
+    `Get a user by id, uname, or mail.
+Returns current user if no argument is provided.`,
+);
 
-registerResolver('Query', 'users(ids: [Int], search: String, limit: Int, exact: Boolean)', '[User]', async (arg, ctx) => {
-    if (arg.ids?.length) {
-        const res = await user.getList(ctx.args.domainId, arg.ids);
-        return Object.keys(res).map((id) => res[+id]);
-    }
-    if (!arg.search) return [];
-    const udoc = await user.getById(ctx.args.domainId, +arg.search)
-        || await user.getByUname(ctx.args.domainId, arg.search)
-        || await user.getByEmail(ctx.args.domainId, arg.search);
-    const udocs: User[] = arg.exact
-        ? []
-        : await user.getPrefixList(ctx.args.domainId, arg.search, Math.min(arg.limit || 10, 10));
-    if (udoc && !udocs.find((i) => i._id === udoc._id)) {
-        udocs.pop();
-        udocs.unshift(udoc);
-    }
-    for (const i in udocs) {
-        udocs[i].avatarUrl = avatar(udocs[i].avatar);
-    }
-    return udocs;
-}, 'Get a list of user by ids, or search users with the prefix.');
+registerResolver(
+    'Query',
+    'users(ids: [Int], search: String, limit: Int, exact: Boolean)',
+    '[User]',
+    async (arg, ctx) => {
+        if (arg.ids?.length) {
+            const res = await user.getList(ctx.args.domainId, arg.ids);
+            return Object.keys(res).map((id) => res[+id]);
+        }
+        if (!arg.search) return [];
+        const udoc =
+            (await user.getById(ctx.args.domainId, +arg.search)) ||
+            (await user.getByUname(ctx.args.domainId, arg.search)) ||
+            (await user.getByEmail(ctx.args.domainId, arg.search));
+        const udocs: User[] = arg.exact
+            ? []
+            : await user.getPrefixList(ctx.args.domainId, arg.search, Math.min(arg.limit || 10, 10));
+        if (udoc && !udocs.find((i) => i._id === udoc._id)) {
+            udocs.pop();
+            udocs.unshift(udoc);
+        }
+        for (const i in udocs) {
+            udocs[i].avatarUrl = avatar(udocs[i].avatar);
+        }
+        return udocs;
+    },
+    'Get a list of user by ids, or search users with the prefix.',
+);
 
 class UserLoginHandler extends Handler {
     noCheckPermView = true;
@@ -88,8 +107,13 @@ class UserLoginHandler extends Handler {
     @param('tfa', Types.String, true)
     @param('authnChallenge', Types.String, true)
     async post(
-        domainId: string, uname: string, password: string, rememberme = false, redirect = '',
-        tfa = '', authnChallenge = '',
+        domainId: string,
+        uname: string,
+        password: string,
+        rememberme = false,
+        redirect = '',
+        tfa = '',
+        authnChallenge = '',
     ) {
         if (!system.get('server.login')) throw new BuiltinLoginError();
         let udoc = await user.getByEmail(domainId, uname);
@@ -112,7 +136,8 @@ class UserLoginHandler extends Handler {
                 if (!verifyTFA(udoc._tfa, tfa)) throw new InvalidTokenError('2FA');
             } else if (udoc.authn && authnChallenge) {
                 const challenge = await token.get(authnChallenge, token.TYPE_WEBAUTHN);
-                if (!challenge || challenge.uid !== udoc._id) throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_WEBAUTHN]);
+                if (!challenge || challenge.uid !== udoc._id)
+                    throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_WEBAUTHN]);
                 if (!challenge.verified) throw new ValidationError('challenge');
                 await token.del(authnChallenge, token.TYPE_WEBAUTHN);
             } else throw new ValidationError('2FA', 'Authn');
@@ -126,8 +151,9 @@ class UserLoginHandler extends Handler {
         this.session.scope = PERM.PERM_ALL.toString();
         this.session.save = rememberme;
         this.session.recreate = true;
-        this.response.redirect = redirect || ((this.request.referer || '/login').endsWith('/login')
-            ? this.url('homepage') : this.request.referer);
+        this.response.redirect =
+            redirect ||
+            ((this.request.referer || '/login').endsWith('/login') ? this.url('homepage') : this.request.referer);
     }
 }
 
@@ -142,10 +168,7 @@ class UserSudoHandler extends Handler {
     @param('authnChallenge', Types.String, true)
     async post(domainId: string, password = '', tfa = '', authnChallenge = '') {
         if (!this.session.sudoArgs?.method) throw new ForbiddenError();
-        await Promise.all([
-            this.limitRate('user_sudo', 60, 5, true),
-            oplog.log(this, 'user.sudo', {}),
-        ]);
+        await Promise.all([this.limitRate('user_sudo', 60, 5, true), oplog.log(this, 'user.sudo', {})]);
         if (this.user.authn && authnChallenge) {
             const challenge = await token.get(authnChallenge, token.TYPE_WEBAUTHN);
             if (challenge?.uid !== this.user._id) throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_WEBAUTHN]);
@@ -168,12 +191,15 @@ class UserWebauthnHandler extends Handler {
 
     getAuthnHost() {
         return system.get('authn.host') && this.request.hostname.includes(system.get('authn.host'))
-            ? system.get('authn.host') : this.request.hostname;
+            ? system.get('authn.host')
+            : this.request.hostname;
     }
 
     @param('uname', Types.Username, true)
     async get(domainId: string, uname: string) {
-        const udoc = this.user._id ? this.user : ((await user.getByEmail(domainId, uname)) || await user.getByUname(domainId, uname));
+        const udoc = this.user._id
+            ? this.user
+            : (await user.getByEmail(domainId, uname)) || (await user.getByUname(domainId, uname));
         if (!udoc._id) throw new UserNotFoundError(uname || 'user');
         if (!udoc.authn) throw new AuthOperationError('authn', 'disabled');
         const options = generateAuthenticationOptions({
@@ -252,11 +278,10 @@ export class UserRegisterHandler extends Handler {
                 this.limitRate('send_mail', 3600, 30, false),
                 oplog.log(this, 'user.register', {}),
             ]);
-            const t = await token.add(
-                token.TYPE_REGISTRATION,
-                system.get('session.unsaved_expire_seconds'),
-                { mail, redirect: this.domain.registerRedirect },
-            );
+            const t = await token.add(token.TYPE_REGISTRATION, system.get('session.unsaved_expire_seconds'), {
+                mail,
+                redirect: this.domain.registerRedirect,
+            });
             const prefix = this.domain.host
                 ? `${this.domain.host instanceof Array ? this.domain.host[0] : this.domain.host}`
                 : system.get('server.url');
@@ -277,12 +302,7 @@ export class UserRegisterHandler extends Handler {
                 oplog.log(this, 'user.register', {}),
             ]);
             const id = String.random(6, '0123456789');
-            await token.add(
-                token.TYPE_REGISTRATION,
-                10 * Time.minute,
-                { phone: phoneNumber },
-                id,
-            );
+            await token.add(token.TYPE_REGISTRATION, 10 * Time.minute, { phone: phoneNumber }, id);
             await global.Hydro.lib.sendSms(phoneNumber, 'register', id);
             this.response.body = { phone: phoneNumber };
             this.response.template = 'user_register_sms.html';
@@ -307,11 +327,9 @@ class UserLostPassHandler extends Handler {
             this.limitRate(`user_lostpass_${mail}`, 60, 3, false),
             oplog.log(this, 'user.lostpass', {}),
         ]);
-        const [tid] = await token.add(
-            token.TYPE_LOSTPASS,
-            system.get('session.unsaved_expire_seconds'),
-            { uid: udoc._id },
-        );
+        const [tid] = await token.add(token.TYPE_LOSTPASS, system.get('session.unsaved_expire_seconds'), {
+            uid: udoc._id,
+        });
         const prefix = this.domain.host
             ? `${this.domain.host instanceof Array ? this.domain.host[0] : this.domain.host}`
             : system.get('server.url');
@@ -364,15 +382,23 @@ class UserDetailHandler extends Handler {
         const acInfo: Record<string, number> = {};
         const canViewHidden = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id;
         if (this.user.hasPerm(PERM.PERM_VIEW_PROBLEM)) {
-            await Promise.all([domainId, ...(union?.union || [])].map(async (did) => {
-                const psdocs = await problem.getMultiStatus(did, { uid, status: STATUS.STATUS_ACCEPTED }).toArray();
-                pdocs.push(...Object.values(
-                    await problem.getList(
-                        did, psdocs.map((i) => i.docId), canViewHidden,
-                        false, problem.PROJECTION_LIST, true,
-                    ),
-                ));
-            }));
+            await Promise.all(
+                [domainId, ...(union?.union || [])].map(async (did) => {
+                    const psdocs = await problem.getMultiStatus(did, { uid, status: STATUS.STATUS_ACCEPTED }).toArray();
+                    pdocs.push(
+                        ...Object.values(
+                            await problem.getList(
+                                did,
+                                psdocs.map((i) => i.docId),
+                                canViewHidden,
+                                false,
+                                problem.PROJECTION_LIST,
+                                true,
+                            ),
+                        ),
+                    );
+                }),
+            );
         }
         for (const pdoc of pdocs) {
             for (const tag of pdoc.tag) {
@@ -380,21 +406,35 @@ class UserDetailHandler extends Handler {
                 else acInfo[tag] = 1;
             }
         }
-        const tags = Object.entries(acInfo).sort((a, b) => b[1] - a[1]).slice(0, 20);
-        const tsdocs = await ContestModel.getMultiStatus(domainId, { uid, attend: { $exists: true } }).project({ docId: 1 }).toArray();
+        const tags = Object.entries(acInfo)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20);
+        const tsdocs = await ContestModel.getMultiStatus(domainId, { uid, attend: { $exists: true } })
+            .project({ docId: 1 })
+            .toArray();
         const tdocs = await ContestModel.getMulti(domainId, { docId: { $in: tsdocs.map((i) => i.docId) } })
-            .project({ docId: 1, title: 1, rule: 1 }).sort({ _id: -1 }).toArray();
+            .project({ docId: 1, title: 1, rule: 1 })
+            .sort({ _id: -1 })
+            .toArray();
         this.response.template = 'user_detail.html';
         this.response.body = {
-            isSelfProfile, udoc, sdoc, pdocs, tags, tdocs,
+            isSelfProfile,
+            udoc,
+            sdoc,
+            pdocs,
+            tags,
+            tdocs,
         };
         if (this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_SOLUTION)) {
             const psdocs = await SolutionModel.getByUser(domainId, uid).limit(10).toArray();
             this.response.body.psdocs = psdocs;
             if (this.user.hasPerm(PERM.PERM_VIEW_PROBLEM)) {
                 this.response.body.pdict = await problem.getList(
-                    domainId, psdocs.map((i) => i.parentId), canViewHidden,
-                    false, problem.PROJECTION_LIST,
+                    domainId,
+                    psdocs.map((i) => i.parentId),
+                    canViewHidden,
+                    false,
+                    problem.PROJECTION_LIST,
                 );
             }
         }
@@ -467,17 +507,13 @@ class OauthCallbackHandler extends Handler {
             if (r.bio) set.bio = r.bio;
             if (r.viewLang) set.viewLang = r.viewLang;
             if (r.avatar) set.avatar = r.avatar;
-            const [t] = await token.add(
-                token.TYPE_REGISTRATION,
-                system.get('session.unsaved_expire_seconds'),
-                {
-                    mail: r.email,
-                    username,
-                    redirect: this.domain.registerRedirect,
-                    set,
-                    oauth: [args.type, r._id],
-                },
-            );
+            const [t] = await token.add(token.TYPE_REGISTRATION, system.get('session.unsaved_expire_seconds'), {
+                mail: r.email,
+                username,
+                redirect: this.domain.registerRedirect,
+                set,
+                oauth: [args.type, r._id],
+            });
             this.response.redirect = this.url('user_register_with_code', { code: t });
         }
     }
@@ -485,8 +521,10 @@ class OauthCallbackHandler extends Handler {
 
 class ContestModeHandler extends Handler {
     async get() {
-        const bindings = await user.getMulti({ loginip: { $exists: true } })
-            .project<{ _id: number, loginip: string }>({ _id: 1, loginip: 1 }).toArray();
+        const bindings = await user
+            .getMulti({ loginip: { $exists: true } })
+            .project<{ _id: number; loginip: string }>({ _id: 1, loginip: 1 })
+            .toArray();
         this.response.body = { bindings };
         this.response.template = 'contest_mode.html';
     }

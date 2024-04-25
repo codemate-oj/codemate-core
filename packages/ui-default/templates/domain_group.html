@@ -1,10 +1,15 @@
 {% extends "domain_base.html" %}
 {% block domain_content %}
+<script>
+  {{ set(UiContext, 'gdocs', groups) }}
+</script>
+
 <div class="section">
   <div class="section__header">
     <h1 class="section__title">{{ _('{0}: Groups').format(domain.name) }}</h1>
     <div class="section__tools">
       <button class="primary rounded button" name="create_group">{{ _('Create Group') }}</button>
+      <button class="primary rounded button" name="export_code">导出激活码</button>
     </div>
   </div>
   {{ noscript_note.render() }}
@@ -14,6 +19,7 @@
         <col class="col--checkbox">
         <col class="col--group">
         <col class="col--user">
+        <col class="col--show_code">
       </colgroup>
       <thead>
         <tr>
@@ -34,8 +40,13 @@
               <input type="checkbox" data-checkbox-group="group" data-checkbox-range>
             </label>
           </td>
-          <td class="col--group">{{ gdoc.name }}</td>
-          <td class="col--user"><input type="text" value="{{ gdoc.uids.join(',') }}" data-gid="{{ gdoc.name }}"></input></td>
+          <td title="{{ gdoc.name }}" class="col--group">{{ gdoc.name }}</td>
+          <td class="col--user">
+            <input type="text" value="{{ gdoc.uids.join(',') }}" data-gid="{{ gdoc.name }}"></input>
+          </td>
+          <td>
+            <button name="show_code">显示激活码</button>
+          </td>
         </tr>
         {%- endfor -%}
       </tbody>
@@ -43,7 +54,7 @@
   </div>
   <div class="section__body">
     <button class="rounded button" name="remove_selected">{{ _('Remove Selected Group') }}</button>
-    <button class="rounded button" name="save_all">{{ _('Save All Changes') }}</button>
+    <button class="rounded button" name="save_all">{{ _('Save All Changes') }}（不含激活码）</button>
   </div>
 </div>
 {% endblock %}

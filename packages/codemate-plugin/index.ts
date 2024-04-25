@@ -1,6 +1,6 @@
 /* eslint-disable import/no-dynamic-require */
+import fs from 'fs';
 import path from 'path';
-import fs from 'fs-extra';
 import { type Context, unwrapExports } from 'hydrooj';
 import { logger } from './api';
 
