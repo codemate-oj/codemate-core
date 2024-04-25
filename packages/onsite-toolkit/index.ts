@@ -1,6 +1,4 @@
-import {
-    Context, db, ForbiddenError, UserModel,
-} from 'hydrooj';
+import { Context, db, ForbiddenError, UserModel } from 'hydrooj';
 
 interface IpLoginInfo {
     _id: string;

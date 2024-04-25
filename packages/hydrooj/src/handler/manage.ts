@@ -3,9 +3,7 @@ import { inspect } from 'util';
 import * as yaml from 'js-yaml';
 import { omit } from 'lodash';
 import Schema from 'schemastery';
-import {
-    CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
-} from '../error';
+import { CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError } from '../error';
 import { Logger } from '../logger';
 import { PRIV, STATUS } from '../model/builtin';
 import domain from '../model/domain';
@@ -14,9 +12,7 @@ import * as setting from '../model/setting';
 import * as system from '../model/system';
 import user from '../model/user';
 import { check } from '../service/check';
-import {
-    ConnectionHandler, Handler, param, requireSudo, Types,
-} from '../service/server';
+import { ConnectionHandler, Handler, param, requireSudo, Types } from '../service/server';
 import { configSource, saveConfig, SystemSettings } from '../settings';
 import * as judge from './judge';
 
@@ -26,7 +22,7 @@ function set(key: string, value: any) {
     if (setting.SYSTEM_SETTINGS_BY_KEY[key]) {
         const s = setting.SYSTEM_SETTINGS_BY_KEY[key];
         if (s.flag & setting.FLAG_DISABLED) return undefined;
-        if ((s.flag & setting.FLAG_SECRET) && !value) return undefined;
+        if (s.flag & setting.FLAG_SECRET && !value) return undefined;
         if (s.type === 'boolean') {
             if (value === 'on') return true;
             return false;
@@ -71,7 +67,9 @@ class SystemCheckConnHandler extends ConnectionHandler {
         const log = (payload: any) => this.send({ type: 'log', payload });
         const warn = (payload: any) => this.send({ type: 'warn', payload });
         const error = (payload: any) => this.send({ type: 'error', payload });
-        await check.run(this, log, warn, error, (id) => { this.id = id; });
+        await check.run(this, log, warn, error, (id) => {
+            this.id = id;
+        });
     }
 
     async cleanup() {
@@ -110,7 +108,8 @@ class SystemScriptHandler extends SystemHandler {
         report({ message: `Running script: ${id} `, status: STATUS.STATUS_JUDGING });
         const start = Date.now();
         // Maybe async?
-        global.Hydro.script[id].run(args, report)
+        global.Hydro.script[id]
+            .run(args, report)
             .then((ret: any) => {
                 const time = new Date().getTime() - start;
                 judge.end({
@@ -187,7 +186,7 @@ class SystemConfigHandler extends SystemHandler {
         let value = configSource;
         try {
             value = yaml.dump(Schema.intersect(SystemSettings)(yaml.load(configSource)));
-        } catch (e) { }
+        } catch (e) {}
         this.response.body = {
             schema: Schema.intersect(SystemSettings).toJSON(),
             value,
@@ -219,7 +218,7 @@ class SystemUserImportHandler extends SystemHandler {
     @param('draft', Types.Boolean)
     async post(domainId: string, _users: string, draft: boolean) {
         const users = _users.split('\n');
-        const udocs: { email: string, username: string, password: string, displayName?: string, payload?: any }[] = [];
+        const udocs: { email: string; username: string; password: string; displayName?: string; payload?: any }[] = [];
         const messages = [];
         const mapping = {};
         const groups: Record<string, string[]> = {};
@@ -236,9 +235,9 @@ class SystemUserImportHandler extends SystemHandler {
                 if (!Types.Email[1](email)) messages.push(`Line ${+i + 1}: Invalid email.`);
                 else if (!Types.Username[1](username)) messages.push(`Line ${+i + 1}: Invalid username`);
                 else if (!Types.Password[1](password)) messages.push(`Line ${+i + 1}: Invalid password`);
-                else if (udocs.find((t) => t.email === email) || await user.getByEmail('system', email)) {
+                else if (udocs.find((t) => t.email === email) || (await user.getByEmail('system', email))) {
                     messages.push(`Line ${+i + 1}: Email ${email} already exists.`);
-                } else if (udocs.find((t) => t.username === username) || await user.getByUname('system', username)) {
+                } else if (udocs.find((t) => t.username === username) || (await user.getByUname('system', username))) {
                     messages.push(`Line ${+i + 1}: Username ${username} already exists.`);
                 } else {
                     const payload: any = {};
@@ -250,9 +249,13 @@ class SystemUserImportHandler extends SystemHandler {
                         }
                         if (data.school) payload.school = data.school;
                         if (data.studentId) payload.studentId = data.studentId;
-                    } catch (e) { }
+                    } catch (e) {}
                     udocs.push({
-                        email, username, password, displayName, payload,
+                        email,
+                        username,
+                        password,
+                        displayName,
+                        payload,
                     });
                 }
             } else messages.push(`Line ${+i + 1}: Input invalid.`);
@@ -288,8 +291,16 @@ class SystemUserPrivHandler extends SystemHandler {
     @requireSudo
     async get() {
         const defaultPriv = system.get('default.priv');
-        const udocs = await user.getMulti({ _id: { $gte: -1000, $ne: 1 }, priv: { $nin: [0, defaultPriv] } }).limit(1000).sort({ _id: 1 }).toArray();
-        const banudocs = await user.getMulti({ _id: { $gte: -1000, $ne: 1 }, priv: 0 }).limit(1000).sort({ _id: 1 }).toArray();
+        const udocs = await user
+            .getMulti({ _id: { $gte: -1000, $ne: 1 }, priv: { $nin: [0, defaultPriv] } })
+            .limit(1000)
+            .sort({ _id: 1 })
+            .toArray();
+        const banudocs = await user
+            .getMulti({ _id: { $gte: -1000, $ne: 1 }, priv: 0 })
+            .limit(1000)
+            .sort({ _id: 1 })
+            .toArray();
         this.response.body = {
             udocs: [...udocs, ...banudocs],
             defaultPriv,

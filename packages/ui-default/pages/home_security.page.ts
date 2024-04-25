@@ -5,9 +5,7 @@ import QRCode from 'qrcode';
 import { ActionDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  delay, i18n, request, secureRandomString, tpl,
-} from 'vj/utils';
+import { delay, i18n, request, secureRandomString, tpl } from 'vj/utils';
 
 const t = (s) => escape(i18n(s));
 
@@ -125,12 +123,10 @@ export default new NamedPage('home_security', () => {
           <li class="menu__seperator"></li>
     `;
     if (!window.isSecureContext || !browserSupportsWebAuthn()) {
-      const message = window.isSecureContext
-        ? "Your browser doesn't support WebAuthn."
-        : 'Webauthn is not available in insecure context.';
+      const message = window.isSecureContext ? "Your browser doesn't support WebAuthn." : 'Webauthn is not available in insecure context.';
       $body += menuLink(`${fingerprint}${t(message)}`);
     } else {
-      if (!await platformAuthenticatorIsAvailable()) {
+      if (!(await platformAuthenticatorIsAvailable())) {
         $body += menuLink(`${fingerprint}${t("Your browser doesn't support platform authenticator.")}`);
       } else {
         $body += menuLink(`${fingerprint}${t('Your Device')}`, 'platform');

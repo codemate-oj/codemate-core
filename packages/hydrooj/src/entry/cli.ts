@@ -6,19 +6,17 @@ import fs from 'fs-extra';
 import { ObjectId } from 'mongodb';
 import { Context } from '../context';
 import db from '../service/db';
-import {
-    addon, builtinModel, lib, model, script, service, setting,
-} from './common';
+import { addon, builtinModel, lib, model, script, service, setting } from './common';
 
 const argv = cac().parse();
-const COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-const ARR = /=>.*$/mg;
+const COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/gm;
+const ARR = /=>.*$/gm;
 function parseParameters(fn: Function) {
-    const code = fn.toString()
-        .replace(COMMENTS, '')
-        .replace(ARR, '');
-    const result = code.slice(code.indexOf('(') + 1, code.indexOf(')'))
-        .match(/([^,]+)/g)?.map((i) => i.trim());
+    const code = fn.toString().replace(COMMENTS, '').replace(ARR, '');
+    const result = code
+        .slice(code.indexOf('(') + 1, code.indexOf(')'))
+        .match(/([^,]+)/g)
+        ?.map((i) => i.trim());
     return result ?? [];
 }
 
@@ -65,7 +63,7 @@ async function cli() {
         return console.error(parameters.join(', '));
     }
     for (let i = 0; i < args.length; i++) {
-        if ("'\"".includes(args[i][0]) && "'\"".includes(args[i][args[i].length - 1])) {
+        if ('\'"'.includes(args[i][0]) && '\'"'.includes(args[i][args[i].length - 1])) {
             args[i] = args[i].substr(1, args[i].length - 2);
         } else if (args[i].length === 24 && ObjectId.isValid(args[i])) {
             args[i] = new ObjectId(args[i]);
@@ -103,10 +101,7 @@ export async function load(ctx: Context) {
     await require('../service/storage').loadStorageService();
     await ctx.root.start();
     require('../lib/index');
-    await Promise.all([
-        lib(pending, fail, ctx),
-        service(pending, fail, ctx),
-    ]);
+    await Promise.all([lib(pending, fail, ctx), service(pending, fail, ctx)]);
     ctx.plugin(require('../service/worker'));
     await builtinModel(ctx);
     await model(pending, fail, ctx);

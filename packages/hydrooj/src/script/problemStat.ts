@@ -105,12 +105,13 @@ export async function pdoc(report) {
     for (let i = 0; i <= 100; i++) {
         pipeline[1].$group[`s${i}`] = {
             $sum: {
-                $cond: [{
-                    $and: [
-                        { $gte: ['$score', i] },
-                        { $lt: ['$score', i + 1] },
-                    ],
-                }, 1, 0],
+                $cond: [
+                    {
+                        $and: [{ $gte: ['$score', i] }, { $lt: ['$score', i + 1] }],
+                    },
+                    1,
+                    0,
+                ],
             },
         };
         pipeline[2].$group[`s${i}`] = { $sum: `$s${i}` };
@@ -149,17 +150,19 @@ export async function pdoc(report) {
     if (bulk.batches.length) await bulk.execute();
 }
 
-export const apply = (ctx) => ctx.addScript(
-    'problemStat', 'Recalculates nSubmit and nAccept in problem status.',
-    Schema.object({
-        udoc: Schema.boolean(),
-        pdoc: Schema.boolean(),
-        psdoc: Schema.boolean(),
-    }),
-    async (arg, report) => {
-        if (arg.pdoc === undefined || arg.pdoc) await pdoc(report);
-        if (arg.udoc === undefined || arg.udoc) await udoc(report);
-        if (arg.psdoc === undefined || arg.psdoc) await psdoc(report);
-        return true;
-    },
-);
+export const apply = (ctx) =>
+    ctx.addScript(
+        'problemStat',
+        'Recalculates nSubmit and nAccept in problem status.',
+        Schema.object({
+            udoc: Schema.boolean(),
+            pdoc: Schema.boolean(),
+            psdoc: Schema.boolean(),
+        }),
+        async (arg, report) => {
+            if (arg.pdoc === undefined || arg.pdoc) await pdoc(report);
+            if (arg.udoc === undefined || arg.udoc) await udoc(report);
+            if (arg.psdoc === undefined || arg.psdoc) await psdoc(report);
+            return true;
+        },
+    );

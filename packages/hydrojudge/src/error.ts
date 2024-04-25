@@ -1,9 +1,9 @@
 import { STATUS_TEXTS } from '@hydrooj/utils/lib/status';
 
 interface CompileErrorInfo {
-    stdout?: string,
-    stderr?: string,
-    status?: number
+    stdout?: string;
+    stderr?: string;
+    status?: number;
 }
 
 export class CompileError extends Error {
@@ -28,7 +28,10 @@ export class CompileError extends Error {
 export class FormatError extends Error {
     type = 'FormatError';
 
-    constructor(message: string, public params = []) {
+    constructor(
+        message: string,
+        public params = [],
+    ) {
         super(message);
     }
 }
@@ -36,7 +39,10 @@ export class FormatError extends Error {
 export class SystemError extends Error {
     type = 'SystemError';
 
-    constructor(message: string, public params = []) {
+    constructor(
+        message: string,
+        public params = [],
+    ) {
         super(message);
     }
 }

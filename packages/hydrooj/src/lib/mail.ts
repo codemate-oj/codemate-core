@@ -17,19 +17,25 @@ export async function sendMail(to: string, subject: string, text: string, html: 
             system.get('smtp.from'),
         ]);
         const transporter = nodemailer.createTransport({
-            host, port, secure, auth: { user, pass },
+            host,
+            port,
+            secure,
+            auth: { user, pass },
         });
         t = await new Promise((resolve, reject) => {
-            transporter.sendMail({
-                from,
-                to,
-                subject,
-                text,
-                html,
-            }, (err, info) => {
-                if (err) reject(err);
-                else resolve(info);
-            });
+            transporter.sendMail(
+                {
+                    from,
+                    to,
+                    subject,
+                    text,
+                    html,
+                },
+                (err, info) => {
+                    if (err) reject(err);
+                    else resolve(info);
+                },
+            );
         });
     } catch (e) {
         logger.error(e);

@@ -143,8 +143,7 @@ export namespace Time {
 
 export function errorMessage(err: Error | string) {
     const t = typeof err === 'string' ? err : err.stack;
-    const lines = t.split('\n')
-        .filter((i) => !i.includes(' (node:') && !i.includes('(internal'));
+    const lines = t.split('\n').filter((i) => !i.includes(' (node:') && !i.includes('(internal'));
     let cursor = 1;
     let count = 0;
     while (cursor < lines.length) {
@@ -159,7 +158,8 @@ export function errorMessage(err: Error | string) {
             lines.splice(cursor, 1);
         }
     }
-    const parsed = lines.join('\n')
+    const parsed = lines
+        .join('\n')
         .replace(/[A-Z]:\\.+\\@hydrooj\\/g, '@hydrooj\\')
         .replace(/\/.+\/@hydrooj\//g, '\\')
         .replace(/[A-Z]:\\.+\\hydrooj\\/g, 'hydrooj\\')
@@ -185,7 +185,7 @@ export async function findFile(pathname: string, doThrow = true) {
     if (await fs.pathExists(path.resolve(__dirname, pathname))) return path.resolve(__dirname, pathname);
     try {
         return require.resolve(pathname);
-    } catch (e) { }
+    } catch (e) {}
     if (pathname.includes('/')) {
         const eles = pathname.split('/');
         let pkg = eles.shift();
@@ -194,12 +194,13 @@ export async function findFile(pathname: string, doThrow = true) {
         try {
             const p = path.dirname(require.resolve(path.join(pkg, 'package.json')));
             if (await fs.pathExists(path.resolve(p, rest))) return path.resolve(p, rest);
-        } catch (e) { }
+        } catch (e) {}
     }
     if (await fs.pathExists(path.resolve(os.homedir(), pathname))) return path.resolve(os.homedir(), pathname);
     if (await fs.pathExists(path.resolve(os.homedir(), '.hydro', pathname))) return path.resolve(os.homedir(), '.hydro', pathname);
     // eslint-disable-next-line max-len
-    if (await fs.pathExists(path.resolve(os.homedir(), '.config', 'hydro', pathname))) return path.resolve(os.homedir(), '.config', 'hydro', pathname);
+    if (await fs.pathExists(path.resolve(os.homedir(), '.config', 'hydro', pathname)))
+        return path.resolve(os.homedir(), '.config', 'hydro', pathname);
     if (doThrow) throw new Error(`File ${pathname} not found`);
     return null;
 }
@@ -210,7 +211,7 @@ export function findFileSync(pathname: string, doThrow: boolean | Error = true) 
     if (fs.pathExistsSync(path.resolve(__dirname, pathname))) return path.resolve(__dirname, pathname);
     try {
         return require.resolve(pathname);
-    } catch (e) { }
+    } catch (e) {}
     if (pathname.includes('/')) {
         const eles = pathname.split('/');
         let pkg = eles.shift();
@@ -219,12 +220,12 @@ export function findFileSync(pathname: string, doThrow: boolean | Error = true) 
         try {
             const p = path.dirname(require.resolve(path.join(pkg, 'package.json')));
             if (fs.statSync(path.resolve(p, rest))) return path.resolve(p, rest);
-        } catch (e) { }
+        } catch (e) {}
     }
     if (fs.pathExistsSync(path.resolve(os.homedir(), pathname))) return path.resolve(os.homedir(), pathname);
     if (fs.pathExistsSync(path.resolve(os.homedir(), '.hydro', pathname))) return path.resolve(os.homedir(), '.hydro', pathname);
     if (fs.pathExistsSync(path.resolve(os.homedir(), '.config', 'hydro', pathname))) return path.resolve(os.homedir(), '.config', 'hydro', pathname);
-    if (doThrow) throw (typeof doThrow !== 'boolean' ? doThrow : new Error(`File ${pathname} not found`));
+    if (doThrow) throw typeof doThrow !== 'boolean' ? doThrow : new Error(`File ${pathname} not found`);
     return null;
 }
 
@@ -254,7 +255,9 @@ export function CallableInstance(property = '__call__') {
     let func;
     if (typeof property === 'function') func = property;
     else func = this.constructor.prototype[property];
-    const apply = function __call__(...args) { return func.apply(apply, ...args); };
+    const apply = function __call__(...args) {
+        return func.apply(apply, ...args);
+    };
     Object.setPrototypeOf(apply, this.constructor.prototype);
     for (const p of Object.getOwnPropertyNames(func)) {
         Object.defineProperty(apply, p, Object.getOwnPropertyDescriptor(func, p));
@@ -264,22 +267,29 @@ export function CallableInstance(property = '__call__') {
 
 CallableInstance.prototype = Object.create(Function.prototype);
 
-export const htmlEncode = (str: string) => str.replace(/[&<>'"]/g,
-    (tag: string) => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;',
-    }[tag]));
+export const htmlEncode = (str: string) =>
+    str.replace(
+        /[&<>'"]/g,
+        (tag: string) =>
+            ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;',
+            })[tag],
+    );
 
-export function Counter<T extends (string | number) = string>() {
-    return new Proxy({}, {
-        get: (target, prop) => {
-            if (target[prop] === undefined) return 0;
-            return target[prop];
+export function Counter<T extends string | number = string>() {
+    return new Proxy(
+        {},
+        {
+            get: (target, prop) => {
+                if (target[prop] === undefined) return 0;
+                return target[prop];
+            },
         },
-    }) as Record<T, number>;
+    ) as Record<T, number>;
 }
 
 function canonical(p: string) {
@@ -301,7 +311,10 @@ function sanitize(prefix: string, name: string) {
 }
 
 export function sanitizePath(pathname: string) {
-    const parts = pathname.replace(/\\/g, '/').split('/').filter((i) => i && i !== '.' && i !== '..');
+    const parts = pathname
+        .replace(/\\/g, '/')
+        .split('/')
+        .filter((i) => i && i !== '.' && i !== '..');
     return parts.join(path.sep);
 }
 
@@ -326,22 +339,25 @@ export async function extractZip(zip: AdmZip, dest: string, overwrite = false, s
 export async function pipeRequest(req: superagent.Request, w: fs.WriteStream, timeout?: number, name?: string) {
     try {
         await new Promise((resolve, reject) => {
-            req.buffer(false).timeout({
-                response: Math.min(10000, timeout),
-                deadline: timeout,
-            }).parse((resp, cb) => {
-                if (resp.statusCode !== 200) throw new Error(`${resp.statusCode}`);
-                else {
-                    resp.pipe(w);
-                    resp.on('end', () => {
-                        cb(null, undefined);
-                        resolve(null);
-                    });
-                    resp.on('error', (err) => {
-                        cb(err, undefined);
-                    });
-                }
-            }).catch(reject);
+            req.buffer(false)
+                .timeout({
+                    response: Math.min(10000, timeout),
+                    deadline: timeout,
+                })
+                .parse((resp, cb) => {
+                    if (resp.statusCode !== 200) throw new Error(`${resp.statusCode}`);
+                    else {
+                        resp.pipe(w);
+                        resp.on('end', () => {
+                            cb(null, undefined);
+                            resolve(null);
+                        });
+                        resp.on('error', (err) => {
+                            cb(err, undefined);
+                        });
+                    }
+                })
+                .catch(reject);
         });
     } catch (e) {
         throw new Error(`Download${e.errno === 'ETIMEDOUT' ? 'Timedout' : 'Error'}(${name ? `${name}, ` : ''}${e.message})`);

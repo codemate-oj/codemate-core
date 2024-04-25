@@ -47,32 +47,34 @@ export interface Types {
     CommaSeperatedArray: Type<string[]>;
     Set: Type<Set<any>>;
     Any: Type<any>;
-    ArrayOf: <T extends Type<any>>(type: T) => (T extends Type<infer R> ? Type<R[]> : never);
-    AnyOf: <T extends Type<any>>(...type: T[]) => (T extends Type<infer R> ? Type<R> : never);
+    ArrayOf: <T extends Type<any>>(type: T) => T extends Type<infer R> ? Type<R[]> : never;
+    AnyOf: <T extends Type<any>>(...type: T[]) => T extends Type<infer R> ? Type<R> : never;
 }
 
-const basicString = <T = string>(regex?: RegExp, cb?: (i: string) => boolean, convert?: (i: string) => T) => [
-    convert || ((v) => v.toString()),
-    (v) => {
-        const res = v.toString();
-        if (regex && !regex.test(res)) return false;
-        if (cb && !cb(res)) return false;
-        return !!res.length;
-    },
-] as [(v) => string, (v) => boolean];
-const saslprepString = <T = string>(regex?: RegExp, cb?: (i: string) => boolean, convert?: (i: string) => T) => [
-    convert || ((v) => saslprep(v.toString().trim())),
-    (v) => {
-        try {
-            const res = saslprep(v.toString().trim());
+const basicString = <T = string>(regex?: RegExp, cb?: (i: string) => boolean, convert?: (i: string) => T) =>
+    [
+        convert || ((v) => v.toString()),
+        (v) => {
+            const res = v.toString();
             if (regex && !regex.test(res)) return false;
             if (cb && !cb(res)) return false;
             return !!res.length;
-        } catch (e) {
-            return false;
-        }
-    },
-] as [(v) => string, (v) => boolean];
+        },
+    ] as [(v) => string, (v) => boolean];
+const saslprepString = <T = string>(regex?: RegExp, cb?: (i: string) => boolean, convert?: (i: string) => T) =>
+    [
+        convert || ((v) => saslprep(v.toString().trim())),
+        (v) => {
+            try {
+                const res = saslprep(v.toString().trim());
+                if (regex && !regex.test(res)) return false;
+                if (cb && !cb(res)) return false;
+                return !!res.length;
+            } catch (e) {
+                return false;
+            }
+        },
+    ] as [(v) => string, (v) => boolean];
 
 export const Types: Types = {
     Content: [(v) => v.toString().trim(), (v) => v?.toString()?.trim() && v.toString().trim().length < 65536],
@@ -83,7 +85,11 @@ export const Types: Types = {
     UidOrName: saslprepString(/^(.{3,31}|[\u4e00-\u9fa5]{2}|-?[0-9]+)$/),
     Username: saslprepString(/^(.{3,31}|[\u4e00-\u9fa5]{2})$/),
     Password: basicString(/^.{6,255}$/),
-    ProblemId: saslprepString(/^[a-zA-Z0-9]+$/i, () => true, (s) => (Number.isSafeInteger(+s) ? +s : s)),
+    ProblemId: saslprepString(
+        /^[a-zA-Z0-9]+$/i,
+        () => true,
+        (s) => (Number.isSafeInteger(+s) ? +s : s),
+    ),
     Email: saslprepString(/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/i),
     DomainId: saslprepString(/^[a-zA-Z][a-zA-Z0-9_]{3,31}$/),
     Role: saslprepString(/^[_0-9A-Za-z\u4e00-\u9fa5]{1,31}$/i),
@@ -147,45 +153,55 @@ export const Types: Types = {
         },
     ],
     /** @deprecated suggested to use Types.ArrayOf instead. */
-    Array: [(v) => {
-        if (v instanceof Array) return v;
-        return v ? [v] : [];
-    }, null],
-    NumericArray: [(v) => {
-        if (v instanceof Array) return v.map(Number);
-        return v.split(',').map(Number);
-    }, (v) => {
-        if (v instanceof Array) return v.map(Number).every(Number.isSafeInteger);
-        return v.toString().split(',').map(Number).every(Number.isSafeInteger);
-    }],
+    Array: [
+        (v) => {
+            if (v instanceof Array) return v;
+            return v ? [v] : [];
+        },
+        null,
+    ],
+    NumericArray: [
+        (v) => {
+            if (v instanceof Array) return v.map(Number);
+            return v.split(',').map(Number);
+        },
+        (v) => {
+            if (v instanceof Array) return v.map(Number).every(Number.isSafeInteger);
+            return v.toString().split(',').map(Number).every(Number.isSafeInteger);
+        },
+    ],
     CommaSeperatedArray: [
-        (v) => v.toString().replace(/，/g, ',').split(',').map((e) => e.trim()).filter((i) => i),
+        (v) =>
+            v
+                .toString()
+                .replace(/，/g, ',')
+                .split(',')
+                .map((e) => e.trim())
+                .filter((i) => i),
         (v) => !!v.toString(),
     ],
-    Set: [(v) => {
-        if (v instanceof Array) return new Set(v);
-        return v ? new Set([v]) : new Set();
-    }, null],
-    Emoji: [
-        (v: string) => v.matchAll(emojiRegex()).next().value[0],
-        (v) => emojiRegex().test(v.toString()),
+    Set: [
+        (v) => {
+            if (v instanceof Array) return new Set(v);
+            return v ? new Set([v]) : new Set();
+        },
+        null,
     ],
+    Emoji: [(v: string) => v.matchAll(emojiRegex()).next().value[0], (v) => emojiRegex().test(v.toString())],
     Any: [(v) => v, null],
-    ArrayOf: (type) => [
-        (v) => {
-            const arr = v instanceof Array ? v : [v];
-            return arr.map((i) => type[0](i));
-        },
-        (v) => {
-            if (!type[1]) return true;
-            const arr = v instanceof Array ? v : [v];
-            return arr.every((i) => type[1](i));
-        },
-    ] as any,
-    AnyOf: (...types) => [
-        (v) => types.find((type) => type[1](v))[0](v),
-        (v) => types.some((type) => type[1](v)),
-    ] as any,
+    ArrayOf: (type) =>
+        [
+            (v) => {
+                const arr = v instanceof Array ? v : [v];
+                return arr.map((i) => type[0](i));
+            },
+            (v) => {
+                if (!type[1]) return true;
+                const arr = v instanceof Array ? v : [v];
+                return arr.every((i) => type[1](i));
+            },
+        ] as any,
+    AnyOf: (...types) => [(v) => types.find((type) => type[1](v))[0](v), (v) => types.some((type) => type[1](v))] as any,
 };
 
 // @ts-ignore

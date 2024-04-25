@@ -1,9 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import { Filter } from 'mongodb';
-import type {
-    DomainDoc, ProblemStatusDoc, RecordDoc,
-    Tdoc, Udoc,
-} from './interface';
+import type { DomainDoc, ProblemStatusDoc, RecordDoc, Tdoc, Udoc } from './interface';
 import * as contest from './model/contest';
 import * as document from './model/document';
 import domain from './model/domain';
@@ -43,7 +40,7 @@ export async function iterateAllPsdoc(filter: Filter<ProblemStatusDoc>, cb: (psd
 }
 
 interface PartialProblemDoc extends ProblemDoc {
-    [key: string]: any,
+    [key: string]: any;
 }
 
 export async function iterateAllProblemInDomain(
@@ -64,18 +61,13 @@ export async function iterateAllProblemInDomain(
     return true;
 }
 
-export async function iterateAllProblem(
-    fields: (Field | string)[],
-    cb: (pdoc: PartialProblemDoc, current?: number, total?: number) => Promise<any>,
-) {
+export async function iterateAllProblem(fields: (Field | string)[], cb: (pdoc: PartialProblemDoc, current?: number, total?: number) => Promise<any>) {
     return await iterateAllDomain(async (d) => {
         await iterateAllProblemInDomain(d._id, fields, cb);
     });
 }
 
-export async function iterateAllRecord(
-    cb: (rdoc: RecordDoc, current: number, total: number) => any,
-) {
+export async function iterateAllRecord(cb: (rdoc: RecordDoc, current: number, total: number) => any) {
     const total = await RecordModel.coll.countDocuments();
     let i = 0;
     const cursor = RecordModel.coll.find().sort('_id', 1);

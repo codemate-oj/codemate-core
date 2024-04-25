@@ -4,15 +4,9 @@ import { STATUS } from '@hydrooj/utils/lib/status';
 import { FormatError } from '../error';
 import { Context } from './interface';
 
-export async function judge({
-    next, end, config, code,
-}: Context) {
+export async function judge({ next, end, config, code }: Context) {
     next({ status: STATUS.STATUS_JUDGING, progress: 0 });
-    const answer = ('src' in code)
-        ? await fs.readFile(code.src, 'utf-8')
-        : ('content' in code)
-            ? code.content.toString().replace(/\r/g, '')
-            : '';
+    const answer = 'src' in code ? await fs.readFile(code.src, 'utf-8') : 'content' in code ? code.content.toString().replace(/\r/g, '') : '';
     let answers: { [x: string]: string | string[] } = {};
     try {
         answers = yaml.load(answer) as any;
@@ -61,7 +55,7 @@ export async function judge({
         }
         const usrAns = answers[key].toString().trim();
         if (ansInfo instanceof Array) {
-            const fullScore = (+ansInfo[1]) || 0;
+            const fullScore = +ansInfo[1] || 0;
             const stdAns = ansInfo[0];
             if (stdAns instanceof Array) {
                 const stdSet = new Set(stdAns);
@@ -75,7 +69,11 @@ export async function judge({
         else report(STATUS.STATUS_ACCEPTED, +ansInfo[usrAns] || 0, 'Correct');
     }
     end({
-        status: totalStatus, score: totalScore, time: 0, memory: 0, subtasks,
+        status: totalStatus,
+        score: totalScore,
+        time: 0,
+        memory: 0,
+        subtasks,
     });
     return null;
 }

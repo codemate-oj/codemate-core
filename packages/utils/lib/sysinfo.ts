@@ -31,7 +31,13 @@ export async function get(): Promise<StatusFull> {
     cache.osinfo = osinfo;
     cache.mid = mid;
     return {
-        mid, cpu, memory, osinfo, load, CpuTemp, battery,
+        mid,
+        cpu,
+        memory,
+        osinfo,
+        load,
+        CpuTemp,
+        battery,
     };
 }
 
@@ -46,10 +52,19 @@ export async function update(): Promise<[string, StatusUpdate, StatusFull]> {
     return [
         mid,
         {
-            memory, load, battery, CpuTemp,
+            memory,
+            load,
+            battery,
+            CpuTemp,
         },
         {
-            mid, cpu, memory, osinfo, load, battery, CpuTemp,
+            mid,
+            cpu,
+            memory,
+            osinfo,
+            load,
+            battery,
+            CpuTemp,
         },
     ];
 }

@@ -12,7 +12,9 @@ export default class MarkerReactive extends DOMAttachedObject {
   }
 
   static initAll() {
-    $('[data-marker-enabled]').get().forEach((dom) => MarkerReactive.initFromDOM($(dom)));
+    $('[data-marker-enabled]')
+      .get()
+      .forEach((dom) => MarkerReactive.initFromDOM($(dom)));
   }
 
   constructor($target) {

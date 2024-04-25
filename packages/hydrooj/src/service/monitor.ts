@@ -11,9 +11,7 @@ const coll = db.collection('status');
 const logger = new Logger('monitor');
 
 export async function feedback(): Promise<[string, StatusUpdate]> {
-    const {
-        system, domain, document, user, record,
-    } = global.Hydro.model;
+    const { system, domain, document, user, record } = global.Hydro.model;
     const version = require('hydrooj/package.json').version;
     const [mid, $update, inf] = await sysinfo.update();
     const [installId, name, url] = system.getMany(['installid', 'server.name', 'server.url']);
@@ -44,11 +42,11 @@ export async function feedback(): Promise<[string, StatusUpdate]> {
         if (!host.endsWith('/')) host += '/';
         const res = await superagent.get(`${host}version`);
         info.sandbox = res.body;
-    } catch (e) { }
+    } catch (e) {}
     try {
         const status = await db.db.admin().serverStatus();
         info.dbVersion = status.version;
-    } catch (e) { }
+    } catch (e) {}
     await bus.serial('monitor/collect', info);
     const payload = dump(info, {
         replacer: (key, value) => {
@@ -57,7 +55,8 @@ export async function feedback(): Promise<[string, StatusUpdate]> {
         },
     });
     if (process.env.CI) return [mid, $update];
-    superagent.post(`${system.get('server.center')}/report`)
+    superagent
+        .post(`${system.get('server.center')}/report`)
         .send({ installId, payload })
         .then((res) => {
             if (res.body.updateUrl?.startsWith('https://')) system.set('server.center', res.body.updateUrl);
@@ -76,32 +75,20 @@ export async function update() {
         reqCount: 0,
     };
     await bus.parallel('monitor/update', 'server', $set);
-    await coll.updateOne(
-        { mid, type: 'server' },
-        { $set },
-        { upsert: true },
-    );
+    await coll.updateOne({ mid, type: 'server' }, { $set }, { upsert: true });
 }
 
 export async function updateJudge(args) {
     const $set = { ...args, updateAt: new Date() };
     await bus.parallel('monitor/update', 'judge', $set);
-    return await coll.updateOne(
-        { mid: args.mid, type: 'judge' },
-        { $set },
-        { upsert: true },
-    );
+    return await coll.updateOne({ mid: args.mid, type: 'judge' }, { $set }, { upsert: true });
 }
 
 export function apply(ctx: Context) {
     if (process.env.NODE_APP_INSTANCE !== '0') return;
     ctx.on('app/started', async () => {
         sysinfo.get().then((info) => {
-            coll.updateOne(
-                { mid: info.mid, type: 'server' },
-                { $set: { ...info, updateAt: new Date(), type: 'server' } },
-                { upsert: true },
-            );
+            coll.updateOne({ mid: info.mid, type: 'server' }, { $set: { ...info, updateAt: new Date(), type: 'server' } }, { upsert: true });
             feedback();
             setInterval(update, 1800 * 1000);
         });

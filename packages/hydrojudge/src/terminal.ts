@@ -14,16 +14,18 @@ export = async function terminal() {
     process.stdin.setRawMode(true);
     log.info('Starting /bin/bash, double press Ctrl+C to kill all child processes.');
     const stream = client.stream({
-        cmd: [{
-            args: ['/bin/bash'],
-            env: ['PATH=/usr/local/bin:/usr/bin:/bin', 'HOME=/tmp', `TERM=${process.env['TERM']}`],
-            files: [{ streamIn: true }, { streamOut: true }, { streamOut: true }],
-            cpuLimit: (20 * 1e9),
-            clockLimit: (30 * 60 * 1e9),
-            memoryLimit: (256 << 20),
-            procLimit: 50,
-            tty: true,
-        }],
+        cmd: [
+            {
+                args: ['/bin/bash'],
+                env: ['PATH=/usr/local/bin:/usr/bin:/bin', 'HOME=/tmp', `TERM=${process.env['TERM']}`],
+                files: [{ streamIn: true }, { streamOut: true }, { streamOut: true }],
+                cpuLimit: 20 * 1e9,
+                clockLimit: 30 * 60 * 1e9,
+                memoryLimit: 256 << 20,
+                procLimit: 50,
+                tty: true,
+            },
+        ],
     });
     stream.on('output', (output) => {
         process.stdout.write(output.content);

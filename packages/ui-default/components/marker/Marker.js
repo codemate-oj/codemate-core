@@ -3,7 +3,7 @@ import _ from 'lodash';
 import Tooltip from 'vj/components/tooltip/Tooltip';
 import { delay, i18n } from 'vj/utils';
 
-const MARKER_ID = `marker_${Math.floor(Math.random() * 0xFFFFFF).toString(16)}`;
+const MARKER_ID = `marker_${Math.floor(Math.random() * 0xffffff).toString(16)}`;
 const MARKER_OFFSET = 20;
 const MARKER_MAX_DISTANCE = 60;
 
@@ -35,8 +35,7 @@ class Marker {
         <div class="marker__action" data-color="#ff3b30" data-tooltip="${i18n('Mark Red')}"><span class="marker__icon icon-red"></span></div>
         <div class="marker__action" data-color="transparent" data-tooltip="${i18n('Clear Marks')}"><span class="icon icon-erase"></span></div>
       </div></div>
-    `)
-      .appendTo('body');
+    `).appendTo('body');
     this.$dom.find('.marker__toolbar').on('click', '.marker__action', this.onMarkerActionClick.bind(this));
     this.$dom.on('mousedown', this.onMarkerMouseDown.bind(this));
     this.isOpen = false;
@@ -91,9 +90,7 @@ class Marker {
     this.isOpen = false;
     this.closeTooltipsImmediately();
     this.unbindEventHandlers();
-    this.$dom
-      .css({ opacity: 0 })
-      .removeClass('open');
+    this.$dom.css({ opacity: 0 }).removeClass('open');
     await delay(200);
     if (!this.isOpen) {
       this.$dom.hide();
@@ -167,7 +164,7 @@ class Marker {
       this.close();
       return;
     }
-    this.$dom.css('opacity', 1 - (distance / MARKER_MAX_DISTANCE));
+    this.$dom.css('opacity', 1 - distance / MARKER_MAX_DISTANCE);
   }
 
   destroy() {

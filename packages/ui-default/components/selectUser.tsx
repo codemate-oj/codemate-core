@@ -5,22 +5,27 @@ import { i18n, tpl } from 'vj/utils';
 import createHint from './hint';
 
 let hintInserted = false;
-$(tpl(
-  <div style={{ display: 'none' }}>
-    <div className="dialog__body--user-select">
-      <div className="row"><div className="columns">
-        <h1 id="select_user_hint">{i18n('Select User')}</h1>
-      </div></div>
-      <div className="row">
-        <div className="columns">
-          <label>{i18n('Username / UID')}
-            <input name="user" type="text" className="textbox" autoComplete="off" data-autofocus />
-          </label>
+$(
+  tpl(
+    <div style={{ display: 'none' }}>
+      <div className="dialog__body--user-select">
+        <div className="row">
+          <div className="columns">
+            <h1 id="select_user_hint">{i18n('Select User')}</h1>
+          </div>
+        </div>
+        <div className="row">
+          <div className="columns">
+            <label>
+              {i18n('Username / UID')}
+              <input name="user" type="text" className="textbox" autoComplete="off" data-autofocus />
+            </label>
+          </div>
         </div>
       </div>
-    </div>
-  </div>,
-)).appendTo(document.body);
+    </div>,
+  ),
+).appendTo(document.body);
 const userSelector = UserSelectAutoComplete.getOrConstruct($('.dialog__body--user-select [name="user"]')) as any;
 const userSelectDialog = new ActionDialog({
   $body: $('.dialog__body--user-select'),

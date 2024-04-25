@@ -14,9 +14,17 @@ type State = ProblemConfigFile & {
 const ajv = new Ajv();
 const validate = ajv.compile(schema);
 
-export default function reducer(state = {
-  type: 'default', __loaded: false, __valid: false, __errors: [], __cases: [], subtasks: [],
-} as State, action: any = {}): State {
+export default function reducer(
+  state = {
+    type: 'default',
+    __loaded: false,
+    __valid: false,
+    __errors: [],
+    __cases: [],
+    subtasks: [],
+  } as State,
+  action: any = {},
+): State {
   switch (action.type) {
     case 'CONFIG_LOAD_FULFILLED': {
       const c = { ...state, __loaded: true };
@@ -66,11 +74,18 @@ export default function reducer(state = {
           };
         }
         return {
-          ...state, ...data as object, __valid: true, __errors: [], __loaded: true,
+          ...state,
+          ...(data as object),
+          __valid: true,
+          __errors: [],
+          __loaded: true,
         };
       } catch (e) {
         return {
-          ...state, __valid: false, __errors: [e.message], __loaded: true,
+          ...state,
+          __valid: false,
+          __errors: [e.message],
+          __loaded: true,
         };
       }
     }
@@ -93,8 +108,7 @@ export default function reducer(state = {
       }
       if (subtasks.length === 0) next.subtasks = [];
       else {
-        next.subtasks = subtasks.map((subtask) => (
-          { ...subtask, ...{ cases: subtask.cases.map((i) => ({ input: i.input, output: i.output })) } }));
+        next.subtasks = subtasks.map((subtask) => ({ ...subtask, ...{ cases: subtask.cases.map((i) => ({ input: i.input, output: i.output })) } }));
       }
       return next;
     }
@@ -114,7 +128,10 @@ export default function reducer(state = {
       subtasks.push({
         cases: [],
         score: 0,
-        id: Object.keys(subtasks).map((i) => subtasks[i].id).reduce((a, b) => Math.max(+a, +b), 0) + 1,
+        id:
+          Object.keys(subtasks)
+            .map((i) => subtasks[i].id)
+            .reduce((a, b) => Math.max(+a, +b), 0) + 1,
       });
       return { ...state, subtasks };
     }
@@ -122,7 +139,11 @@ export default function reducer(state = {
       if (!state.subtasks.find((i) => i.id === action.id)) return state;
       const subtask = { ...state.subtasks.find((i) => i.id === action.id) };
       const subtasks = [...state.subtasks];
-      subtasks.splice(state.subtasks.findIndex((i) => i.id === action.id), 1, subtask);
+      subtasks.splice(
+        state.subtasks.findIndex((i) => i.id === action.id),
+        1,
+        subtask,
+      );
       if (action.payload.time) subtask.time = action.payload.time;
       if (action.payload.memory) subtask.memory = action.payload.memory;
       if (action.payload.score) subtask.score = +action.payload.score || 0;
@@ -138,11 +159,12 @@ export default function reducer(state = {
     case 'problemconfig/moveTestcases': {
       const testcases = action.payload.cases;
       const subtasks = cloneDeep(state.subtasks);
-      const __cases = action.payload.source === -1
-        ? state.__cases.filter((i) => !testcases.find((j) => i.input === j.input && i.output === j.output))
-        : action.payload.target === -1
-          ? sortFiles([...state.__cases, ...testcases], 'input')
-          : state.__cases;
+      const __cases =
+        action.payload.source === -1
+          ? state.__cases.filter((i) => !testcases.find((j) => i.input === j.input && i.output === j.output))
+          : action.payload.target === -1
+            ? sortFiles([...state.__cases, ...testcases], 'input')
+            : state.__cases;
       for (const key in subtasks) {
         const subtask = subtasks[key];
         if (subtask.id === action.payload.source) {

@@ -1,9 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { PassThrough } from 'stream';
 import { JSDOM } from 'jsdom';
-import {
-    Logger, parseMemoryMB, parseTimeMS, sleep, STATUS,
-} from 'hydrooj';
+import { Logger, parseMemoryMB, parseTimeMS, sleep, STATUS } from 'hydrooj';
 import { BasicFetcher } from '../fetch';
 import { IBasicProvider, RemoteAccount } from '../interface';
 import { VERDICT } from '../verdict';
@@ -23,7 +21,10 @@ const MAPPING = {
 };
 
 export default class UOJProvider extends BasicFetcher implements IBasicProvider {
-    constructor(public account: RemoteAccount, private save: (data: any) => Promise<void>) {
+    constructor(
+        public account: RemoteAccount,
+        private save: (data: any) => Promise<void>,
+    ) {
         super(account, 'https://uoj.ac', 'form', logger);
     }
 
@@ -46,14 +47,13 @@ export default class UOJProvider extends BasicFetcher implements IBasicProvider 
         if (await this.loggedIn) return true;
         logger.info('retry login');
         const _token = await this.getCsrfToken('/login');
-        const { header, text } = await this.post('/login')
-            .send({
-                _token,
-                login: '',
-                username: this.account.handle,
-                // NOTE: you should pass a pre-hashed key!
-                password: this.account.password,
-            });
+        const { header, text } = await this.post('/login').send({
+            _token,
+            login: '',
+            username: this.account.handle,
+            // NOTE: you should pass a pre-hashed key!
+            password: this.account.password,
+        });
         if (header['set-cookie'] && this.cookie.length === 1) {
             const cookie = Array.isArray(header['set-cookie']) ? header['set-cookie'] : [header['set-cookie']];
             cookie.push(...this.cookie);
@@ -67,7 +67,9 @@ export default class UOJProvider extends BasicFetcher implements IBasicProvider 
     async getProblem(id: string) {
         logger.info(id);
         const res = await this.get(`/problem/${id.split('P')[1]}`);
-        const { window: { document } } = new JSDOM(res.text);
+        const {
+            window: { document },
+        } = new JSDOM(res.text);
         const files = {};
         for (const ele of document.querySelectorAll('article>img[src]')) {
             const src = ele.getAttribute('src');
@@ -96,7 +98,7 @@ export default class UOJProvider extends BasicFetcher implements IBasicProvider 
             if (!before) continue;
             if (before.textContent === 'input') {
                 const tid = before.previousElementSibling;
-                if ((tid.textContent).startsWith('样例')) {
+                if (tid.textContent.startsWith('样例')) {
                     lastId = MAPPING[tid.textContent.split('样例')[1]];
                     tid.remove();
                 }
@@ -121,7 +123,10 @@ export default class UOJProvider extends BasicFetcher implements IBasicProvider 
             link.setAttribute('href', 'file://attachment.zip');
         }
         return {
-            title: document.querySelector('.page-header.text-center').innerHTML.trim().split(`#${id.split('P')[1]}. `)[1],
+            title: document
+                .querySelector('.page-header.text-center')
+                .innerHTML.trim()
+                .split(`#${id.split('P')[1]}. `)[1],
             data: {
                 'config.yaml': Buffer.from(`time: 1s\nmemory: 256m\ntype: remote_judge\nsubType: uoj\ntarget: ${id}`),
             },
@@ -166,13 +171,19 @@ export default class UOJProvider extends BasicFetcher implements IBasicProvider 
             count++;
             await sleep(3000);
             const { text } = await this.get(`/submission/${id}`);
-            const { window: { document } } = new JSDOM(text);
-            const find = (content: string) => Array.from(document.querySelectorAll('.panel-heading>.panel-title'))
-                .find((n) => n.innerHTML === content).parentElement.parentElement.children[1];
+            const {
+                window: { document },
+            } = new JSDOM(text);
+            const find = (content: string) =>
+                Array.from(document.querySelectorAll('.panel-heading>.panel-title')).find((n) => n.innerHTML === content).parentElement.parentElement
+                    .children[1];
             if (text.includes('Compile Error')) {
                 await next({ compilerText: find('详细').children[0].innerHTML });
                 return await end({
-                    status: STATUS.STATUS_COMPILE_ERROR, score: 0, time: 0, memory: 0,
+                    status: STATUS.STATUS_COMPILE_ERROR,
+                    score: 0,
+                    time: 0,
+                    memory: 0,
                 });
             }
             const summary = document.querySelector('tbody>tr');

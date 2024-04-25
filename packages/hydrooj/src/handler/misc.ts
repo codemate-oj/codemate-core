@@ -2,18 +2,13 @@
 import { statSync } from 'fs';
 import { pick } from 'lodash';
 import { lookup } from 'mime-types';
-import {
-    AccessDeniedError, FileExistsError, FileLimitExceededError, FileUploadError, NotFoundError,
-    ValidationError,
-} from '../error';
+import { AccessDeniedError, FileExistsError, FileLimitExceededError, FileUploadError, NotFoundError, ValidationError } from '../error';
 import { PRIV } from '../model/builtin';
 import * as oplog from '../model/oplog';
 import storage from '../model/storage';
 import * as system from '../model/system';
 import user from '../model/user';
-import {
-    Handler, param, post, requireSudo, Types,
-} from '../service/server';
+import { Handler, param, post, requireSudo, Types } from '../service/server';
 import { encodeRFC5987ValueChars } from '../service/storage';
 import { builtinConfig } from '../settings';
 import { md5, sortFiles } from '../utils';
@@ -70,7 +65,10 @@ export class FilesHandler extends Handler {
     @post('files', Types.ArrayOf(Types.Filename))
     async postDeleteFiles(domainId: string, files: string[]) {
         await Promise.all([
-            storage.del(files.map((t) => `user/${this.user._id}/${t}`), this.user._id),
+            storage.del(
+                files.map((t) => `user/${this.user._id}/${t}`),
+                this.user._id,
+            ),
             user.setById(this.user._id, { _files: this.user._files.filter((i) => !files.includes(i.name)) }),
         ]);
         this.back();
@@ -91,9 +89,7 @@ export class FSDownloadHandler extends Handler {
             size: file?.size || 0,
         });
         try {
-            this.response.redirect = await storage.signDownloadLink(
-                target, noDisposition ? undefined : filename, false, 'user',
-            );
+            this.response.redirect = await storage.signDownloadLink(target, noDisposition ? undefined : filename, false, 'user');
             this.response.addHeader('Cache-Control', 'public');
         } catch (e) {
             if (e.message.includes('Invalid path')) throw new NotFoundError(filename);
@@ -115,9 +111,7 @@ export class StorageHandler extends Handler {
         if (expire < Date.now()) throw new AccessDeniedError();
         if (secret !== expected) throw new AccessDeniedError();
         this.response.body = await storage.get(target);
-        this.response.type = (target.endsWith('.out') || target.endsWith('.ans'))
-            ? 'text/plain'
-            : lookup(target) || 'application/octet-stream';
+        this.response.type = target.endsWith('.out') || target.endsWith('.ans') ? 'text/plain' : lookup(target) || 'application/octet-stream';
         if (filename) this.response.disposition = `attachment; filename="${encodeRFC5987ValueChars(filename)}"`;
     }
 }

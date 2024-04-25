@@ -74,118 +74,106 @@ const mapDispatchToProps = (dispatch) => ({
 const availableLangs = getAvailableLangs(UiContext.pdoc.config.langs);
 const keys = Object.keys(availableLangs);
 
-export default connect(mapStateToProps, mapDispatchToProps)(class ScratchpadToolbarContainer extends React.PureComponent {
-  static contextTypes = {
-    store: PropTypes.object,
-  };
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(
+  class ScratchpadToolbarContainer extends React.PureComponent {
+    static contextTypes = {
+      store: PropTypes.object,
+    };
 
-  constructor(props) {
-    super(props);
-    if (!availableLangs[this.props.editorLang]) {
-      // preference not allowed
-      const key = this.props.editorLang ? keys.filter((i) => availableLangs[i].pretest)
-        .find((i) => availableLangs[i].pretest.split('.')[0] === this.props.editorLang.split('.')[0]) : '';
-      this.props.setEditorLanguage(key || keys[0]);
+    constructor(props) {
+      super(props);
+      if (!availableLangs[this.props.editorLang]) {
+        // preference not allowed
+        const key = this.props.editorLang
+          ? keys.filter((i) => availableLangs[i].pretest).find((i) => availableLangs[i].pretest.split('.')[0] === this.props.editorLang.split('.')[0])
+          : '';
+        this.props.setEditorLanguage(key || keys[0]);
+      }
     }
-  }
 
-  componentDidMount() {
-    if (this.props.recordsVisible) this.props.loadSubmissions();
-  }
-
-  componentDidUpdate() {
-    if (this.props.pretestWaitSec > 0 || this.props.submitWaitSec > 0) {
-      setTimeout(() => this.props.tick(), 1000);
+    componentDidMount() {
+      if (this.props.recordsVisible) this.props.loadSubmissions();
     }
-  }
 
-  render() {
-    let canUsePretest = UiContext.pdoc.config?.type === 'default';
-    const langInfo = availableLangs[this.props.editorLang];
-    if (UiContext.pdoc.config?.type === 'remote_judge' && langInfo) {
-      if (langInfo.pretest) canUsePretest = true;
-      if (langInfo.validAs && !langInfo.hidden) canUsePretest = true;
+    componentDidUpdate() {
+      if (this.props.pretestWaitSec > 0 || this.props.submitWaitSec > 0) {
+        setTimeout(() => this.props.tick(), 1000);
+      }
     }
-    if (langInfo?.pretest === false) canUsePretest = false;
-    return (
-      <Toolbar>
-        {canUsePretest && (
+
+    render() {
+      let canUsePretest = UiContext.pdoc.config?.type === 'default';
+      const langInfo = availableLangs[this.props.editorLang];
+      if (UiContext.pdoc.config?.type === 'remote_judge' && langInfo) {
+        if (langInfo.pretest) canUsePretest = true;
+        if (langInfo.validAs && !langInfo.hidden) canUsePretest = true;
+      }
+      if (langInfo?.pretest === false) canUsePretest = false;
+      return (
+        <Toolbar>
+          {canUsePretest && (
+            <ToolbarButton
+              disabled={this.props.isPosting || this.props.isRunning || !!this.props.pretestWaitSec}
+              className="scratchpad__toolbar__pretest"
+              onClick={() => this.props.postPretest(this.props)}
+              data-global-hotkey="f9"
+              data-tooltip={`${i18n('Pretest Your Code')} (F9)`}
+            >
+              <Icon name="debug" /> {i18n('Run Pretest')} {this.props.pretestWaitSec ? `(${this.props.pretestWaitSec}s)` : '(F9)'}
+            </ToolbarButton>
+          )}
           <ToolbarButton
-            disabled={this.props.isPosting || this.props.isRunning || !!this.props.pretestWaitSec}
-            className="scratchpad__toolbar__pretest"
-            onClick={() => this.props.postPretest(this.props)}
-            data-global-hotkey="f9"
-            data-tooltip={`${i18n('Pretest Your Code')} (F9)`}
+            disabled={this.props.isPosting || !!this.props.submitWaitSec}
+            className="scratchpad__toolbar__submit"
+            onClick={() => this.props.postSubmit(this.props)}
+            data-global-hotkey="f10"
+            data-tooltip={`${i18n('Submit Your Code')} (F10)`}
           >
-            <Icon name="debug" />
-            {' '}
-            {i18n('Run Pretest')}
-            {' '}
-            {this.props.pretestWaitSec ? `(${this.props.pretestWaitSec}s)` : '(F9)'}
+            <Icon name="play" /> {i18n('Submit Solution')} {this.props.submitWaitSec ? `(${this.props.submitWaitSec}s)` : '(F10)'}
           </ToolbarButton>
-        )}
-        <ToolbarButton
-          disabled={this.props.isPosting || !!this.props.submitWaitSec}
-          className="scratchpad__toolbar__submit"
-          onClick={() => this.props.postSubmit(this.props)}
-          data-global-hotkey="f10"
-          data-tooltip={`${i18n('Submit Your Code')} (F10)`}
-        >
-          <Icon name="play" />
-          {' '}
-          {i18n('Submit Solution')}
-          {' '}
-          {this.props.submitWaitSec ? `(${this.props.submitWaitSec}s)` : '(F10)'}
-        </ToolbarButton>
-        <ToolbarButton
-          data-global-hotkey="alt+q"
-          data-tooltip={`${i18n('Quit Scratchpad')} (Alt+Q)`}
-          name="problem-sidebar__quit-scratchpad"
-        >
-          <Icon name="close" />
-          {' '}
-          {i18n('Exit')}
-          {' '}
-          (Alt+Q)
-        </ToolbarButton>
-        <ToolbarItem>
-          <select
-            className="select"
-            disabled={this.props.isPosting}
-            value={this.props.editorLang}
-            onChange={(ev) => this.props.setEditorLanguage(ev.target.value)}
-          >
-            {_.map(availableLangs, (val, key) => (
-              <option value={key} key={key}>{val.display}</option>
-            ))}
-          </select>
-        </ToolbarItem>
-        <ToolbarSplit />
-        {canUsePretest && (
-          <ToolbarButton
-            activated={this.props.pretestVisible}
-            onClick={() => this.props.togglePanel('pretest')}
-            data-global-hotkey="alt+p"
-            data-tooltip={`${i18n('Toggle Pretest Panel')} (Alt+P)`}
-          >
-            <Icon name="edit" />
-            {' '}
-            {i18n('Pretest')}
+          <ToolbarButton data-global-hotkey="alt+q" data-tooltip={`${i18n('Quit Scratchpad')} (Alt+Q)`} name="problem-sidebar__quit-scratchpad">
+            <Icon name="close" /> {i18n('Exit')} (Alt+Q)
           </ToolbarButton>
-        )}
-        {UiContext.canViewRecord && (
-          <ToolbarButton
-            activated={this.props.recordsVisible}
-            onClick={() => this.props.togglePanel('records')}
-            data-global-hotkey="alt+r"
-            data-tooltip={`${i18n('Toggle Records Panel')} (Alt+R)`}
-          >
-            <Icon name="flag" />
-            {' '}
-            {i18n('Records')}
-          </ToolbarButton>
-        )}
-      </Toolbar>
-    );
-  }
-});
+          <ToolbarItem>
+            <select
+              className="select"
+              disabled={this.props.isPosting}
+              value={this.props.editorLang}
+              onChange={(ev) => this.props.setEditorLanguage(ev.target.value)}
+            >
+              {_.map(availableLangs, (val, key) => (
+                <option value={key} key={key}>
+                  {val.display}
+                </option>
+              ))}
+            </select>
+          </ToolbarItem>
+          <ToolbarSplit />
+          {canUsePretest && (
+            <ToolbarButton
+              activated={this.props.pretestVisible}
+              onClick={() => this.props.togglePanel('pretest')}
+              data-global-hotkey="alt+p"
+              data-tooltip={`${i18n('Toggle Pretest Panel')} (Alt+P)`}
+            >
+              <Icon name="edit" /> {i18n('Pretest')}
+            </ToolbarButton>
+          )}
+          {UiContext.canViewRecord && (
+            <ToolbarButton
+              activated={this.props.recordsVisible}
+              onClick={() => this.props.togglePanel('records')}
+              data-global-hotkey="alt+r"
+              data-tooltip={`${i18n('Toggle Records Panel')} (Alt+R)`}
+            >
+              <Icon name="flag" /> {i18n('Records')}
+            </ToolbarButton>
+          )}
+        </Toolbar>
+      );
+    }
+  },
+);

@@ -28,7 +28,13 @@ export class StorageModel {
         await storage.put(_id, file, meta);
         const { metaData, size, etag } = await storage.getMeta(_id);
         await StorageModel.coll.insertOne({
-            _id, meta: metaData, path, size, etag, lastModified: new Date(), owner,
+            _id,
+            meta: metaData,
+            path,
+            size,
+            etag,
+            lastModified: new Date(),
+            owner,
         });
         return path;
     }
@@ -43,30 +49,28 @@ export class StorageModel {
     }
 
     static async rename(path: string, newPath: string, operator = 1) {
-        return await StorageModel.coll.updateOne(
-            { path, autoDelete: null },
-            { $set: { path: newPath }, $push: { operator } },
-        );
+        return await StorageModel.coll.updateOne({ path, autoDelete: null }, { $set: { path: newPath }, $push: { operator } });
     }
 
     static async del(path: string[], operator = 1) {
         if (!path.length) return;
         const autoDelete = moment().add(7, 'day').toDate();
-        await StorageModel.coll.updateMany(
-            { path: { $in: path }, autoDelete: null },
-            { $set: { autoDelete }, $push: { operator } },
-        );
+        await StorageModel.coll.updateMany({ path: { $in: path }, autoDelete: null }, { $set: { autoDelete }, $push: { operator } });
     }
 
     static async list(target: string, recursive = true) {
         if (target.includes('..') || target.includes('//')) throw new Error('Invalid path');
         if (target.length && !target.endsWith('/')) target += '/';
-        const results = await StorageModel.coll.find({
-            path: { $regex: `^${escapeRegExp(target)}${recursive ? '' : '[^/]+$'}` },
-            autoDelete: null,
-        }).toArray();
+        const results = await StorageModel.coll
+            .find({
+                path: { $regex: `^${escapeRegExp(target)}${recursive ? '' : '[^/]+$'}` },
+                autoDelete: null,
+            })
+            .toArray();
         return results.map((i) => ({
-            ...i, name: i.path.split(target)[1], prefix: target,
+            ...i,
+            name: i.path.split(target)[1],
+            prefix: target,
         }));
     }
 
@@ -86,10 +90,7 @@ export class StorageModel {
     }
 
     static async signDownloadLink(target: string, filename?: string, noExpire = false, useAlternativeEndpointFor?: 'user' | 'judge') {
-        const res = await StorageModel.coll.findOneAndUpdate(
-            { path: target, autoDelete: null },
-            { $set: { lastUsage: new Date() } },
-        );
+        const res = await StorageModel.coll.findOneAndUpdate({ path: target, autoDelete: null }, { $set: { lastUsage: new Date() } });
         return await storage.signDownloadLink(res.value?._id || target, filename, noExpire, useAlternativeEndpointFor);
     }
 
@@ -109,7 +110,13 @@ export class StorageModel {
         const result = await storage.copy(value._id, _id);
         const { metaData, size, etag } = await storage.getMeta(_id);
         await StorageModel.coll.insertOne({
-            _id, meta: metaData, path: dst, size, etag, lastModified: new Date(), owner: value.owner || 1,
+            _id,
+            meta: metaData,
+            path: dst,
+            size,
+            etag,
+            lastModified: new Date(),
+            owner: value.owner || 1,
         });
         return result;
     }
@@ -119,10 +126,12 @@ async function cleanFiles() {
     const submissionKeepDate = system.get('submission.saveDays');
     if (submissionKeepDate) {
         const shouldDelete = moment().subtract(submissionKeepDate, 'day').toDate();
-        const res = await StorageModel.coll.find({
-            path: /^submission\//g,
-            lastModified: { $lt: shouldDelete },
-        }).toArray();
+        const res = await StorageModel.coll
+            .find({
+                path: /^submission\//g,
+                lastModified: { $lt: shouldDelete },
+            })
+            .toArray();
         const paths = res.map((i) => i.path);
         await StorageModel.del(paths);
     }
@@ -146,15 +155,17 @@ export function apply(ctx: Context) {
             StorageModel.list(`contest/${domainId}`),
             StorageModel.list(`training/${domainId}`),
         ]);
-        await StorageModel.del(problemFiles.concat(contestFiles).concat(trainingFiles).map((i) => i.path));
+        await StorageModel.del(
+            problemFiles
+                .concat(contestFiles)
+                .concat(trainingFiles)
+                .map((i) => i.path),
+        );
     });
     ctx.on('ready', async () => {
         if (process.env.NODE_APP_INSTANCE !== '0') return;
-        await db.ensureIndexes(
-            StorageModel.coll,
-            { key: { path: 1, autoDelete: 1 }, sparse: true, name: 'autoDelete' },
-        );
-        if (!await ScheduleModel.count({ type: 'schedule', subType: 'storage.prune' })) {
+        await db.ensureIndexes(StorageModel.coll, { key: { path: 1, autoDelete: 1 }, sparse: true, name: 'autoDelete' });
+        if (!(await ScheduleModel.count({ type: 'schedule', subType: 'storage.prune' }))) {
             await ScheduleModel.add({
                 type: 'schedule',
                 subType: 'storage.prune',

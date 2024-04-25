@@ -26,7 +26,10 @@ declare module 'hydrooj' {
 type NextFunction = (body: Partial<JudgeResultBody>) => void;
 export interface IBasicProvider {
     ensureLogin(): Promise<boolean | string>;
-    getProblem(id: string, meta: Record<string, any>): Promise<{
+    getProblem(
+        id: string,
+        meta: Record<string, any>,
+    ): Promise<{
         title: string;
         data: Record<string, any>;
         files: Record<string, any>;
@@ -41,5 +44,5 @@ export interface IBasicProvider {
 }
 
 export interface BasicProvider {
-    new(account: RemoteAccount, save: (data: any) => Promise<void>): IBasicProvider
+    new (account: RemoteAccount, save: (data: any) => Promise<void>): IBasicProvider;
 }

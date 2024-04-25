@@ -18,9 +18,7 @@ export default (logger) => async (ctx: KoaContext, next) => {
                 const html = await ctx.renderHTML(response.pjax, response.body);
                 response.body = { fragments: [{ html }] };
                 response.type = 'application/json';
-            } else if (
-                request.json || response.redirect
-                || request.query.noTemplate || !response.template) {
+            } else if (request.json || response.redirect || request.query.noTemplate || !response.template) {
                 // Send raw data
                 try {
                     if (typeof response.body === 'object') {
@@ -66,10 +64,7 @@ export default (logger) => async (ctx: KoaContext, next) => {
         } else if (response.body) {
             ctx.body = response.body;
             ctx.response.status = response.status || 200;
-            ctx.response.type = response.type
-                || (request.json
-                    ? 'application/json'
-                    : ctx.response.type);
+            ctx.response.type = response.type || (request.json ? 'application/json' : ctx.response.type);
         }
     }
 };

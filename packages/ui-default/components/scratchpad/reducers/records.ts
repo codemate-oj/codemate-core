@@ -1,9 +1,12 @@
 import _ from 'lodash';
 
-export default function reducer(state = {
-  rows: [],
-  items: {},
-}, action: any = {}) {
+export default function reducer(
+  state = {
+    rows: [],
+    items: {},
+  },
+  action: any = {},
+) {
   switch (action.type) {
     case 'SCRATCHPAD_RECORDS_LOAD_SUBMISSIONS_FULFILLED': {
       const { rdocs } = action.payload;

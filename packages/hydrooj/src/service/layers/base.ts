@@ -23,9 +23,9 @@ export default async (ctx: KoaContext, next: Next) => {
     const [xff, xhost] = system.getMany(['server.xff', 'server.xhost']);
     const request: HydroRequest = {
         method: ctx.request.method.toLowerCase(),
-        host: ctx.request.headers[xhost?.toLowerCase() || ''] as string || ctx.request.host,
+        host: (ctx.request.headers[xhost?.toLowerCase() || ''] as string) || ctx.request.host,
         hostname: ctx.request.hostname,
-        ip: ctx.request.headers[xff?.toLowerCase() || ''] as string || ctx.request.ip,
+        ip: (ctx.request.headers[xff?.toLowerCase() || ''] as string) || ctx.request.ip,
         headers: ctx.request.headers,
         cookies: ctx.cookies,
         ...pick(ctx, ['query', 'path', 'params', 'originalPath', 'querystring']),
@@ -56,7 +56,11 @@ export default async (ctx: KoaContext, next: Next) => {
         disposition: null,
     };
     const args = {
-        domainId, ...ctx.params, ...ctx.query, ...ctx.request.body, __start: Date.now(),
+        domainId,
+        ...ctx.params,
+        ...ctx.query,
+        ...ctx.request.body,
+        __start: Date.now(),
     };
     const UiContext: any = cloneDeep(UiContextBase);
     if (!process.env.DEV) UiContext.cdn_prefix = system.get('server.cdn');
@@ -64,7 +68,12 @@ export default async (ctx: KoaContext, next: Next) => {
     UiContext.domainId = domainId;
     UiContext.domain = domainInfo;
     ctx.HydroContext = {
-        request, response, UiContext, domain: domainInfo, user: null, args,
+        request,
+        response,
+        UiContext,
+        domain: domainInfo,
+        user: null,
+        args,
     };
     const header = ctx.request.headers.authorization;
     const sid = header
@@ -74,10 +83,16 @@ export default async (ctx: KoaContext, next: Next) => {
     ctx.session = Object.create(session || { uid: 0, scope: PERM.PERM_ALL.toString() });
     await next();
     const ua = request.headers['user-agent'] || '';
-    if (!ctx.session.uid && system.get('server.ignoreUA').replace(/\r/g, '').split('\n').filter((i) => i && ua.includes(i)).length) return;
-    const expireSeconds = ctx.session.save
-        ? system.get('session.saved_expire_seconds')
-        : system.get('session.unsaved_expire_seconds');
+    if (
+        !ctx.session.uid &&
+        system
+            .get('server.ignoreUA')
+            .replace(/\r/g, '')
+            .split('\n')
+            .filter((i) => i && ua.includes(i)).length
+    )
+        return;
+    const expireSeconds = ctx.session.save ? system.get('session.saved_expire_seconds') : system.get('session.unsaved_expire_seconds');
     if (!ctx.session._id && !Object.getOwnPropertyNames(ctx.session).length) return;
     Object.assign(ctx.session, { updateIp: request.ip, updateUa: ua });
     if (ctx.session._id && !ctx.session.recreate) {

@@ -3,9 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { i18n } from 'vj/utils';
 
-export default function LanguageSelect({
-  fieldSelector, firstLoadMain, firstLoadSub, availableLangs, mainLangs,
-}) {
+export default function LanguageSelect({ fieldSelector, firstLoadMain, firstLoadSub, availableLangs, mainLangs }) {
   const [main, setMain] = React.useState(firstLoadMain);
   const [sub, setSub] = React.useState(firstLoadSub);
 
@@ -32,7 +30,9 @@ export default function LanguageSelect({
             <div className="select-container">
               <select value={main} onChange={(ev) => setMain(ev.target.value)} className="select">
                 {Object.keys(mainLangs).map((key) => (
-                  <option key={key} value={key}>{mainLangs[key]}</option>
+                  <option key={key} value={key}>
+                    {mainLangs[key]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -44,17 +44,23 @@ export default function LanguageSelect({
           <label>
             {i18n('Code language')}
             <div className="select-container">
-              {Object.keys(options).length
-                ? <select value={sub} onChange={(ev) => setSub(ev.target.value)} className="select">
+              {Object.keys(options).length ? (
+                <select value={sub} onChange={(ev) => setSub(ev.target.value)} className="select">
                   {Object.keys(options).map((i) => (
-                    <option value={i} key={i}>{options[i]}</option>
+                    <option value={i} key={i}>
+                      {options[i]}
+                    </option>
                   ))}
                 </select>
-                : <select value={main} onChange={(ev) => setMain(ev.target.value)} className="select">
+              ) : (
+                <select value={main} onChange={(ev) => setMain(ev.target.value)} className="select">
                   {Object.keys(mainLangs).map((i) => (
-                    <option value={i} key={i}>{mainLangs[i]}</option>
+                    <option value={i} key={i}>
+                      {mainLangs[i]}
+                    </option>
                   ))}
-                </select>}
+                </select>
+              )}
             </div>
           </label>
         </div>

@@ -1,7 +1,19 @@
 /* eslint-disable global-require */
 import {
-  ContestModel, Context, Handler, ObjectId, param, PERM, PRIV, ProblemModel, Schema,
-  SettingModel, SystemModel, SystemSettings, Types, UserModel,
+  ContestModel,
+  Context,
+  Handler,
+  ObjectId,
+  param,
+  PERM,
+  PRIV,
+  ProblemModel,
+  Schema,
+  SettingModel,
+  SystemModel,
+  SystemSettings,
+  Types,
+  UserModel,
 } from 'hydrooj';
 import convert from 'schemastery-jsonschema';
 import markdown from './backendlib/markdown';
@@ -71,9 +83,7 @@ class MarkdownHandler extends Handler {
   noCheckPermView = true;
 
   async post({ text, inline = false }) {
-    this.response.body = inline
-      ? markdown.renderInline(text)
-      : markdown.render(text);
+    this.response.body = inline ? markdown.renderInline(text) : markdown.render(text);
     this.response.type = 'text/html';
     this.response.status = 200;
   }
@@ -98,7 +108,7 @@ class RichMediaHandler extends Handler {
   async renderProblem(domainId, payload) {
     const cur = payload.domainId ? await UserModel.getById(payload.domainId, this.user._id) : this.user;
     let pdoc = cur.hasPerm(PERM.PERM_VIEW | PERM.PERM_VIEW_PROBLEM)
-      ? await ProblemModel.get(payload.domainId || domainId, payload.id) || ProblemModel.default
+      ? (await ProblemModel.get(payload.domainId || domainId, payload.id)) || ProblemModel.default
       : ProblemModel.default;
     if (pdoc.hidden && !cur.own(pdoc) && !cur.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN)) pdoc = ProblemModel.default;
     return await this.renderHTML('partials/problem.html', { pdoc });
@@ -154,12 +164,7 @@ export function apply(ctx: Context) {
   ctx.on('handler/after', async (that) => {
     that.UiContext.SWConfig = {
       preload: SystemModel.get('ui-default.preload'),
-      hosts: [
-        `http://${that.request.host}`,
-        `https://${that.request.host}`,
-        SystemModel.get('server.url'),
-        SystemModel.get('server.cdn'),
-      ],
+      hosts: [`http://${that.request.host}`, `https://${that.request.host}`, SystemModel.get('server.url'), SystemModel.get('server.cdn')],
       domains: SystemModel.get('ui-default.domains') || [],
     };
   });

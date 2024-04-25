@@ -1,23 +1,34 @@
 import AdmZip from 'adm-zip';
 import { readFile, statSync } from 'fs-extra';
-import {
-    escapeRegExp, flattenDeep, intersection, pick, uniqBy,
-} from 'lodash';
+import { escapeRegExp, flattenDeep, intersection, pick, uniqBy } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
 import { nanoid } from 'nanoid';
 import sanitize from 'sanitize-filename';
 import parser from '@hydrooj/utils/lib/search';
 import { sortFiles, streamToBuffer } from '@hydrooj/utils/lib/utils';
 import {
-    BadRequestError, ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
-    FileLimitExceededError, HackFailedError, NoProblemError, NotFoundError,
-    PermissionError, ProblemAlreadyExistError, ProblemAlreadyUsedByContestError, ProblemConfigError,
-    ProblemIsReferencedError, ProblemNotAllowLanguageError, ProblemNotAllowPretestError, ProblemNotFoundError,
-    RecordNotFoundError, SolutionNotFoundError, ValidationError,
+    BadRequestError,
+    ContestNotAttendedError,
+    ContestNotEndedError,
+    ContestNotFoundError,
+    ContestNotLiveError,
+    FileLimitExceededError,
+    HackFailedError,
+    NoProblemError,
+    NotFoundError,
+    PermissionError,
+    ProblemAlreadyExistError,
+    ProblemAlreadyUsedByContestError,
+    ProblemConfigError,
+    ProblemIsReferencedError,
+    ProblemNotAllowLanguageError,
+    ProblemNotAllowPretestError,
+    ProblemNotFoundError,
+    RecordNotFoundError,
+    SolutionNotFoundError,
+    ValidationError,
 } from '../error';
-import {
-    ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
-} from '../interface';
+import { ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -30,14 +41,16 @@ import solution from '../model/solution';
 import storage from '../model/storage';
 import * as system from '../model/system';
 import user from '../model/user';
-import {
-    Handler, param, post, query, route, Types,
-} from '../service/server';
+import { Handler, param, post, query, route, Types } from '../service/server';
 import { buildProjection } from '../utils';
 import { registerResolver, registerValue } from './api';
 import { ContestDetailBaseHandler } from './contest';
 
-export const parseCategory = (value: string) => value.replace(/，/g, ',').split(',').map((e) => e.trim());
+export const parseCategory = (value: string) =>
+    value
+        .replace(/，/g, ',')
+        .split(',')
+        .map((e) => e.trim());
 
 registerValue('FileInfo', [
     ['_id', 'String!'],
@@ -64,51 +77,49 @@ registerValue('Problem', [
     ['hidden', 'Boolean'],
 ]);
 
+registerResolver('Query', 'problem(id: Int, pid: String)', 'Problem', async (arg, ctx) => {
+    ctx.checkPerm(PERM.PERM_VIEW);
+    const pdoc = await problem.get(ctx.args.domainId, arg.pid || arg.id);
+    if (!pdoc) return null;
+    if (pdoc.hidden) ctx.checkPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN);
+    ctx.pdoc = pdoc;
+    return pdoc;
+});
 registerResolver(
-    'Query', 'problem(id: Int, pid: String)', 'Problem',
+    'Query',
+    'problems(ids: [Int])',
+    '[Problem]',
     async (arg, ctx) => {
         ctx.checkPerm(PERM.PERM_VIEW);
-        const pdoc = await problem.get(ctx.args.domainId, arg.pid || arg.id);
-        if (!pdoc) return null;
-        if (pdoc.hidden) ctx.checkPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN);
-        ctx.pdoc = pdoc;
-        return pdoc;
+        const res = await problem.getList(
+            ctx.args.domainId,
+            arg.ids,
+            ctx.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || ctx.user._id,
+            undefined,
+            undefined,
+            true,
+        );
+        return Object.keys(res).map((id) => res[+id]);
     },
+    'Get a list of problem by ids',
 );
-registerResolver('Query', 'problems(ids: [Int])', '[Problem]', async (arg, ctx) => {
-    ctx.checkPerm(PERM.PERM_VIEW);
-    const res = await problem.getList(ctx.args.domainId, arg.ids, ctx.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || ctx.user._id,
-        undefined, undefined, true);
-    return Object.keys(res).map((id) => res[+id]);
-}, 'Get a list of problem by ids');
-registerResolver(
-    'Problem', 'manage', 'ProblemManage',
-    (arg, ctx) => {
-        if (!ctx.user.own(ctx.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) ctx.checkPerm(PERM.PERM_EDIT_PROBLEM);
-        return {};
-    },
-);
-registerResolver(
-    'ProblemManage', 'delete', 'Boolean!',
-    async (arg, ctx) => {
-        const tdocs = await contest.getRelated(ctx.args.domainId, ctx.pdoc.docId);
-        if (tdocs.length) throw new ProblemAlreadyUsedByContestError(ctx.pdoc.docId, tdocs[0]._id);
-        return problem.del(ctx.pdoc.domainId, ctx.pdoc.docId);
-    },
-);
-registerResolver(
-    'ProblemManage', 'edit(title: String, content: String, tag: [String], hidden: Boolean)', 'Problem!',
-    (arg, ctx) => problem.edit(ctx.args.domainId, ctx.pdoc.docId, arg),
+registerResolver('Problem', 'manage', 'ProblemManage', (arg, ctx) => {
+    if (!ctx.user.own(ctx.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) ctx.checkPerm(PERM.PERM_EDIT_PROBLEM);
+    return {};
+});
+registerResolver('ProblemManage', 'delete', 'Boolean!', async (arg, ctx) => {
+    const tdocs = await contest.getRelated(ctx.args.domainId, ctx.pdoc.docId);
+    if (tdocs.length) throw new ProblemAlreadyUsedByContestError(ctx.pdoc.docId, tdocs[0]._id);
+    return problem.del(ctx.pdoc.domainId, ctx.pdoc.docId);
+});
+registerResolver('ProblemManage', 'edit(title: String, content: String, tag: [String], hidden: Boolean)', 'Problem!', (arg, ctx) =>
+    problem.edit(ctx.args.domainId, ctx.pdoc.docId, arg),
 );
 
 function buildQuery(udoc: User) {
     const q: Filter<ProblemDoc> = {};
     if (!udoc.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN)) {
-        q.$or = [
-            { hidden: false },
-            { owner: udoc._id },
-            { maintainer: udoc._id },
-        ];
+        q.$or = [{ hidden: false }, { owner: udoc._id }, { maintainer: udoc._id }];
     }
     return q;
 }
@@ -117,8 +128,11 @@ const defaultSearch = async (domainId: string, q: string, options?: ProblemSearc
     const escaped = escapeRegExp(q.toLowerCase());
     const $regex = new RegExp(q.length >= 2 ? escaped : `\\A${escaped}`, 'gmi');
     const filter = { $or: [{ pid: { $regex } }, { title: { $regex } }, { tag: q }] };
-    const pdocs = await problem.getMulti(domainId, filter, ['domainId', 'docId', 'pid'])
-        .skip(options.skip || 0).limit(options.limit || system.get('pagination.problem')).toArray();
+    const pdocs = await problem
+        .getMulti(domainId, filter, ['domainId', 'docId', 'pid'])
+        .skip(options.skip || 0)
+        .limit(options.limit || system.get('pagination.problem'))
+        .toArray();
     if (!Number.isNaN(+q)) {
         const pdoc = await problem.get(domainId, +q, ['domainId', 'docId', 'pid', 'title']);
         if (pdoc) pdocs.unshift(pdoc);
@@ -198,22 +212,33 @@ export class ProblemMainHandler extends Handler {
             const domainIds = Array.from(new Set(pdocs.map((i) => i.domainId)));
             await Promise.all(
                 domainIds.map((did) =>
-                    problem.getListStatus(
-                        did, this.user._id,
-                        pdocs.filter((i) => i.domainId === did).map((i) => i.docId),
-                    ).then((res) => Object.assign(psdict, res))),
+                    problem
+                        .getListStatus(
+                            did,
+                            this.user._id,
+                            pdocs.filter((i) => i.domainId === did).map((i) => i.docId),
+                        )
+                        .then((res) => Object.assign(psdict, res)),
+                ),
             );
         }
         if (pjax) {
             this.response.body = {
                 title: this.renderTitle(this.translate('problem_main')),
-                fragments: (await Promise.all([
-                    this.renderHTML('partials/problem_list.html', {
-                        page, ppcount, pcount, pdocs, psdict, qs: q,
-                    }),
-                    this.renderHTML('partials/problem_stat.html', { pcount, pcountRelation }),
-                    this.renderHTML('partials/problem_lucky.html', { qs: q }),
-                ])).map((i) => ({ html: i })),
+                fragments: (
+                    await Promise.all([
+                        this.renderHTML('partials/problem_list.html', {
+                            page,
+                            ppcount,
+                            pcount,
+                            pdocs,
+                            psdict,
+                            qs: q,
+                        }),
+                        this.renderHTML('partials/problem_stat.html', { pcount, pcountRelation }),
+                        this.renderHTML('partials/problem_lucky.html', { qs: q }),
+                    ])
+                ).map((i) => ({ html: i })),
             };
         } else {
             this.response.body = {
@@ -301,9 +326,12 @@ export class ProblemMainHandler extends Handler {
 export class ProblemRandomHandler extends Handler {
     @param('q', Types.Content, true)
     async get(domainId: string, qs = '') {
-        const category = flattenDeep(qs.split(' ')
-            .filter((i) => i.startsWith('category:'))
-            .map((i) => i.split('category:')[1]?.split(',')));
+        const category = flattenDeep(
+            qs
+                .split(' ')
+                .filter((i) => i.startsWith('category:'))
+                .map((i) => i.split('category:')[1]?.split(',')),
+        );
         const q = buildQuery(this.user);
         if (category.length) q.$and = category.map((tag) => ({ tag }));
         await this.ctx.parallel('problem/list', q, this);
@@ -357,8 +385,20 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             }
             const t = [];
             if (this.pdoc.config.langs) t.push(this.pdoc.config.langs);
-            if (ddoc.langs) t.push(ddoc.langs.split(',').map((i) => i.trim()).filter((i) => i));
-            if (this.domain.langs) t.push(this.domain.langs.split(',').map((i) => i.trim()).filter((i) => i));
+            if (ddoc.langs)
+                t.push(
+                    ddoc.langs
+                        .split(',')
+                        .map((i) => i.trim())
+                        .filter((i) => i),
+                );
+            if (this.domain.langs)
+                t.push(
+                    this.domain.langs
+                        .split(',')
+                        .map((i) => i.trim())
+                        .filter((i) => i),
+                );
             this.pdoc.config.langs = ['objective', 'submit_answer'].includes(this.pdoc.config.type) ? ['_'] : intersection(baseLangs, ...t);
         }
         await this.ctx.parallel('problem/get', this.pdoc, this);
@@ -378,7 +418,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             solutionCount: scnt,
             discussionCount: dcnt,
             tdoc: this.tdoc,
-            owner_udoc: (tid && this.tdoc.owner !== this.pdoc.owner) ? await user.getById(domainId, this.tdoc.owner) : null,
+            owner_udoc: tid && this.tdoc.owner !== this.pdoc.owner ? await user.getById(domainId, this.tdoc.owner) : null,
         };
         if (this.tdoc && this.tsdoc) {
             const fields = ['attend', 'startAt'];
@@ -397,18 +437,17 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // Navigate to current additional file download
         // e.g. ![img](file://a.jpg) will navigate to ![img](./pid/file/a.jpg)
         if (!this.request.json || args[2]) {
-            this.response.body.pdoc.content = this.response.body.pdoc.content
-                .replace(/file:\/\/([^ \n)\\"]+)/g, (str: string) => {
-                    const info = str.match(/file:\/\/([^ \n)\\"]+)/);
-                    const fileinfo = info[1];
-                    let filename = fileinfo.split('?')[0]; // remove querystring
-                    try {
-                        filename = decodeURIComponent(filename);
-                    } catch (e) { }
-                    if (!this.pdoc.additional_file?.find((i) => i.name === filename)) return str;
-                    if (!args[1]) return `./${this.pdoc.docId}/file/${fileinfo}`;
-                    return `./${this.pdoc.docId}/file/${fileinfo}${fileinfo.includes('?') ? '&' : '?'}tid=${args[1]}`;
-                });
+            this.response.body.pdoc.content = this.response.body.pdoc.content.replace(/file:\/\/([^ \n)\\"]+)/g, (str: string) => {
+                const info = str.match(/file:\/\/([^ \n)\\"]+)/);
+                const fileinfo = info[1];
+                let filename = fileinfo.split('?')[0]; // remove querystring
+                try {
+                    filename = decodeURIComponent(filename);
+                } catch (e) {}
+                if (!this.pdoc.additional_file?.find((i) => i.name === filename)) return str;
+                if (!args[1]) return `./${this.pdoc.docId}/file/${fileinfo}`;
+                return `./${this.pdoc.docId}/file/${fileinfo}${fileinfo.includes('?') ? '&' : '?'}tid=${args[1]}`;
+            });
         }
         this.response.body.page_name = this.tdoc
             ? this.tdoc.rule === 'homework'
@@ -419,9 +458,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             const data = { pdoc: this.pdoc, tdoc: this.tdoc };
             this.response.body = {
                 title: this.renderTitle(this.response.body.page_name),
-                fragments: [
-                    { html: await this.renderHTML('partials/problem_description.html', data) },
-                ],
+                fragments: [{ html: await this.renderHTML('partials/problem_description.html', data) }],
                 raw: data,
             };
         }
@@ -439,18 +476,37 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     @param('pid', Types.UnsignedInt)
     async postRejudge(domainId: string, pid: number) {
         this.checkPerm(PERM.PERM_REJUDGE_PROBLEM);
-        const rdocs = await record.getMulti(domainId, {
-            pid,
-            contest: { $nin: [record.RECORD_GENERATE, record.RECORD_PRETEST] },
-            status: { $ne: STATUS.STATUS_CANCELED },
-            'files.hack': { $exists: false },
-        }).project({ _id: 1, contest: 1 }).toArray();
+        const rdocs = await record
+            .getMulti(domainId, {
+                pid,
+                contest: { $nin: [record.RECORD_GENERATE, record.RECORD_PRETEST] },
+                status: { $ne: STATUS.STATUS_CANCELED },
+                'files.hack': { $exists: false },
+            })
+            .project({ _id: 1, contest: 1 })
+            .toArray();
         if (!this.pdoc.config || typeof this.pdoc.config === 'string') throw new ProblemConfigError();
         const priority = await record.submissionPriority(this.user._id, -10000 - rdocs.length * 5 - 50);
-        await record.reset(domainId, rdocs.map((rdoc) => rdoc._id), true);
+        await record.reset(
+            domainId,
+            rdocs.map((rdoc) => rdoc._id),
+            true,
+        );
         await Promise.all([
-            record.judge(domainId, rdocs.filter((i) => i.contest).map((i) => i._id), priority, { detail: false }, { rejudge: true }),
-            record.judge(domainId, rdocs.filter((i) => !i.contest).map((i) => i._id), priority, {}, { rejudge: true }),
+            record.judge(
+                domainId,
+                rdocs.filter((i) => i.contest).map((i) => i._id),
+                priority,
+                { detail: false },
+                { rejudge: true },
+            ),
+            record.judge(
+                domainId,
+                rdocs.filter((i) => !i.contest).map((i) => i._id),
+                priority,
+                {},
+                { rejudge: true },
+            ),
         ]);
         this.back();
     }
@@ -487,9 +543,10 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
 
     async get() {
         this.response.template = 'problem_submit.html';
-        const langRange = (typeof this.pdoc.config === 'object' && this.pdoc.config.langs)
-            ? Object.fromEntries(this.pdoc.config.langs.map((i) => [i, setting.langs[i]?.display || i]))
-            : setting.SETTINGS_BY_KEY.codeLang.range;
+        const langRange =
+            typeof this.pdoc.config === 'object' && this.pdoc.config.langs
+                ? Object.fromEntries(this.pdoc.config.langs.map((i) => [i, setting.langs[i]?.display || i]))
+                : setting.SETTINGS_BY_KEY.codeLang.range;
         this.response.body.langRange = langRange;
         this.response.body.page_name = this.tdoc
             ? this.tdoc.rule === 'homework'
@@ -536,7 +593,12 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
             }
         }
         const rid = await record.add(
-            domainId, this.pdoc.docId, this.user._id, lang, code, true,
+            domainId,
+            this.pdoc.docId,
+            this.user._id,
+            lang,
+            code,
+            true,
             pretest ? { input, type: 'pretest' } : { contest: tid, files, type: 'judge' },
         );
         if (!pretest) {
@@ -565,8 +627,8 @@ export class ProblemHackHandler extends ProblemDetailHandler {
     async prepare(domainId: string, rid: ObjectId, tid?: ObjectId) {
         if (typeof this.pdoc.config !== 'object' || !this.pdoc.config.hackable) throw new HackFailedError('This problem is not hackable.');
         this.rdoc = await record.get(domainId, rid);
-        if (!this.rdoc || this.rdoc.pid !== this.pdoc.docId
-            || this.rdoc.contest?.toString() !== tid?.toString()) throw new RecordNotFoundError(domainId, rid);
+        if (!this.rdoc || this.rdoc.pid !== this.pdoc.docId || this.rdoc.contest?.toString() !== tid?.toString())
+            throw new RecordNotFoundError(domainId, rid);
         if (tid) {
             if (this.tdoc.rule !== 'codeforces') throw new HackFailedError('This contest is not hackable.');
             if (!contest.isOngoing(this.tdoc, this.tsdoc)) throw new ContestNotLiveError(this.tdoc.docId);
@@ -600,11 +662,11 @@ export class ProblemHackHandler extends ProblemDetailHandler {
         } else if (input) {
             await storage.put(`submission/${id}`, Buffer.from(input), this.user._id);
         }
-        const rid = await record.add(
-            domainId, this.pdoc.docId, this.user._id,
-            this.rdoc.lang, this.rdoc.code, true,
-            { contest: tid, type: 'hack', files: { hack: `${id}#input.txt` } },
-        );
+        const rid = await record.add(domainId, this.pdoc.docId, this.user._id, this.rdoc.lang, this.rdoc.code, true, {
+            contest: tid,
+            type: 'hack',
+            files: { hack: `${id}#input.txt` },
+        });
         // TODO contest: update status;
         this.response.body = { rid };
         this.response.redirect = this.url('record_detail', { rid });
@@ -631,13 +693,25 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('tag', Types.Content, true, null, parseCategory)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     async post(
-        domainId: string, pid: string | number, title: string, content: string,
-        newPid: string | number = '', hidden = false, tag: string[] = [], difficulty = 0,
+        domainId: string,
+        pid: string | number,
+        title: string,
+        content: string,
+        newPid: string | number = '',
+        hidden = false,
+        tag: string[] = [],
+        difficulty = 0,
     ) {
         if (typeof newPid !== 'string') newPid = `P${newPid}`;
-        if (newPid !== this.pdoc.pid && await problem.get(domainId, newPid)) throw new ProblemAlreadyExistError(pid);
+        if (newPid !== this.pdoc.pid && (await problem.get(domainId, newPid))) throw new ProblemAlreadyExistError(pid);
         const $update: Partial<ProblemDoc> = {
-            title, content, pid: newPid, hidden, tag: tag ?? [], difficulty, html: false,
+            title,
+            content,
+            pid: newPid,
+            hidden,
+            tag: tag ?? [],
+            difficulty,
+            html: false,
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
@@ -652,10 +726,12 @@ export class ProblemConfigHandler extends ProblemManageHandler {
         this.response.body.config = '';
         if (configFile.length > 0) {
             try {
-                this.response.body.config = (await streamToBuffer(
-                    await storage.get(`problem/${this.pdoc.domainId}/${this.pdoc.docId}/testdata/${configFile[0].name}`),
-                )).toString();
-            } catch (e) { /* ignore */ }
+                this.response.body.config = (
+                    await streamToBuffer(await storage.get(`problem/${this.pdoc.domainId}/${this.pdoc.docId}/testdata/${configFile[0].name}`))
+                ).toString();
+            } catch (e) {
+                /* ignore */
+            }
         }
         this.response.template = 'problem_config.html';
     }
@@ -675,7 +751,12 @@ export class ProblemFilesHandler extends ProblemDetailHandler {
             const { testdata, additional_file } = this.response.body;
             const owner = await user.getById(domainId, this.pdoc.owner);
             const args = {
-                testdata, additional_file, pdoc: this.pdoc, owner_udoc: owner, sidebar, can_edit: true,
+                testdata,
+                additional_file,
+                pdoc: this.pdoc,
+                owner_udoc: owner,
+                sidebar,
+                can_edit: true,
             };
             const tasks = [];
             if (d.includes('testdata')) tasks.push(this.renderHTML('partials/problem_files.html', { ...args, filetype: 'testdata' }));
@@ -704,21 +785,14 @@ export class ProblemFilesHandler extends ProblemDetailHandler {
         }
         if (this.pdoc.reference) this.pdoc = await problem.get(this.pdoc.reference.domainId, this.pdoc.reference.pid);
         const links = {};
-        const size = Math.sum(
-            this.pdoc[type === 'testdata' ? 'data' : 'additional_file']
-                ?.filter((i) => files.has(i.name))
-                ?.map((i) => i.size),
-        ) || 0;
+        const size = Math.sum(this.pdoc[type === 'testdata' ? 'data' : 'additional_file']?.filter((i) => files.has(i.name))?.map((i) => i.size)) || 0;
         await oplog.log(this, 'download.problem.bulk', {
             target: Array.from(files).map((file) => `problem/${this.pdoc.domainId}/${this.pdoc.docId}/${type}/${file}`),
             size,
         });
         for (const file of files) {
             // eslint-disable-next-line no-await-in-loop
-            links[file] = await storage.signDownloadLink(
-                `problem/${this.pdoc.domainId}/${this.pdoc.docId}/${type}/${file}`,
-                file, false, 'user',
-            );
+            links[file] = await storage.signDownloadLink(`problem/${this.pdoc.domainId}/${this.pdoc.docId}/${type}/${file}`, file, false, 'user');
         }
         this.response.body.links = links;
     }
@@ -755,10 +829,7 @@ export class ProblemFilesHandler extends ProblemDetailHandler {
             });
         }
         if (!this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
-            if ((this.pdoc.data?.length || 0)
-                + (this.pdoc.additional_file?.length || 0)
-                + files.length
-                >= system.get('limit.problem_files_max')) {
+            if ((this.pdoc.data?.length || 0) + (this.pdoc.additional_file?.length || 0) + files.length >= system.get('limit.problem_files_max')) {
                 throw new FileLimitExceededError('count');
             }
             const size = Math.sum(
@@ -783,11 +854,13 @@ export class ProblemFilesHandler extends ProblemDetailHandler {
     @post('type', Types.Range(['testdata', 'additional_file']), true)
     async postRenameFiles(domainId: string, files: string[], newNames: string[], type = 'testdata') {
         if (files.length !== newNames.length) throw new ValidationError('files', 'newNames');
-        await Promise.all(files.map(async (file, index) => {
-            const newName = newNames[index];
-            if (type === 'testdata') await problem.renameTestdata(domainId, this.pdoc.docId, file, newName, this.user._id);
-            else await problem.renameAdditionalFile(domainId, this.pdoc.docId, file, newName, this.user._id);
-        }));
+        await Promise.all(
+            files.map(async (file, index) => {
+                const newName = newNames[index];
+                if (type === 'testdata') await problem.renameTestdata(domainId, this.pdoc.docId, file, newName, this.user._id);
+                else await problem.renameAdditionalFile(domainId, this.pdoc.docId, file, newName, this.user._id);
+            }),
+        );
         this.back();
     }
 
@@ -833,9 +906,7 @@ export class ProblemFileDownloadHandler extends ProblemDetailHandler {
             target,
             size: file?.size || 0,
         });
-        this.response.redirect = await storage.signDownloadLink(
-            target, noDisposition ? undefined : filename, false, 'user',
-        );
+        this.response.redirect = await storage.signDownloadLink(target, noDisposition ? undefined : filename, false, 'user');
     }
 }
 
@@ -851,11 +922,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
             this.checkPerm(PERM.PERM_VIEW_PROBLEM_SOLUTION);
         }
         // eslint-disable-next-line prefer-const
-        let [psdocs, pcount, pscount] = await this.paginate(
-            solution.getMulti(domainId, this.pdoc.docId),
-            page,
-            'solution',
-        );
+        let [psdocs, pcount, pscount] = await this.paginate(solution.getMulti(domainId, this.pdoc.docId), page, 'solution');
         if (sid) {
             psdocs = [await solution.get(domainId, sid)];
             if (!psdocs[0]) throw new SolutionNotFoundError(domainId, sid);
@@ -872,7 +939,14 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
         const udict = await user.getList(domainId, uids);
         const pssdict = await solution.getListStatus(domainId, docids, this.user._id);
         this.response.body = {
-            psdocs, page, pcount, pscount, udict, pssdict, pdoc: this.pdoc, sid,
+            psdocs,
+            page,
+            pcount,
+            pscount,
+            udict,
+            pssdict,
+            pdoc: this.pdoc,
+            sid,
         };
     }
 
@@ -916,9 +990,8 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('content', Types.Content)
     async postEditReply(domainId: string, psid: ObjectId, psrid: ObjectId, content: string) {
         const [psdoc, psrdoc] = await solution.getReply(domainId, psid, psrid);
-        if ((!psdoc) || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(domainId, psid);
-        if (!(this.user.own(psrdoc)
-            && this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF))) {
+        if (!psdoc || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(domainId, psid);
+        if (!(this.user.own(psrdoc) && this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF))) {
             throw new PermissionError(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF);
         }
         await solution.editReply(domainId, psid, psrid, content);
@@ -929,9 +1002,8 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('psrid', Types.ObjectId)
     async postDeleteReply(domainId: string, psid: ObjectId, psrid: ObjectId) {
         const [psdoc, psrdoc] = await solution.getReply(domainId, psid, psrid);
-        if ((!psdoc) || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(psid);
-        if (!(this.user.own(psrdoc)
-            && this.user.hasPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF))) {
+        if (!psdoc || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(psid);
+        if (!(this.user.own(psrdoc) && this.user.hasPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF))) {
             this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY);
         }
         await solution.delReply(domainId, psid, psrid);
@@ -963,7 +1035,7 @@ export class ProblemSolutionRawHandler extends ProblemDetailHandler {
         }
         if (psrid) {
             const [psdoc, psrdoc] = await solution.getReply(domainId, psid, psrid);
-            if ((!psdoc) || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(psid, psrid);
+            if (!psdoc || psdoc.parentId !== this.pdoc.docId) throw new SolutionNotFoundError(psid, psrid);
             this.response.body = psrdoc.content;
         } else {
             const psdoc = await solution.get(domainId, psid);
@@ -988,19 +1060,17 @@ export class ProblemCreateHandler extends Handler {
     @post('hidden', Types.Boolean)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('tag', Types.Content, true, null, parseCategory)
-    async post(
-        domainId: string, title: string, content: string, pid: string | number = '',
-        hidden = false, difficulty = 0, tag: string[] = [],
-    ) {
+    async post(domainId: string, title: string, content: string, pid: string | number = '', hidden = false, difficulty = 0, tag: string[] = []) {
         if (typeof pid !== 'string') pid = `P${pid}`;
-        if (pid && await problem.get(domainId, pid)) throw new ProblemAlreadyExistError(pid);
+        if (pid && (await problem.get(domainId, pid))) throw new ProblemAlreadyExistError(pid);
         const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty });
         const files = new Set(Array.from(content.matchAll(/file:\/\/([a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)/g)).map((i) => i[1]));
         const tasks = [];
         for (const file of files) {
             if (this.user._files.find((i) => i.name === file)) {
                 tasks.push(
-                    storage.rename(`user/${this.user._id}/${file}`, `problem/${domainId}/${docId}/additional_file/${file}`, this.user._id)
+                    storage
+                        .rename(`user/${this.user._id}/${file}`, `problem/${domainId}/${docId}/additional_file/${file}`, this.user._id)
                         .then(() => problem.addAdditionalFile(domainId, docId, file, '', this.user._id, true)),
                     user.setById(this.user._id, { _files: this.user._files.filter((i) => i.name !== file) }),
                 );
@@ -1026,8 +1096,10 @@ export class ProblemPrefixListHandler extends Handler {
         if (pdocs.length < 20) {
             const search = global.Hydro.lib.problemSearch || defaultSearch;
             const result = await search(domainId, prefix, { limit: 20 - pdocs.length });
-            const docs = await problem.getMulti(domainId, { docId: { $in: result.hits.map((i) => +i.split('/')[1]) } })
-                .project<ProblemDoc>(buildProjection(projection)).toArray();
+            const docs = await problem
+                .getMulti(domainId, { docId: { $in: result.hits.map((i) => +i.split('/')[1]) } })
+                .project<ProblemDoc>(buildProjection(projection))
+                .toArray();
             pdocs.push(...docs);
         }
         this.response.body = uniqBy(pdocs, 'docId');

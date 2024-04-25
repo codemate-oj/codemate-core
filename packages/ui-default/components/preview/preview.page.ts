@@ -29,7 +29,7 @@ async function startEdit(filename, value, fileCategory = 'file') {
     value,
     autoResize: false,
     autoLayout: false,
-    language: (language as string),
+    language: language as string,
     model: `hydro://problem/${fileCategory}/${filename}`,
   });
   const action = await promise;
@@ -46,9 +46,12 @@ const dialogAction = (id) => [
 ];
 
 function bindCopyLink(id, src: string) {
-  const url = !(window.location.href.endsWith('file') || window.location.href.endsWith('files'))
-  || window.location.href.match('homework/.*/file') || window.location.href.match('training/.*/file')
-    ? `file://${src.substring(src.lastIndexOf('/') + 1)}` : src;
+  const url =
+    !(window.location.href.endsWith('file') || window.location.href.endsWith('files')) ||
+    window.location.href.match('homework/.*/file') ||
+    window.location.href.match('training/.*/file')
+      ? `file://${src.substring(src.lastIndexOf('/') + 1)}`
+      : src;
   const clip = new Clipboard(`#copy-${id}`, { text: () => `${url}` });
   clip.on('success', () => Notification.success(i18n(`${url.startsWith('file://') ? 'Reference' : 'Download'} link copied to clipboard!`)));
   clip.on('error', () => Notification.error(i18n('Copy failed :(')));
@@ -88,7 +91,7 @@ async function previewPDF(link) {
   const dialog = new InfoDialog({
     $body: tpl`
       <div class="typo" style="height: 100%;">
-        <object classid="clsid:${(uuid.substring(uuid.lastIndexOf('/') + 1))}">
+        <object classid="clsid:${uuid.substring(uuid.lastIndexOf('/') + 1)}">
           <param name="SRC" value="${link}" >
           <embed width="100%" style="height: 100%;border: none;" src="${link}">
             <noembed></noembed>
@@ -126,12 +129,10 @@ export async function previewFile(ev?, type = '') {
   if (ev) ev.preventDefault();
   const filename = ev
     ? ev.currentTarget.closest('[data-filename]').getAttribute('data-filename')
-    // eslint-disable-next-line no-alert
-    : prompt(i18n('Filename'));
+    : // eslint-disable-next-line no-alert
+      prompt(i18n('Filename'));
   if (!filename) return null;
-  const filesize = ev
-    ? +ev.currentTarget.closest('[data-size]').getAttribute('data-size')
-    : 0;
+  const filesize = ev ? +ev.currentTarget.closest('[data-size]').getAttribute('data-size') : 0;
   let content = '';
   if (ev) {
     const link = $(ev.currentTarget).find('a').attr('href');
@@ -169,8 +170,10 @@ export async function previewFile(ev?, type = '') {
   const val = await startEdit(filename, content, type || 'file');
   if (typeof val !== 'string') return null;
   const file = new File([val], filename, { type: 'text/plain' });
-  const endpoint = new URL(!window.location.href.endsWith('/files')
-    ? `${window.location.href.substring(0, window.location.href.lastIndexOf('/'))}/files` : '', window.location.href);
+  const endpoint = new URL(
+    !window.location.href.endsWith('/files') ? `${window.location.href.substring(0, window.location.href.lastIndexOf('/'))}/files` : '',
+    window.location.href,
+  );
   const sidebarType = type || $(ev.currentTarget).closest('[data-fragment-id]').data('type');
   const sidebar = ev && $(ev.currentTarget).closest('[data-fragment-id]').data('sidebar') !== undefined;
   await uploadFiles(endpoint.toString(), [file], {

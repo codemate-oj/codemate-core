@@ -6,7 +6,7 @@ import AutoComplete, { AutoCompleteOptions } from '.';
 import CustomSelectAutoCompleteFC from './components/CustomSelectAutoComplete';
 
 interface CustomSelectOptions {
-  data: any[]
+  data: any[];
 }
 
 const Component = React.forwardRef<any, any>((props, ref) => {
@@ -15,7 +15,10 @@ const Component = React.forwardRef<any, any>((props, ref) => {
     <CustomSelectAutoCompleteFC
       ref={ref as any}
       height="auto"
-      selectedKeys={value.split(',').map((i) => i.trim()).filter((i) => i)}
+      selectedKeys={value
+        .split(',')
+        .map((i) => i.trim())
+        .filter((i) => i)}
       onChange={(v) => {
         setValue(v);
         props.onChange(v);
@@ -46,7 +49,9 @@ export default class CustomSelectAutoComplete<Multi extends boolean> extends Aut
     const value = this.$dom.val();
     ReactDOM.createRoot(this.container).render(
       <Component
-        ref={(ref) => { this.ref = ref; }}
+        ref={(ref) => {
+          this.ref = ref;
+        }}
         data={this.options.data}
         value={value}
         multi={this.options.multi}

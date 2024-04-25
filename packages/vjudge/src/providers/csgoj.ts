@@ -55,7 +55,10 @@ csgoj.17:
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:104.0) Gecko/20100101 Firefox/104.0';
 
 export default class CSGOJProvider extends BasicFetcher implements IBasicProvider {
-    constructor(public account: RemoteAccount, private save: (data: any) => Promise<void>) {
+    constructor(
+        public account: RemoteAccount,
+        private save: (data: any) => Promise<void>,
+    ) {
         super(account, 'https://cpc.csgrandeur.cn', 'form', logger, {
             headers: { 'User-Agent': userAgent },
             post: { headers: { 'X-Requested-With': 'XMLHttpRequest' } },
@@ -64,8 +67,9 @@ export default class CSGOJProvider extends BasicFetcher implements IBasicProvide
     }
 
     get loggedIn() {
-        return this.get('/').then(({ text: html }) => !html
-            .includes('<form id="login_form" class="form-signin" method="post" action="/csgoj/user/login_ajax">'));
+        return this.get('/').then(
+            ({ text: html }) => !html.includes('<form id="login_form" class="form-signin" method="post" action="/csgoj/user/login_ajax">'),
+        );
     }
 
     async ensureLogin() {
@@ -73,19 +77,19 @@ export default class CSGOJProvider extends BasicFetcher implements IBasicProvide
         logger.info('retry login');
         const { header } = await this.get('/csgoj/user/login_ajax');
         if (header['set-cookie']) await this.setCookie(header['set-cookie'], true);
-        await this.post('/csgoj/user/login_ajax')
-            .set('referer', 'https://cpc.csgrandeur.cn/')
-            .send({
-                user_id: this.account.handle,
-                password: this.account.password,
-            });
+        await this.post('/csgoj/user/login_ajax').set('referer', 'https://cpc.csgrandeur.cn/').send({
+            user_id: this.account.handle,
+            password: this.account.password,
+        });
         return this.loggedIn;
     }
 
     async getProblem(id: string) {
         logger.info(id);
         const res = await this.get(`/csgoj/problemset/problem?pid=${id.split('P')[1]}`);
-        const { window: { document } } = new JSDOM(res.text);
+        const {
+            window: { document },
+        } = new JSDOM(res.text);
         const title = document.getElementsByTagName('title')[0].innerHTML.replace(`${id.split('P')[1]}:`, '');
         const pDescription = document.querySelector('div[name="Description"]');
         const files = {};
@@ -132,8 +136,7 @@ export default class CSGOJProvider extends BasicFetcher implements IBasicProvide
     async listProblem(page: number, resync = false) {
         if (resync && page > 1) return [];
         const offset = (page - 1) * 100;
-        const result = await this
-            .get(`/csgoj/problemset/problemset_ajax?search=&sort=problem_id&order=asc&offset=${offset}&limit=100`)
+        const result = await this.get(`/csgoj/problemset/problemset_ajax?search=&sort=problem_id&order=asc&offset=${offset}&limit=100`)
             .set('referer', 'https://cpc.csgrandeur.cn/csgoj/problemset')
             .set('X-Requested-With', 'XMLHttpRequest');
         return result.body.rows.map((i) => `P${+i.problem_id}`);
@@ -162,7 +165,9 @@ export default class CSGOJProvider extends BasicFetcher implements IBasicProvide
             await sleep(3000);
             const { body } = await this
                 // eslint-disable-next-line max-len
-                .get(`/csgoj/status/status_ajax?sort=solution_id_show&order=desc&offset=0&limit=20&problem_id=&user_id=&solution_id=${id}&language=-1&result=-1`)
+                .get(
+                    `/csgoj/status/status_ajax?sort=solution_id_show&order=desc&offset=0&limit=20&problem_id=&user_id=&solution_id=${id}&language=-1&result=-1`,
+                )
                 .set('X-Requested-With', 'XMLHttpRequest');
             const status = statusDict[body.rows[0].result] || STATUS.STATUS_SYSTEM_ERROR;
             if (status === STATUS.STATUS_JUDGING || status === STATUS.STATUS_COMPILING) continue;

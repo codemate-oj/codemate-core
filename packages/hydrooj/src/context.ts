@@ -6,7 +6,7 @@ import { Loader } from './loader';
 import { EventMap } from './service/bus';
 import type { CheckService } from './service/check';
 
-export interface Events<C extends Context = Context> extends cordis.Events<C>, EventMap { }
+export interface Events<C extends Context = Context> extends cordis.Events<C>, EventMap {}
 
 function addScript<K>(name: string, description: string, validate: Schema<K>, run: (args: K, report: any) => boolean | Promise<boolean>) {
     if (global.Hydro.script[name]) throw new Error(`duplicate script ${name} registered.`);
@@ -88,7 +88,7 @@ const old = cordis.Registry.prototype.inject;
 cordis.Registry.prototype.inject = function wrapper(...args) {
     if (typeof args[0] === 'string') {
         console.warn('old functionality of ctx.inject is deprecated. please use ctx.injectUI instead.');
-        return T(inject).call(this, ...args as any) as any;
+        return T(inject).call(this, ...(args as any)) as any;
     }
     return old.call(this, ...args);
 };

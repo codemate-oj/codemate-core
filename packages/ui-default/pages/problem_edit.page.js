@@ -7,9 +7,7 @@ import Notification from 'vj/components/notification';
 import uploadFiles from 'vj/components/upload';
 import download from 'vj/components/zipDownloader';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  i18n, pjax, request, slideDown, slideUp, tpl,
-} from 'vj/utils';
+import { i18n, pjax, request, slideDown, slideUp, tpl } from 'vj/utils';
 
 const categories = {};
 const dirtyCategories = [];
@@ -36,9 +34,7 @@ async function updateSelection() {
       else _.pull(selections, selectionName);
     }
   }
-  const requestCategoryTags = _.uniq(selections
-    .filter((s) => s.indexOf(',') !== -1)
-    .map((s) => s.split(',')[0]));
+  const requestCategoryTags = _.uniq(selections.filter((s) => s.indexOf(',') !== -1).map((s) => s.split(',')[0]));
   // drop the category if its subcategory is selected
   const requestTags = _.uniq(_.pullAll(selections, requestCategoryTags));
   dirtyCategories.length = 0;
@@ -59,7 +55,10 @@ function findCategory(name) {
 function parseCategorySelection() {
   const $txt = $('[name="tag"]');
   tags.length = 0;
-  for (const name of $txt.val().split(',').map((i) => i.trim())) {
+  for (const name of $txt
+    .val()
+    .split(',')
+    .map((i) => i.trim())) {
     if (!name) return;
     const [category, subcategory] = findCategory(name);
     if (!category) tags.push(name);
@@ -79,17 +78,10 @@ function buildCategoryFilter() {
   if (!$container) return;
   $container.attr('class', 'widget--category-filter row small-up-3 medium-up-2');
   for (const category of $container.children('li').get()) {
-    const $category = $(category)
-      .attr('class', 'widget--category-filter__category column');
-    const $categoryTag = $category
-      .find('.section__title a')
-      .remove()
-      .attr('class', 'widget--category-filter__tag');
+    const $category = $(category).attr('class', 'widget--category-filter__category column');
+    const $categoryTag = $category.find('.section__title a').remove().attr('class', 'widget--category-filter__tag');
     const categoryText = $categoryTag.text();
-    const $drop = $category
-      .children('.chip-list')
-      .remove()
-      .attr('class', 'widget--category-filter__drop');
+    const $drop = $category.children('.chip-list').remove().attr('class', 'widget--category-filter__drop');
     const treeItem = {
       select: false,
       $tag: $categoryTag,
@@ -122,9 +114,7 @@ function buildCategoryFilter() {
     // the effect should be cancelSelect if it is shown as selected when clicking
     const shouldSelect = treeItem.$tag.hasClass('selected') ? false : !treeItem.select;
     treeItem.select = shouldSelect;
-    dirtyCategories.push(category
-      ? { type: 'subcategory', subcategory: tag, category }
-      : { type: 'category', category: tag });
+    dirtyCategories.push(category ? { type: 'subcategory', subcategory: tag, category } : { type: 'category', category: tag });
     if (!category && !shouldSelect) {
       // de-select children
       _.forEach(treeItem.children, (treeSubItem, subcategory) => {
@@ -159,11 +149,14 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
   $(document).on('click', '[name="operation"]', (ev) => {
     ev.preventDefault();
     if (confirmed) {
-      return request.post('.', { operation: 'delete' }).then((res) => {
-        window.location.href = res.url;
-      }).catch((e) => {
-        Notification.error(e.message);
-      });
+      return request
+        .post('.', { operation: 'delete' })
+        .then((res) => {
+          window.location.href = res.url;
+        })
+        .catch((e) => {
+          Notification.error(e.message);
+        });
     }
     const message = 'Confirm deleting this problem? Its files, submissions, discussions and solutions will be deleted as well.';
     return new ConfirmDialog({
@@ -171,11 +164,13 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
         <div class="typo">
           <p>${i18n(message)}</p>
         </div>`,
-    }).open().then((action) => {
-      if (action !== 'yes') return;
-      confirmed = true;
-      ev.target.click();
-    });
+    })
+      .open()
+      .then((action) => {
+        if (action !== 'yes') return;
+        confirmed = true;
+        ev.target.click();
+      });
   });
   $(document).on('change', '[name="tag"]', parseCategorySelection);
   buildCategoryFilter();
@@ -186,7 +181,9 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
     input.type = 'file';
     input.multiple = true;
     input.click();
-    await new Promise((resolve) => { input.onchange = resolve; });
+    await new Promise((resolve) => {
+      input.onchange = resolve;
+    });
     await uploadFiles('./files', input.files, {
       type: 'additional_file',
       sidebar: true,
@@ -233,7 +230,11 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
   }
 
   async function handleClickDownloadAll() {
-    const files = $('.additional_file-table tr').map(function () { return $(this).attr('data-filename'); }).get();
+    const files = $('.additional_file-table tr')
+      .map(function () {
+        return $(this).attr('data-filename');
+      })
+      .get();
     const { links, pdoc } = await request.post('./files', { operation: 'get_links', files, type: 'additional_file' });
     const targets = [];
     for (const filename of Object.keys(links)) targets.push({ filename, url: links[filename] });
@@ -243,7 +244,12 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
   setInterval(() => {
     $('img').each(function () {
       if (this.src.startsWith('file://')) {
-        $(this).attr('src', $(this).attr('src').replace('file://', (pagename === 'problem_create' ? `/file/${UserContext._id}/` : './file/')));
+        $(this).attr(
+          'src',
+          $(this)
+            .attr('src')
+            .replace('file://', pagename === 'problem_create' ? `/file/${UserContext._id}/` : './file/'),
+        );
       }
     });
   }, 500);
@@ -257,7 +263,7 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
     content = JSON.parse(content);
     isObject = !(content instanceof Array);
     if (!isObject) content = JSON.stringify(content);
-  } catch (e) { }
+  } catch (e) {}
   if (!isObject) content = { [activeTab]: content };
   function getContent(lang) {
     let c = '';
@@ -274,7 +280,7 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
     try {
       val = JSON.parse(val);
       if (!(val instanceof Array)) val = JSON.stringify(val);
-    } catch { }
+    } catch {}
     const empty = /^\s*$/g.test(val);
     if (empty) delete content[activeTab];
     else content[activeTab] = val;
@@ -294,11 +300,7 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
     if (!$('[name="title"]').val().toString().length) {
       Notification.error(i18n('Title is required.'));
       $('body').scrollTop();
-      $('html, body').animate(
-        { scrollTop: 0 },
-        300,
-        () => $('[name="title"]').focus(),
-      );
+      $('html, body').animate({ scrollTop: 0 }, 300, () => $('[name="title"]').focus());
       ev.preventDefault();
     }
   });

@@ -11,7 +11,8 @@ function youtubeParser(url: string) {
   const match = url.match(ytRegex);
   return match && match[7].length === 11 ? match[7] : url;
 }
-const vimeoRegex = /https?:\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+const vimeoRegex =
+  /https?:\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
 function vimeoParser(url: string) {
   const match = url.match(vimeoRegex);
   return match && typeof match[3] === 'string' ? match[3] : url;
@@ -52,7 +53,7 @@ function resourceUrl(service: string, src: string, url: string, options) {
       const timeParts = timeParameter.match(/[0-9]+/g);
       let j = 0;
       while (timeParts.length > 0) {
-        startTime += Number(timeParts.pop()) * (60 ** j);
+        startTime += Number(timeParts.pop()) * 60 ** j;
         j += 1;
       }
       parameters.set('start', startTime);
@@ -72,9 +73,11 @@ function resourceUrl(service: string, src: string, url: string, options) {
   if (service === 'vimeo') return `https://player.vimeo.com/video/${src}`;
   if (service === 'vine') return `https://vine.co/v/${src}/embed/${options.vine.embed}`;
   if (service === 'prezi') {
-    return `https://prezi.com/embed/${src}/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;`
-      + 'landing_data=bHVZZmNaNDBIWnNjdEVENDRhZDFNZGNIUE43MHdLNWpsdFJLb2ZHanI5N1lQVHkxSHFxazZ0UUNCRHloSXZROHh3PT0&amp;'
-      + 'landing_sign=1kD6c0N6aYpMUS0wxnQjxzSqZlEB8qNFdxtdjYhwSuI';
+    return (
+      `https://prezi.com/embed/${src}/?bgcolor=ffffff&amp;lock_to_path=0&amp;autoplay=0&amp;autohide_ctrls=0&amp;` +
+      'landing_data=bHVZZmNaNDBIWnNjdEVENDRhZDFNZGNIUE43MHdLNWpsdFJLb2ZHanI5N1lQVHkxSHFxazZ0UUNCRHloSXZROHh3PT0&amp;' +
+      'landing_sign=1kD6c0N6aYpMUS0wxnQjxzSqZlEB8qNFdxtdjYhwSuI'
+    );
   }
   return src;
 }
@@ -136,8 +139,7 @@ export function Media(md: MarkdownIt) {
   md.inline.ruler.before('emphasis', 'video', (state, silent) => {
     const theState = state;
     const oldPos = state.pos;
-    if (state.src.charCodeAt(oldPos) !== 0x40
-      ||/* @ */ state.src.charCodeAt(oldPos + 1) !== 0x5B/* [ */) {
+    if (state.src.charCodeAt(oldPos) !== 0x40 || /* @ */ state.src.charCodeAt(oldPos + 1) !== 0x5b /* [ */) {
       return false;
     }
     const match = EMBED_REGEX.exec(state.src.slice(state.pos, state.src.length));

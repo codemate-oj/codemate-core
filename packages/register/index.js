@@ -41,9 +41,7 @@ function transform(filename, tsx = true) {
     return result.code;
 }
 const _script = new vm.Script('"Hydro"', { produceCachedData: true });
-const bytecode = (_script.createCachedData && _script.createCachedData.call)
-    ? _script.createCachedData()
-    : _script.cachedData;
+const bytecode = _script.createCachedData && _script.createCachedData.call ? _script.createCachedData() : _script.cachedData;
 require.extensions['.js'] = function loader(module, filename) {
     if (major < 14) {
         return module._compile(transform(filename), filename);
@@ -51,7 +49,8 @@ require.extensions['.js'] = function loader(module, filename) {
     try {
         const content = fs.readFileSync(filename, 'utf-8');
         return module._compile(content, filename);
-    } catch (e) { // ESM
+    } catch (e) {
+        // ESM
         return module._compile(transform(filename), filename);
     }
 };
@@ -68,7 +67,7 @@ require.extensions['.jsc'] = function loader(module, filename) {
         bytecode.subarray(16, 20).copy(buf, 16);
     }
     // eslint-disable-next-line no-return-assign
-    const length = buf.subarray(8, 12).reduce((sum, number, power) => sum += number * (256 ** power), 0);
+    const length = buf.subarray(8, 12).reduce((sum, number, power) => (sum += number * 256 ** power), 0);
     let dummyCode = '';
     if (length > 1) dummyCode = `"${'\u200b'.repeat(length - 2)}"`;
     const script = new vm.Script(dummyCode, {

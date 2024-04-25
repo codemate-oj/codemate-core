@@ -12,42 +12,42 @@ import type { Handler } from './service/server';
 type document = typeof import('./model/document');
 
 export interface System {
-    _id: string,
-    value: any,
+    _id: string;
+    value: any;
 }
 
 export interface SystemKeys {
-    'smtp.user': string,
-    'smtp.from': string,
-    'smtp.pass': string,
-    'smtp.host': string,
-    'smtp.port': number,
-    'smtp.secure': boolean,
-    'installid': string,
-    'server.name': string,
-    'server.url': string,
-    'server.xff': string,
-    'server.xhost': string,
-    'server.port': number,
-    'server.language': string,
-    'limit.problem_files_max': number,
-    'problem.categories': string,
-    'session.keys': string[],
-    'session.saved_expire_seconds': number,
-    'session.unsaved_expire_seconds': number,
-    'user.quota': number,
+    'smtp.user': string;
+    'smtp.from': string;
+    'smtp.pass': string;
+    'smtp.host': string;
+    'smtp.port': number;
+    'smtp.secure': boolean;
+    installid: string;
+    'server.name': string;
+    'server.url': string;
+    'server.xff': string;
+    'server.xhost': string;
+    'server.port': number;
+    'server.language': string;
+    'limit.problem_files_max': number;
+    'problem.categories': string;
+    'session.keys': string[];
+    'session.saved_expire_seconds': number;
+    'session.unsaved_expire_seconds': number;
+    'user.quota': number;
 }
 
 export interface Setting {
-    family: string,
-    key: string,
-    range: [string, string][] | Record<string, string>,
-    value: any,
-    type: string,
-    subType?: string,
-    name: string,
-    desc: string,
-    flag: number,
+    family: string;
+    key: string;
+    range: [string, string][] | Record<string, string>;
+    value: any;
+    type: string;
+    subType?: string;
+    name: string;
+    desc: string;
+    flag: number;
 }
 
 export interface OAuthUserResponse {
@@ -123,7 +123,7 @@ export interface UserPreferenceDoc {
     content: string;
 }
 
-export type ownerInfo = { owner: number, maintainer?: number[] };
+export type ownerInfo = { owner: number; maintainer?: number[] };
 
 export type User = import('./model/user').User;
 export type Udict = Record<number, User>;
@@ -141,13 +141,13 @@ export type BaseUserDict = Record<number, BaseUser>;
 
 export interface FileInfo {
     /** storage path */
-    _id: string,
+    _id: string;
     /** filename */
-    name: string,
+    name: string;
     /** file size (in bytes) */
-    size: number,
-    etag: string,
-    lastModified: Date,
+    size: number;
+    etag: string;
+    lastModified: Date;
 }
 
 export interface TestCaseConfig {
@@ -221,21 +221,21 @@ export interface ProblemConfig {
 }
 
 export interface PlainContentNode {
-    type: 'Plain',
-    subType: 'html' | 'markdown',
-    text: string,
+    type: 'Plain';
+    subType: 'html' | 'markdown';
+    text: string;
 }
 export interface TextContentNode {
-    type: 'Text',
-    subType: 'html' | 'markdown',
-    sectionTitle: string,
-    text: string,
+    type: 'Text';
+    subType: 'html' | 'markdown';
+    sectionTitle: string;
+    text: string;
 }
 export interface SampleContentNode {
-    type: 'Sample',
-    text: string,
-    sectionTitle: string,
-    payload: [string, string],
+    type: 'Sample';
+    text: string;
+    sectionTitle: string;
+    payload: [string, string];
 }
 // TODO drop contentNode support
 export type ContentNode = PlainContentNode | TextContentNode | SampleContentNode;
@@ -282,11 +282,11 @@ export type { ProblemDoc } from './model/problem';
 export type ProblemDict = NumericDictionary<ProblemDoc>;
 
 export interface StatusDocBase {
-    _id: ObjectId,
-    docId: any,
-    docType: number,
-    domainId: string,
-    uid: number,
+    _id: ObjectId;
+    docId: any;
+    docType: number;
+    domainId: string;
+    uid: number;
 }
 
 export interface ProblemStatusDoc extends StatusDocBase {
@@ -335,7 +335,7 @@ export interface RecordDoc {
     /** 0 if pretest&script */
     contest?: ObjectId;
 
-    files?: Record<string, string>
+    files?: Record<string, string>;
     subtasks?: Record<number, SubtaskResult>;
 }
 
@@ -370,10 +370,10 @@ export type ScoreboardRow = ScoreboardNode[] & { raw?: any };
 export type PenaltyRules = Dictionary<number>;
 
 export interface TrainingNode {
-    _id: number,
-    title: string,
-    requireNids: number[],
-    pids: number[],
+    _id: number;
+    title: string;
+    requireNids: number[];
+    pids: number[];
 }
 
 export interface Tdoc extends Document {
@@ -415,29 +415,29 @@ export interface Tdoc extends Document {
 }
 
 export interface TrainingDoc extends Omit<Tdoc, 'docType'> {
-    docType: document['TYPE_TRAINING'],
+    docType: document['TYPE_TRAINING'];
     description: string;
     pin?: number;
     dag: TrainingNode[];
 }
 
 export interface DomainDoc extends Record<string, any> {
-    _id: string,
-    owner: number,
-    roles: Dictionary<string>,
-    avatar: string,
-    bulletin: string,
-    _join?: any,
-    host?: string[],
+    _id: string;
+    owner: number;
+    roles: Dictionary<string>;
+    avatar: string;
+    bulletin: string;
+    _join?: any;
+    host?: string[];
 }
 
 // Message
 export interface MessageDoc {
-    _id: ObjectId,
-    from: number,
-    to: number,
-    content: string,
-    flag: number,
+    _id: ObjectId;
+    from: number;
+    to: number;
+    content: string;
+    flag: number;
 }
 
 // Blacklist
@@ -511,22 +511,22 @@ export interface ContestClarificationDoc extends Document {
 }
 
 export interface TokenDoc {
-    _id: string,
-    tokenType: number,
-    createAt: Date,
-    updateAt: Date,
-    expireAt: Date,
-    [key: string]: any,
+    _id: string;
+    tokenType: number;
+    createAt: Date;
+    updateAt: Date;
+    expireAt: Date;
+    [key: string]: any;
 }
 
 export interface OplogDoc extends Record<string, any> {
-    _id: ObjectId,
-    type: string,
+    _id: ObjectId;
+    type: string;
 }
 
 export interface ContestStat extends Record<string, any> {
-    detail: Record<number, Record<string, any>>,
-    unrank?: boolean,
+    detail: Record<number, Record<string, any>>;
+    unrank?: boolean;
 }
 
 export interface ScoreboardConfig {
@@ -546,17 +546,30 @@ export interface ContestRule<T = any> {
     showRecord: (tdoc: Tdoc, now: Date) => boolean;
     stat: (this: ContestRule<T>, tdoc: Tdoc, journal: any[]) => ContestStat & T;
     scoreboardHeader: (
-        this: ContestRule<T>, config: ScoreboardConfig, _: (s: string) => string,
-        tdoc: Tdoc, pdict: ProblemDict,
+        this: ContestRule<T>,
+        config: ScoreboardConfig,
+        _: (s: string) => string,
+        tdoc: Tdoc,
+        pdict: ProblemDict,
     ) => Promise<ScoreboardRow>;
     scoreboardRow: (
-        this: ContestRule<T>, config: ScoreboardConfig, _: (s: string) => string,
-        tdoc: Tdoc, pdict: ProblemDict, udoc: BaseUser, rank: number, tsdoc: ContestStat & T,
+        this: ContestRule<T>,
+        config: ScoreboardConfig,
+        _: (s: string) => string,
+        tdoc: Tdoc,
+        pdict: ProblemDict,
+        udoc: BaseUser,
+        rank: number,
+        tsdoc: ContestStat & T,
         meta?: any,
     ) => Promise<ScoreboardRow>;
     scoreboard: (
-        this: ContestRule<T>, config: ScoreboardConfig, _: (s: string) => string,
-        tdoc: Tdoc, pdict: ProblemDict, cursor: FindCursor<ContestStat & T>,
+        this: ContestRule<T>,
+        config: ScoreboardConfig,
+        _: (s: string) => string,
+        tdoc: Tdoc,
+        pdict: ProblemDict,
+        cursor: FindCursor<ContestStat & T>,
     ) => Promise<[board: ScoreboardRow[], udict: BaseUserDict]>;
     ranked: (tdoc: Tdoc, cursor: FindCursor<ContestStat & T>) => Promise<[number, ContestStat & T][]>;
     applyProjection: (tdoc: Tdoc, rdoc: RecordDoc, user: User) => RecordDoc;
@@ -566,9 +579,9 @@ export type ContestRules = Dictionary<ContestRule>;
 export type ProblemImporter = (url: string, handler: any) => Promise<[ProblemDoc, fs.ReadStream?]> | [ProblemDoc, fs.ReadStream?];
 
 export interface Script {
-    run: (args: any, report: Function) => any,
-    description: string,
-    validate: any,
+    run: (args: any, report: Function) => any;
+    description: string;
+    validate: any;
 }
 
 export interface JudgeMessage {
@@ -684,71 +697,72 @@ export interface ContestBalloonDoc {
 
 declare module './service/db' {
     interface Collections {
-        'blacklist': BlacklistDoc;
-        'domain': DomainDoc;
+        blacklist: BlacklistDoc;
+        domain: DomainDoc;
         'domain.user': any;
-        'record': RecordDoc;
-        'document': any;
-        'document.status': StatusDocBase & {
-            [K in keyof DocStatusType]: { docType: K } & DocStatusType[K];
-        }[keyof DocStatusType];
+        record: RecordDoc;
+        document: any;
+        'document.status': StatusDocBase &
+            {
+                [K in keyof DocStatusType]: { docType: K } & DocStatusType[K];
+            }[keyof DocStatusType];
         'discussion.history': DiscussionHistoryDoc;
-        'user': Udoc;
+        user: Udoc;
         'user.preference': UserPreferenceDoc;
-        'vuser': VUdoc;
+        vuser: VUdoc;
         'user.group': GDoc;
-        'check': System;
-        'message': MessageDoc;
-        'token': TokenDoc;
-        'status': any;
-        'oauth': OauthMap;
-        'system': System;
-        'task': Task;
-        'storage': FileNode;
-        'oplog': OplogDoc;
-        'event': EventDoc;
-        'opcount': OpCountDoc;
-        'schedule': Schedule;
+        check: System;
+        message: MessageDoc;
+        token: TokenDoc;
+        status: any;
+        oauth: OauthMap;
+        system: System;
+        task: Task;
+        storage: FileNode;
+        oplog: OplogDoc;
+        event: EventDoc;
+        opcount: OpCountDoc;
+        schedule: Schedule;
         'contest.balloon': ContestBalloonDoc;
     }
 }
 
 export interface Model {
-    blacklist: typeof import('./model/blacklist').default,
-    builtin: typeof import('./model/builtin'),
-    contest: typeof import('./model/contest'),
-    discussion: typeof import('./model/discussion'),
-    document: Omit<typeof import('./model/document'), 'apply'>,
-    domain: typeof import('./model/domain').default,
-    message: typeof import('./model/message').default,
-    opcount: typeof import('./model/opcount'),
-    problem: typeof import('./model/problem').default,
-    record: typeof import('./model/record').default,
-    setting: typeof import('./model/setting'),
-    solution: typeof import('./model/solution').default,
-    system: typeof import('./model/system'),
-    task: typeof import('./model/task').default,
+    blacklist: typeof import('./model/blacklist').default;
+    builtin: typeof import('./model/builtin');
+    contest: typeof import('./model/contest');
+    discussion: typeof import('./model/discussion');
+    document: Omit<typeof import('./model/document'), 'apply'>;
+    domain: typeof import('./model/domain').default;
+    message: typeof import('./model/message').default;
+    opcount: typeof import('./model/opcount');
+    problem: typeof import('./model/problem').default;
+    record: typeof import('./model/record').default;
+    setting: typeof import('./model/setting');
+    solution: typeof import('./model/solution').default;
+    system: typeof import('./model/system');
+    task: typeof import('./model/task').default;
     schedule: typeof import('./model/schedule').default;
-    oplog: typeof import('./model/oplog'),
-    token: typeof import('./model/token').default,
-    training: typeof import('./model/training'),
-    user: typeof import('./model/user').default,
-    oauth: typeof import('./model/oauth').default,
-    storage: typeof import('./model/storage').default,
-    rp: typeof import('./script/rating').RpTypes,
+    oplog: typeof import('./model/oplog');
+    token: typeof import('./model/token').default;
+    training: typeof import('./model/training');
+    user: typeof import('./model/user').default;
+    oauth: typeof import('./model/oauth').default;
+    storage: typeof import('./model/storage').default;
+    rp: typeof import('./script/rating').RpTypes;
 }
 
 export interface HydroService {
     /** @deprecated */
-    bus: Context,
-    db: typeof import('./service/db').default,
-    server: typeof import('./service/server'),
-    storage: typeof import('./service/storage').default,
+    bus: Context;
+    db: typeof import('./service/db').default;
+    server: typeof import('./service/server');
+    storage: typeof import('./service/storage').default;
 }
 
 export interface GeoIP {
-    provider: string,
-    lookup: (ip: string, locale?: string) => any,
+    provider: string;
+    lookup: (ip: string, locale?: string) => any;
 }
 
 export interface ProblemSearchResponse {
@@ -775,10 +789,10 @@ export interface Lib extends Record<string, any> {
 
 export type UIInjectableFields = 'ProblemAdd' | 'Notification' | 'Nav' | 'UserDropdown' | 'DomainManage' | 'ControlPanel';
 export interface UI {
-    template: Record<string, string>,
-    nodes: Record<UIInjectableFields, any[]>,
-    getNodes: typeof import('./lib/ui').getNodes,
-    inject: typeof import('./lib/ui').inject,
+    template: Record<string, string>;
+    nodes: Record<UIInjectableFields, any[]>;
+    getNodes: typeof import('./lib/ui').getNodes;
+    inject: typeof import('./lib/ui').inject;
 }
 
 export interface ModuleInterfaces {
@@ -811,8 +825,8 @@ export interface HydroGlobal {
 declare global {
     namespace NodeJS {
         interface Global {
-            Hydro: HydroGlobal,
-            addons: string[],
+            Hydro: HydroGlobal;
+            addons: string[];
         }
     }
     /** @deprecated */

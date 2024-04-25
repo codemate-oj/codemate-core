@@ -2,11 +2,10 @@ import { UIInjectableFields } from '../interface';
 import { PERM, PRIV } from '../model/builtin';
 
 const trueChecker = () => true;
-const Checker = (perm: bigint | bigint[], priv: number | number[], checker: Function = trueChecker) => (handler) => (
-    checker(handler)
-    && (perm ? handler.user.hasPerm(perm) : true)
-    && (priv ? handler.user.hasPriv(priv) : true)
-);
+const Checker =
+    (perm: bigint | bigint[], priv: number | number[], checker: Function = trueChecker) =>
+    (handler) =>
+        checker(handler) && (perm ? handler.user.hasPerm(perm) : true) && (priv ? handler.user.hasPriv(priv) : true);
 type PermPrivChecker = Array<number | bigint | Function | number[] | bigint[]>;
 const buildChecker = (...permPrivChecker: PermPrivChecker) => {
     let _priv: number | number[];
@@ -24,12 +23,15 @@ const buildChecker = (...permPrivChecker: PermPrivChecker) => {
     return Checker(_perm, _priv, checker);
 };
 
-export const nodes = new Proxy({}, {
-    get(self, key) {
-        self[key] ||= [];
-        return self[key];
+export const nodes = new Proxy(
+    {},
+    {
+        get(self, key) {
+            self[key] ||= [];
+            return self[key];
+        },
     },
-});
+);
 export function inject(node: UIInjectableFields, name: string, args: Record<string, any> = {}, ...permPrivChecker: PermPrivChecker) {
     const obj = { name, args: args || {}, checker: buildChecker(...permPrivChecker) };
     const idx = obj.args.before ? nodes[node].findIndex((i) => i.name === obj.args.before) : -1;
@@ -37,7 +39,9 @@ export function inject(node: UIInjectableFields, name: string, args: Record<stri
         nodes[node] = nodes[node].filter((i) => i.name !== obj.name);
         nodes[node].splice(idx, 0, obj);
     } else nodes[node].push(obj);
-    return () => { nodes[node] = nodes[node].filter((i) => i !== obj); };
+    return () => {
+        nodes[node] = nodes[node].filter((i) => i !== obj);
+    };
 }
 export function getNodes(name: UIInjectableFields) {
     return nodes[name];
@@ -59,9 +63,7 @@ inject('Nav', 'homework_main', { prefix: 'homework' }, PERM.PERM_VIEW_HOMEWORK);
 inject('Nav', 'discussion_main', { prefix: 'discussion' }, PERM.PERM_VIEW_DISCUSSION);
 inject('Nav', 'record_main', {
     prefix: 'record',
-    query: (handler) => (handler.user.hasPriv(PRIV.PRIV_USER_PROFILE)
-        ? ({ uidOrName: handler.user._id })
-        : ({})),
+    query: (handler) => (handler.user.hasPriv(PRIV.PRIV_USER_PROFILE) ? { uidOrName: handler.user._id } : {}),
 });
 inject('Nav', 'ranking', { prefix: 'ranking' }, PERM.PERM_VIEW_RANKING);
 inject('Nav', 'domain_dashboard', { prefix: 'domain' }, PERM.PERM_EDIT_DOMAIN);

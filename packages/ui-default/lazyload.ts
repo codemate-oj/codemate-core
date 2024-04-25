@@ -21,9 +21,11 @@ export default async function load(name: string) {
 }
 export { load };
 export async function getFeatures(name: string) {
-  const legacy = Object.keys(window.externalModules).filter((i) => i === name || i.startsWith(`${name}@`))
+  const legacy = Object.keys(window.externalModules)
+    .filter((i) => i === name || i.startsWith(`${name}@`))
     .map((i) => window.externalModules[i]);
-  const c = Object.keys(features).filter((i) => i === name || i.startsWith(`${name}@`))
+  const c = Object.keys(features)
+    .filter((i) => i === name || i.startsWith(`${name}@`))
     .map((i) => features[i]);
   console.log(legacy, c, features);
   return c.concat(legacy);

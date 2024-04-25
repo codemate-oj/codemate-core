@@ -7,10 +7,29 @@ import { i18n, request } from 'vj/utils';
 
 export const config = {
   toolbar: [
-    'emoji', 'headings', 'bold', 'italic', 'strike', 'link', '|',
-    'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
-    'quote', 'line', 'code', 'inline-code', 'table', '|',
-    'upload', 'edit-mode', 'fullscreen', 'export',
+    'emoji',
+    'headings',
+    'bold',
+    'italic',
+    'strike',
+    'link',
+    '|',
+    'list',
+    'ordered-list',
+    'check',
+    'outdent',
+    'indent',
+    '|',
+    'quote',
+    'line',
+    'code',
+    'inline-code',
+    'table',
+    '|',
+    'upload',
+    'edit-mode',
+    'fullscreen',
+    'export',
   ],
   mode: UserContext.preferredEditorType || 'ir',
   toolbarConfig: {
@@ -44,7 +63,7 @@ interface MonacoOptions {
   lineNumbers?: 'on' | 'off' | 'relative' | 'interval';
 }
 interface VditorOptions {
-  theme?: 'classic' | 'dark'
+  theme?: 'classic' | 'dark';
 }
 type Options = MonacoOptions & VditorOptions;
 
@@ -55,7 +74,10 @@ export default class Editor extends DOMAttachedObject {
   vditor: import('vditor').default;
   isValid: boolean;
 
-  constructor($dom, public options: Options = {}) {
+  constructor(
+    $dom,
+    public options: Options = {},
+  ) {
     super($dom);
     if (UserContext.preferredEditorType === 'monaco') this.initMonaco();
     else if (options.language && options.language !== 'markdown') this.initMonaco();
@@ -65,11 +87,14 @@ export default class Editor extends DOMAttachedObject {
   async initMonaco() {
     const { load } = await import('vj/components/monaco/loader');
     const {
-      onChange, language = 'markdown',
+      onChange,
+      language = 'markdown',
       theme = UserContext.monacoTheme || 'vs-light',
       model = `file://model-${Math.random().toString(16)}`,
-      autoResize = true, autoLayout = true,
-      hide = [], lineNumbers = 'on',
+      autoResize = true,
+      autoLayout = true,
+      hide = [],
+      lineNumbers = 'on',
     } = this.options;
     const { monaco, registerAction } = await load([language]);
     const { $dom } = this;
@@ -81,10 +106,11 @@ export default class Editor extends DOMAttachedObject {
     $dom.hide();
     origin.parentElement.appendChild(ele);
     const value = this.options.value || $dom.val();
-    this.model = typeof model === 'string'
-      ? monaco.editor.getModel(monaco.Uri.parse(model))
-      || monaco.editor.createModel(value, language === 'auto' ? undefined : language, monaco.Uri.parse(model))
-      : model;
+    this.model =
+      typeof model === 'string'
+        ? monaco.editor.getModel(monaco.Uri.parse(model)) ||
+          monaco.editor.createModel(value, language === 'auto' ? undefined : language, monaco.Uri.parse(model))
+        : model;
     if (!this.options.model) this.model.setValue(value);
     const cfg: import('../monaco').default.editor.IStandaloneEditorConstructionOptions = {
       theme,
@@ -145,7 +171,10 @@ export default class Editor extends DOMAttachedObject {
         const found = this.model.findMatches(text, true, false, true, '', true);
         ranges.push(...found.map((i) => i.range));
       }
-      this.editor.deltaDecorations([], ranges.map((range) => ({ range, options: { inlineClassName: 'decoration-hide' } })));
+      this.editor.deltaDecorations(
+        [],
+        ranges.map((range) => ({ range, options: { inlineClassName: 'decoration-hide' } })),
+      );
     }
     registerAction(this.editor, this.model, this.$dom);
     if (autoResize) {
@@ -204,25 +233,30 @@ export default class Editor extends DOMAttachedObject {
             data.append('operation', 'upload_file');
             if (isProblemEdit) data.append('type', 'additional_file');
             let progress = 0;
-            request.postFile(isProblemEdit ? './files' : '/file', data, {
-              xhr: () => {
-                const xhr = new XMLHttpRequest();
-                xhr.upload.addEventListener('loadstart', () => this.vditor.vditor.tip.show(i18n('Uploading...'), 0));
-                xhr.upload.addEventListener('progress', (e) => {
-                  if (!e.lengthComputable) return;
-                  const percentComplete = Math.round((e.loaded / e.total) * 100);
-                  if (percentComplete === progress) return;
-                  progress = percentComplete;
-                  this.vditor.vditor.tip.show(`${i18n('Uploading...')} ${percentComplete}%`, 0);
-                }, false);
-                return xhr;
-              },
-            })
+            request
+              .postFile(isProblemEdit ? './files' : '/file', data, {
+                xhr: () => {
+                  const xhr = new XMLHttpRequest();
+                  xhr.upload.addEventListener('loadstart', () => this.vditor.vditor.tip.show(i18n('Uploading...'), 0));
+                  xhr.upload.addEventListener(
+                    'progress',
+                    (e) => {
+                      if (!e.lengthComputable) return;
+                      const percentComplete = Math.round((e.loaded / e.total) * 100);
+                      if (percentComplete === progress) return;
+                      progress = percentComplete;
+                      this.vditor.vditor.tip.show(`${i18n('Uploading...')} ${percentComplete}%`, 0);
+                    },
+                    false,
+                  );
+                  return xhr;
+                },
+              })
               .then(() => {
                 this.vditor.insertValue(`${wrapper.join(`${isProblemPage ? 'file://' : `/file/${UserContext._id}/`}${filename}`)} `);
                 this.vditor.vditor.tip.hide();
               })
-              .catch((e: { message: string; }) => {
+              .catch((e: { message: string }) => {
                 console.error(e);
                 return `${i18n('Upload Failed')}: ${e.message}`;
               });

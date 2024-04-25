@@ -16,34 +16,34 @@ const mapDispatchToProps = (dispatch) => ({
   },
 });
 
-export default connect(null, mapDispatchToProps)(class MessagePadContainer extends React.PureComponent {
-  static propTypes = {
-    onAdd: PropTypes.func.isRequired,
-  };
+export default connect(
+  null,
+  mapDispatchToProps,
+)(
+  class MessagePadContainer extends React.PureComponent {
+    static propTypes = {
+      onAdd: PropTypes.func.isRequired,
+    };
 
-  componentDidMount() {
-    this.props.loadDialogues();
-  }
+    componentDidMount() {
+      this.props.loadDialogues();
+    }
 
-  render() {
-    return (
-      <div className="messagepad clearfix">
-        <div className="messagepad__sidebar">
-          <div className="section__header">
-            <button
-              onClick={() => this.props.onAdd()}
-              className="primary rounded button"
-            >
-              <Icon name="add" />
-              {' '}
-              {i18n('New')}
-            </button>
+    render() {
+      return (
+        <div className="messagepad clearfix">
+          <div className="messagepad__sidebar">
+            <div className="section__header">
+              <button onClick={() => this.props.onAdd()} className="primary rounded button">
+                <Icon name="add" /> {i18n('New')}
+              </button>
+            </div>
+            <MessagePadDialogueList />
           </div>
-          <MessagePadDialogueList />
+          <MessagePadDialogueContent />
+          <MessagePadInput />
         </div>
-        <MessagePadDialogueContent />
-        <MessagePadInput />
-      </div>
-    );
-  }
-});
+      );
+    }
+  },
+);

@@ -12,7 +12,7 @@ TODO
 
 ### Translation file
 
-All translation files are in `packages/*/locale` directory. Those files are in yaml format. You can add a new language by creating a new file with the language id as the file name. For example, if you want to add a new language `ko_KR`, you can create a new file or edit the existing `packages/*/locale/ko_KR.yml` (not `ko-KR.yaml`), in the following format (all comments should be removed): 
+All translation files are in `packages/*/locale` directory. Those files are in yaml format. You can add a new language by creating a new file with the language id as the file name. For example, if you want to add a new language `ko_KR`, you can create a new file or edit the existing `packages/*/locale/ko_KR.yml` (not `ko-KR.yaml`), in the following format (all comments should be removed):
 
 ```yaml
 # packages/*/locale/ko_KR.yml
@@ -42,8 +42,8 @@ Those translation strings will be used in the following format:
 
 ```js
 // For backend (in template):
-_('Welcome to {0}, {1}').format(place, name)
-_('Welcome to {place}, {name}').format({ name, place })
+_('Welcome to {0}, {1}').format(place, name);
+_('Welcome to {place}, {name}').format({ name, place });
 
 // For backend (in code):
 i18n('Welcome to {0}, {1}').format(place, name);

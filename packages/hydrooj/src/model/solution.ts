@@ -5,10 +5,7 @@ import * as document from './document';
 
 class SolutionModel {
     static add(domainId: string, pid: number, owner: number, content: string) {
-        return document.add(
-            domainId, content, owner, document.TYPE_PROBLEM_SOLUTION,
-            null, document.TYPE_PROBLEM, pid, { reply: [], vote: 0 },
-        );
+        return document.add(domainId, content, owner, document.TYPE_PROBLEM_SOLUTION, null, document.TYPE_PROBLEM, pid, { reply: [], vote: 0 });
     }
 
     static async get(domainId: string, psid: ObjectId) {
@@ -18,9 +15,11 @@ class SolutionModel {
     }
 
     static getMany(domainId: string, query: any, sort: any, page: number, limit: number) {
-        return document.getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, query)
+        return document
+            .getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, query)
             .sort(sort)
-            .skip((page - 1) * limit).limit(limit)
+            .skip((page - 1) * limit)
+            .limit(limit)
             .toArray();
     }
 
@@ -40,17 +39,13 @@ class SolutionModel {
     }
 
     static getMulti(domainId: string, pid: number, query: any = {}) {
-        return document.getMulti(
-            domainId, document.TYPE_PROBLEM_SOLUTION,
-            { parentType: document.TYPE_PROBLEM, parentId: pid, ...query },
-        ).sort({ vote: -1 });
+        return document
+            .getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, { parentType: document.TYPE_PROBLEM, parentId: pid, ...query })
+            .sort({ vote: -1 });
     }
 
     static getByUser(domainId: string, uid: number) {
-        return document.getMulti(
-            domainId, document.TYPE_PROBLEM_SOLUTION,
-            { parentType: document.TYPE_PROBLEM, owner: uid },
-        ).sort({ _id: -1 });
+        return document.getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, { parentType: document.TYPE_PROBLEM, owner: uid }).sort({ _id: -1 });
     }
 
     static reply(domainId: string, psid: ObjectId, owner: number, content: string) {
@@ -79,20 +74,22 @@ class SolutionModel {
     }
 
     static async getListStatus(domainId: string, psids: ObjectId[], uid: number) {
-        const result: Record<string, { docId: ObjectId, vote: number }> = {};
-        const res = await document.getMultiStatus(
-            domainId, document.TYPE_PROBLEM_SOLUTION, { uid, docId: { $in: psids } },
-        ).project<any>({ docId: 1, vote: 1 }).toArray();
+        const result: Record<string, { docId: ObjectId; vote: number }> = {};
+        const res = await document
+            .getMultiStatus(domainId, document.TYPE_PROBLEM_SOLUTION, { uid, docId: { $in: psids } })
+            .project<any>({ docId: 1, vote: 1 })
+            .toArray();
         for (const i of res) result[i.docId] = i;
         return result;
     }
 }
 
 bus.on('problem/delete', async (domainId, docId) => {
-    const psids = await document.getMulti(
-        domainId, document.TYPE_PROBLEM_SOLUTION,
-        { parentType: document.TYPE_PROBLEM, parentId: docId },
-    ).project({ docId: 1 }).map((psdoc) => psdoc.docId).toArray();
+    const psids = await document
+        .getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, { parentType: document.TYPE_PROBLEM, parentId: docId })
+        .project({ docId: 1 })
+        .map((psdoc) => psdoc.docId)
+        .toArray();
     return await Promise.all([
         document.deleteMulti(domainId, document.TYPE_PROBLEM_SOLUTION, { docId: { $in: psids } }),
         document.deleteMultiStatus(domainId, document.TYPE_PROBLEM_SOLUTION, { docId: { $in: psids } }),

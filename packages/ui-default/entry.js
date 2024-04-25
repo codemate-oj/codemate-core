@@ -27,30 +27,36 @@ console.log(
 
 window.UiContext = JSON.parse(window.UiContext);
 window.UserContext = JSON.parse(window.UserContext);
-try { __webpack_public_path__ = UiContext.cdn_prefix; } catch (e) { }
+try {
+  __webpack_public_path__ = UiContext.cdn_prefix;
+} catch (e) {}
 if ('serviceWorker' in navigator) {
   const encodedConfig = encodeURIComponent(JSON.stringify(UiContext.SWConfig));
-  navigator.serviceWorker.register(`/service-worker.js?config=${encodedConfig}`).then((registration) => {
-    console.log('SW registered: ', registration);
-  }).catch((registrationError) => {
-    console.log('SW registration failed: ', registrationError);
-  });
+  navigator.serviceWorker
+    .register(`/service-worker.js?config=${encodedConfig}`)
+    .then((registration) => {
+      console.log('SW registered: ', registration);
+    })
+    .catch((registrationError) => {
+      console.log('SW registration failed: ', registrationError);
+    });
 }
 
 const PageLoader = '<div class="page-loader nojs--hide" style="display:none;"><div class="loader"></div></div>';
 $('body').prepend(PageLoader);
 $('.page-loader').fadeIn(500);
 
-const prefetch = Promise.all([
-  fetch(`/constant/${UiContext.constantVersion}.js`).then((r) => r.text()),
-  import('./api'),
-]);
+const prefetch = Promise.all([fetch(`/constant/${UiContext.constantVersion}.js`).then((r) => r.text()), import('./api')]);
 
-document.addEventListener('DOMContentLoaded', async () => {
-  Object.assign(window.UiContext, JSON.parse(window.UiContextNew));
-  Object.assign(window.UserContext, JSON.parse(window.UserContextNew));
-  const [data, HydroExports] = await prefetch;
-  Object.assign(window, { HydroExports });
-  eval(data); // eslint-disable-line no-eval
-  await HydroExports.initPageLoader();
-}, false);
+document.addEventListener(
+  'DOMContentLoaded',
+  async () => {
+    Object.assign(window.UiContext, JSON.parse(window.UiContextNew));
+    Object.assign(window.UserContext, JSON.parse(window.UserContextNew));
+    const [data, HydroExports] = await prefetch;
+    Object.assign(window, { HydroExports });
+    eval(data); // eslint-disable-line no-eval
+    await HydroExports.initPageLoader();
+  },
+  false,
+);

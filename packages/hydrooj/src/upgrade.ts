@@ -22,9 +22,7 @@ import * as system from './model/system';
 import TaskModel from './model/task';
 import * as training from './model/training';
 import user from './model/user';
-import {
-    iterateAllContest, iterateAllDomain, iterateAllProblem, iterateAllUser,
-} from './pipelineUtils';
+import { iterateAllContest, iterateAllDomain, iterateAllProblem, iterateAllUser } from './pipelineUtils';
 import db from './service/db';
 import { setBuiltinConfig } from './settings';
 import welcome from './welcome';
@@ -32,15 +30,17 @@ import welcome from './welcome';
 const logger = new Logger('upgrade');
 type UpgradeScript = void | (() => Promise<boolean | void>);
 const unsupportedUpgrade = async function _26_27() {
-    throw new Error('This upgrade was no longer supported in hydrooj@4. \
-Please use hydrooj@3 to perform these upgrades before upgrading to v4');
+    throw new Error(
+        'This upgrade was no longer supported in hydrooj@4. \
+Please use hydrooj@3 to perform these upgrades before upgrading to v4',
+    );
 };
 
 export async function init() {
-    if (!await user.getById('system', 0)) {
+    if (!(await user.getById('system', 0))) {
         await user.create('Guest@hydro.local', 'Guest', String.random(32), 0, '127.0.0.1', PRIV.PRIV_REGISTER_USER);
     }
-    if (!await user.getById('system', 1)) {
+    if (!(await user.getById('system', 1))) {
         await user.create('Hydro@hydro.local', 'Hydro', String.random(32), 1, '127.0.0.1', PRIV.PRIV_USER_PROFILE);
     }
     const ddoc = await domain.get('system');
@@ -69,7 +69,7 @@ const scripts: UpgradeScript[] = [
                     else res[key] = buildContent(parsed[key]);
                 }
                 await problem.edit(pdoc.domainId, pdoc.docId, { content: JSON.stringify(res) });
-            } catch { }
+            } catch {}
         });
     },
     async function _29_30() {
@@ -82,10 +82,10 @@ const scripts: UpgradeScript[] = [
     null,
     // Write builtin users to database
     async function _32_33() {
-        if (!await user.getById('system', 0)) {
+        if (!(await user.getById('system', 0))) {
             await user.create('Guest@hydro.local', 'Guest', String.random(32), 0, '127.0.0.1', PRIV.PRIV_REGISTER_USER);
         }
-        if (!await user.getById('system', 1)) {
+        if (!(await user.getById('system', 1))) {
             await user.create('Hydro@hydro.local', 'Hydro', String.random(32), 1, '127.0.0.1', PRIV.PRIV_USER_PROFILE);
         }
         return true;
@@ -118,7 +118,9 @@ const scripts: UpgradeScript[] = [
             if (typeof pdoc.config !== 'string') return;
             if (!pdoc.config.includes('type: subjective')) return;
             await problem.addTestdata(
-                pdoc.domainId, pdoc.docId, 'config.yaml',
+                pdoc.domainId,
+                pdoc.docId,
+                'config.yaml',
                 Buffer.from(pdoc.config.replace('type: subjective', 'type: objective')),
             );
         });
@@ -140,11 +142,11 @@ const scripts: UpgradeScript[] = [
     },
     async function _40_41() {
         // Ignore drop index failure
-        await db.collection('storage').dropIndex('path_1').catch(() => { });
-        await db.collection('storage').updateMany(
-            { autoDelete: { $gte: moment().add(5, 'days').toDate() } },
-            { $unset: { autoDelete: '' } },
-        );
+        await db
+            .collection('storage')
+            .dropIndex('path_1')
+            .catch(() => {});
+        await db.collection('storage').updateMany({ autoDelete: { $gte: moment().add(5, 'days').toDate() } }, { $unset: { autoDelete: '' } });
         return true;
     },
     async function _41_42() {
@@ -183,11 +185,13 @@ const scripts: UpgradeScript[] = [
     },
     async function _45_46() {
         return await iterateAllDomain(async (ddoc) => {
-            const ddocs = await discussion.getMulti(ddoc._id, {
-                docType: document.TYPE_DISCUSSION,
-                parentType: { $in: [document.TYPE_CONTEST, 60, document.TYPE_TRAINING] },
-                parentId: { $type: 'string' },
-            }).toArray();
+            const ddocs = await discussion
+                .getMulti(ddoc._id, {
+                    docType: document.TYPE_DISCUSSION,
+                    parentType: { $in: [document.TYPE_CONTEST, 60, document.TYPE_TRAINING] },
+                    parentId: { $type: 'string' },
+                })
+                .toArray();
             for (const doc of ddocs) {
                 if (ObjectId.isValid(doc.parentId)) {
                     await document.set(ddoc._id, document.TYPE_DISCUSSION, doc.docId, { parentId: new ObjectId(doc.parentId) });
@@ -241,20 +245,12 @@ const scripts: UpgradeScript[] = [
                     const pdoc = await getProblem(doc.domainId, pid);
                     if (pdoc) {
                         pids.push(pdoc.docId);
-                        await RecordModel.updateMulti(
-                            doc.domainId,
-                            { contest: doc.docId, pid },
-                            { pid: pdoc.docId },
-                            {},
-                            { pdomain: '' },
-                        );
+                        await RecordModel.updateMulti(doc.domainId, { contest: doc.docId, pid }, { pid: pdoc.docId }, {}, { pdomain: '' });
                     }
                 } else pids.push(pid);
             }
             if (mark) {
-                const ctdocs = await document.getMultiStatus(
-                    doc.domainId, document.TYPE_CONTEST, { docId: doc.docId },
-                ).toArray();
+                const ctdocs = await document.getMultiStatus(doc.domainId, document.TYPE_CONTEST, { docId: doc.docId }).toArray();
                 for (const ctdoc of ctdocs) {
                     if (!ctdoc.journal?.filter((i) => isStringPid(i.pid)).length) continue;
                     const journal = [];
@@ -288,8 +284,7 @@ const scripts: UpgradeScript[] = [
         return true;
     },
     async function _53_54() {
-        let ddocs = await db.collection('document').find({ docType: 21, parentType: 10 })
-            .project({ _id: 1, parentId: 1 }).toArray();
+        let ddocs = await db.collection('document').find({ docType: 21, parentType: 10 }).project({ _id: 1, parentId: 1 }).toArray();
         ddocs = ddocs.filter((i) => Number.isSafeInteger(+i.parentId));
         if (ddocs.length) {
             const bulk = db.collection('document').initializeUnorderedBulkOp();
@@ -303,7 +298,7 @@ const scripts: UpgradeScript[] = [
     async function _54_55() {
         const bulk = db.collection('document').initializeUnorderedBulkOp();
         function sortable(source: string) {
-            return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : ('0'.repeat(6 - str.length) + str)));
+            return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
         }
         await iterateAllProblem(['pid', '_id'], async (pdoc) => {
             bulk.find({ _id: pdoc._id }).updateOne({ $set: { sort: sortable(pdoc.pid || `P${pdoc.docId}`) } });
@@ -337,12 +332,19 @@ const scripts: UpgradeScript[] = [
         const config = await system.get('hydrooj.homepage');
         const data = yaml.load(config) as any;
         if (!(data instanceof Array)) {
-            await system.set('hydrooj.homepage', yaml.dump([
-                { width: 9, bulletin: true, ...data },
-                {
-                    width: 3, hitokoto: true, starred_problems: 50, discussion_nodes: true, suggestion: true,
-                },
-            ]));
+            await system.set(
+                'hydrooj.homepage',
+                yaml.dump([
+                    { width: 9, bulletin: true, ...data },
+                    {
+                        width: 3,
+                        hitokoto: true,
+                        starred_problems: 50,
+                        discussion_nodes: true,
+                        suggestion: true,
+                    },
+                ]),
+            );
         }
         return true;
     },
@@ -360,10 +362,15 @@ const scripts: UpgradeScript[] = [
     async function _62_63() {
         const uids = new Set<number>();
         await iterateAllDomain(async (ddoc) => {
-            const pdocs = await problem.getMulti(ddoc._id, { config: /type: objective/ })
+            const pdocs = await problem
+                .getMulti(ddoc._id, { config: /type: objective/ })
                 .project({
-                    config: 1, content: 1, docId: 1, owner: 1,
-                }).toArray();
+                    config: 1,
+                    content: 1,
+                    docId: 1,
+                    owner: 1,
+                })
+                .toArray();
             for (const pdoc of pdocs) {
                 try {
                     const config = yaml.load(pdoc.config as string) as any;
@@ -375,7 +382,8 @@ const scripts: UpgradeScript[] = [
                         config.answers[cnt] = l;
                     }
 
-                    function processSingleLanguage(content: string) { // eslint-disable-line no-inner-declarations
+                    function processSingleLanguage(content: string) {
+                        // eslint-disable-line no-inner-declarations
                         let text = '';
                         try {
                             let scnt = 0;
@@ -396,7 +404,10 @@ const scripts: UpgradeScript[] = [
                                 } else text += `{{ input(${scnt}) }}\n`;
                                 text += '\n';
                             }
-                        } catch (e) { console.error(e); return content; }
+                        } catch (e) {
+                            console.error(e);
+                            return content;
+                        }
                         return text;
                     }
 
@@ -416,7 +427,9 @@ const scripts: UpgradeScript[] = [
                     uids.add(pdoc.owner);
                     delete config.outputs;
                     await problem.addTestdata(ddoc._id, pdoc.docId, 'config.yaml', Buffer.from(yaml.dump(config)));
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    console.error(e);
+                }
             }
         });
         for (const uid of uids) {
@@ -425,21 +438,21 @@ const scripts: UpgradeScript[] = [
         return true;
     },
     async function _63_64() {
-        await db.collection('document').updateMany(
-            { rule: 'homework', penaltySince: { $exists: false } },
-            { $set: { penaltySince: new Date() } },
-        );
+        await db.collection('document').updateMany({ rule: 'homework', penaltySince: { $exists: false } }, { $set: { penaltySince: new Date() } });
         return true;
     },
     null,
     null,
     async function _66_67() {
-        const [
-            endPoint, accessKey, secretKey, bucket, region,
-            pathStyle, endPointForUser, endPointForJudge,
-        ] = system.getMany([
-            'file.endPoint', 'file.accessKey', 'file.secretKey', 'file.bucket', 'file.region',
-            'file.pathStyle', 'file.endPointForUser', 'file.endPointForJudge',
+        const [endPoint, accessKey, secretKey, bucket, region, pathStyle, endPointForUser, endPointForJudge] = system.getMany([
+            'file.endPoint',
+            'file.accessKey',
+            'file.secretKey',
+            'file.bucket',
+            'file.region',
+            'file.pathStyle',
+            'file.endPointForUser',
+            'file.endPointForJudge',
         ] as any[]) as any;
         if ((endPoint && accessKey) || process.env.MINIO_ACCESS_KEY) {
             await setBuiltinConfig('file', {
@@ -509,15 +522,15 @@ const scripts: UpgradeScript[] = [
         }
         await system.set('default.priv', defaultPriv);
         for (const key in list) {
-            await user.coll.updateMany(
-                { priv: { $bitsAllSet: list[key] } },
-                { $inc: { priv: -list[key] } },
-            );
+            await user.coll.updateMany({ priv: { $bitsAllSet: list[key] } }, { $inc: { priv: -list[key] } });
         }
         return true;
     },
     async function _75_76() {
-        const messages = await db.collection('message').find({ content: { $type: 'object' } }).toArray();
+        const messages = await db
+            .collection('message')
+            .find({ content: { $type: 'object' } })
+            .toArray();
         for (const m of messages) {
             let content = '';
             for (const key in m) content += m[key];
@@ -528,7 +541,12 @@ const scripts: UpgradeScript[] = [
     async function _76_77() {
         return await iterateAllProblem(['domainId', 'title', 'docId', 'data'], async (pdoc, current, total) => {
             if (!pdoc.data?.find((i) => i.name.includes('/'))) return;
-            logger.info(pdoc.domainId, pdoc.docId, pdoc.title, pdoc.data.map((i) => i._id));
+            logger.info(
+                pdoc.domainId,
+                pdoc.docId,
+                pdoc.title,
+                pdoc.data.map((i) => i._id),
+            );
             const prefix = `problem/${pdoc.domainId}/${pdoc.docId}/testdata/`;
             for (const file of pdoc.data) {
                 if (!file._id.includes('/')) continue;
@@ -548,9 +566,12 @@ const scripts: UpgradeScript[] = [
         return true;
     },
     async function _78_79() {
-        const t = await document.collStatus.find({
-            docType: document.TYPE_CONTEST, journal: { $elemMatch: { rid: null } },
-        }).toArray();
+        const t = await document.collStatus
+            .find({
+                docType: document.TYPE_CONTEST,
+                journal: { $elemMatch: { rid: null } },
+            })
+            .toArray();
         for (const r of t) {
             r.journal = r.journal.filter((i) => i.rid !== null);
             await document.collStatus.updateOne({ _id: r._id }, { $set: { journal: r.journal } });
@@ -600,9 +621,21 @@ const scripts: UpgradeScript[] = [
             logger.info(tdoc.domainId, tdoc.title);
             const rdocs = await RecordModel.coll.find({ domainId: tdoc.domainId, contest: tdoc.docId }).toArray();
             for (const rdoc of rdocs) {
-                await document.revPushStatus(tdoc.domainId, document.TYPE_CONTEST, tdoc.docId, rdoc.uid, 'journal', {
-                    rid: rdoc._id, pid: rdoc.pid, status: rdoc.status, score: rdoc.score, subtasks: rdoc.subtasks,
-                }, 'rid');
+                await document.revPushStatus(
+                    tdoc.domainId,
+                    document.TYPE_CONTEST,
+                    tdoc.docId,
+                    rdoc.uid,
+                    'journal',
+                    {
+                        rid: rdoc._id,
+                        pid: rdoc.pid,
+                        status: rdoc.status,
+                        score: rdoc.score,
+                        subtasks: rdoc.subtasks,
+                    },
+                    'rid',
+                );
             }
             await contest.recalcStatus(tdoc.domainId, tdoc.docId);
         }

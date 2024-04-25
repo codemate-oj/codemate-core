@@ -5,12 +5,8 @@ import { omit } from 'lodash';
 import { ObjectId } from 'mongodb';
 import PQueue from 'p-queue';
 import sanitize from 'sanitize-filename';
-import {
-    FileLimitExceededError, ForbiddenError, ProblemIsReferencedError, ValidationError,
-} from '../error';
-import {
-    JudgeResultBody, ProblemConfigFile, RecordDoc, Task, TestCase,
-} from '../interface';
+import { FileLimitExceededError, ForbiddenError, ProblemIsReferencedError, ValidationError } from '../error';
+import { JudgeResultBody, ProblemConfigFile, RecordDoc, Task, TestCase } from '../interface';
 import { Logger } from '../logger';
 import * as builtin from '../model/builtin';
 import { PERM, STATUS } from '../model/builtin';
@@ -25,9 +21,7 @@ import task, { Consumer } from '../model/task';
 import user from '../model/user';
 import * as bus from '../service/bus';
 import { updateJudge } from '../service/monitor';
-import {
-    ConnectionHandler, Handler, post, subscribe, Types,
-} from '../service/server';
+import { ConnectionHandler, Handler, post, subscribe, Types } from '../service/server';
 
 const logger = new Logger('judge');
 
@@ -67,15 +61,16 @@ function processPayload(body: Partial<JudgeResultBody>) {
     if (body.subtasks) $set.subtasks = body.subtasks;
     if (body.addProgress) $inc.progress = body.addProgress;
     return {
-        $set, $push, $unset, $inc,
+        $set,
+        $push,
+        $unset,
+        $inc,
     };
 }
 
 export async function next(body: Partial<JudgeResultBody>) {
     body.rid = new ObjectId(body.rid); // TODO remove this
-    const {
-        $set, $push, $unset, $inc,
-    } = processPayload(body);
+    const { $set, $push, $unset, $inc } = processPayload(body);
     const rdoc = await record.update(body.domainId, body.rid, $set, $push, $unset, $inc);
     bus.broadcast('record/change', rdoc, $set, $push, body);
     return rdoc;
@@ -86,18 +81,18 @@ export async function postJudge(rdoc: RecordDoc) {
     const accept = rdoc.status === builtin.STATUS.STATUS_ACCEPTED;
     const updated = await problem.updateStatus(rdoc.domainId, rdoc.pid, rdoc.uid, rdoc._id, rdoc.status, rdoc.score);
     if (rdoc.contest) {
-        await contest.updateStatus(
-            rdoc.domainId, rdoc.contest, rdoc.uid, rdoc._id,
-            rdoc.pid, rdoc.status, rdoc.score, rdoc.subtasks,
-        );
+        await contest.updateStatus(rdoc.domainId, rdoc.contest, rdoc.uid, rdoc._id, rdoc.pid, rdoc.status, rdoc.score, rdoc.subtasks);
     } else if (accept && updated) await domain.incUserInDomain(rdoc.domainId, rdoc.uid, 'nAccept', 1);
     const isNormalSubmission = ![
-        STATUS.STATUS_ETC, STATUS.STATUS_HACK_SUCCESSFUL, STATUS.STATUS_HACK_UNSUCCESSFUL,
-        STATUS.STATUS_FORMAT_ERROR, STATUS.STATUS_SYSTEM_ERROR, STATUS.STATUS_CANCELED,
+        STATUS.STATUS_ETC,
+        STATUS.STATUS_HACK_SUCCESSFUL,
+        STATUS.STATUS_HACK_UNSUCCESSFUL,
+        STATUS.STATUS_FORMAT_ERROR,
+        STATUS.STATUS_SYSTEM_ERROR,
+        STATUS.STATUS_CANCELED,
     ].includes(rdoc.status);
-    const pdoc = (accept && updated)
-        ? await problem.inc(rdoc.domainId, rdoc.pid, 'nAccept', 1)
-        : await problem.get(rdoc.domainId, rdoc.pid, undefined, true);
+    const pdoc =
+        accept && updated ? await problem.inc(rdoc.domainId, rdoc.pid, 'nAccept', 1) : await problem.get(rdoc.domainId, rdoc.pid, undefined, true);
     if (pdoc) {
         if (isNormalSubmission) {
             await Promise.all([
@@ -120,13 +115,22 @@ export async function postJudge(rdoc: RecordDoc) {
                     problem.addTestdata(rdoc.domainId, rdoc.pid, 'config.yaml', Buffer.from(yaml.dump(config))),
                 ]);
                 // trigger rejudge
-                const rdocs = await record.getMulti(rdoc.domainId, {
-                    pid: rdoc.pid,
-                    status: STATUS.STATUS_ACCEPTED,
-                    contest: { $nin: [record.RECORD_GENERATE, record.RECORD_PRETEST] },
-                }).project({ _id: 1, contest: 1 }).toArray();
+                const rdocs = await record
+                    .getMulti(rdoc.domainId, {
+                        pid: rdoc.pid,
+                        status: STATUS.STATUS_ACCEPTED,
+                        contest: { $nin: [record.RECORD_GENERATE, record.RECORD_PRETEST] },
+                    })
+                    .project({ _id: 1, contest: 1 })
+                    .toArray();
                 const priority = await record.submissionPriority(rdoc.uid, -5000 - rdocs.length * 5 - 50);
-                await record.judge(rdoc.domainId, rdocs.map((r) => r._id), priority, {}, { hackRejudge: input });
+                await record.judge(
+                    rdoc.domainId,
+                    rdocs.map((r) => r._id),
+                    priority,
+                    {},
+                    { hackRejudge: input },
+                );
             } catch (e) {
                 next({
                     rid: rdoc._id,
@@ -174,10 +178,7 @@ export class JudgeFilesDownloadHandler extends Handler {
         const links = {};
         for (const file of files) {
             // eslint-disable-next-line no-await-in-loop
-            links[file] = await storage.signDownloadLink(
-                `problem/${pdoc.domainId}/${pdoc.docId}/testdata/${file}`,
-                file, true, 'judge',
-            );
+            links[file] = await storage.signDownloadLink(`problem/${pdoc.domainId}/${pdoc.docId}/testdata/${file}`, file, true, 'judge');
         }
         this.response.body.links = links;
     }
@@ -185,16 +186,11 @@ export class JudgeFilesDownloadHandler extends Handler {
 
 export async function processJudgeFileCallback(rid: ObjectId, filename: string, filePath: string) {
     const rdoc = await record.get(rid);
-    const [pdoc, udoc] = await Promise.all([
-        problem.get(rdoc.domainId, rdoc.pid),
-        user.getById(rdoc.domainId, rdoc.uid),
-    ]);
+    const [pdoc, udoc] = await Promise.all([problem.get(rdoc.domainId, rdoc.pid), user.getById(rdoc.domainId, rdoc.uid)]);
     if (!udoc.own(pdoc, PERM.PERM_EDIT_PROBLEM_SELF) && !udoc.hasPerm(PERM.PERM_EDIT_PROBLEM)) throw new ForbiddenError();
     if (pdoc.reference) throw new ProblemIsReferencedError('edit files');
     const stat = await fs.stat(filePath);
-    if ((pdoc.data?.length || 0)
-        + (pdoc.additional_file?.length || 0)
-        >= system.get('limit.problem_files_max')) {
+    if ((pdoc.data?.length || 0) + (pdoc.additional_file?.length || 0) >= system.get('limit.problem_files_max')) {
         throw new FileLimitExceededError('count');
     }
     const size = Math.sum(
@@ -226,12 +222,15 @@ export class JudgeConnectionHandler extends ConnectionHandler {
     concurrency = 1;
     consumer: Consumer = null;
     startTimeout: NodeJS.Timeout = null;
-    tasks: Record<string, {
-        resolve: (_: any) => void,
-        queue: PQueue,
-        domainId: string,
-        t: Task,
-    }> = {};
+    tasks: Record<
+        string,
+        {
+            resolve: (_: any) => void;
+            queue: PQueue;
+            domainId: string;
+            t: Task;
+        }
+    > = {};
 
     async prepare() {
         logger.info('Judge daemon connected from ', this.request.ip);
@@ -253,7 +252,9 @@ export class JudgeConnectionHandler extends ConnectionHandler {
 
         const rid = rdoc._id.toHexString();
         let resolve: (_: any) => void;
-        const p = new Promise((r) => { resolve = r; });
+        const p = new Promise((r) => {
+            resolve = r;
+        });
         this.tasks[rid] = {
             queue: new PQueue({ concurrency: 1 }),
             domainId: rdoc.domainId,
@@ -315,11 +316,13 @@ export class JudgeConnectionHandler extends ConnectionHandler {
         clearTimeout(this.startTimeout);
         this.consumer?.destroy();
         logger.info('Judge daemon disconnected from ', this.request.ip);
-        await Promise.all(Object.values(this.tasks).map(async ({ t }) => {
-            const rdoc = await record.reset(t.domainId, t.rid, false);
-            bus.broadcast('record/change', rdoc);
-            return task.add(t);
-        }));
+        await Promise.all(
+            Object.values(this.tasks).map(async ({ t }) => {
+                const rdoc = await record.reset(t.domainId, t.rid, false);
+                bus.broadcast('record/change', rdoc);
+                return task.add(t);
+            }),
+        );
     }
 }
 

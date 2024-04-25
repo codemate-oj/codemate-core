@@ -1,8 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import path from 'path';
-import {
-    changeErrorType, fs, normalizeSubtasks, readSubtasksFromFiles, yaml,
-} from '@hydrooj/utils';
+import { changeErrorType, fs, normalizeSubtasks, readSubtasksFromFiles, yaml } from '@hydrooj/utils';
 import readYamlCases, { convertIniConfig } from '@hydrooj/utils/lib/cases';
 import { LangConfig } from '@hydrooj/utils/lib/lang';
 import { ProblemConfigFile } from 'hydrooj';
@@ -28,12 +26,14 @@ function isValidConfig(config) {
 
 async function collectFiles(folder: string) {
     const files = await fs.readdir(folder);
-    await Promise.all(['input', 'output'].map(async (t) => {
-        if (await fs.pathExists(path.resolve(folder, t))) {
-            const f = await fs.readdir(path.resolve(folder, t));
-            files.push(...f.map((i) => `${t}/${i}`));
-        }
-    }));
+    await Promise.all(
+        ['input', 'output'].map(async (t) => {
+            if (await fs.pathExists(path.resolve(folder, t))) {
+                const f = await fs.readdir(path.resolve(folder, t));
+                files.push(...f.map((i) => `${t}/${i}`));
+            }
+        }),
+    );
     return files;
 }
 
@@ -71,8 +71,9 @@ export default async function readCases(folder: string, cfg: ProblemConfigFile =
     const timeRate = +(config.time_limit_rate?.[args.lang] || args.langConfig?.time_limit_rate || 1) || 1;
     const memoryRate = +(config.memory_limit_rate?.[args.lang] || args.langConfig?.memory_limit_rate || 1) || 1;
     const checkFile = ensureFile(folder);
-    const result = await readYamlCases(config, checkFile)
-        .catch((e) => { throw changeErrorType(e, FormatError); });
+    const result = await readYamlCases(config, checkFile).catch((e) => {
+        throw changeErrorType(e, FormatError);
+    });
     result.count = Object.keys(result.answers || {}).length || Math.sum((result.subtasks || []).map((s) => s.cases.length));
     if (!result.count) {
         try {

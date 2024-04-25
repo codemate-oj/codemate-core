@@ -1,7 +1,4 @@
-import {
-    Context, DomainModel, iterateAllProblem, iterateAllProblemInDomain,
-    Logger, Schema, SystemModel,
-} from 'hydrooj';
+import { Context, DomainModel, iterateAllProblem, iterateAllProblemInDomain, Logger, Schema, SystemModel } from 'hydrooj';
 import { SonicService } from './service';
 
 const logger = new Logger('sonic');
@@ -12,7 +9,7 @@ export function apply(ctx: Context) {
     global.Hydro.lib.problemSearch = async (domainId, query, opts) => {
         const limit = opts?.limit || SystemModel.get('pagination.problem');
         const ids = await ctx.sonic.query('problem', `${domainId}@title`, query, { limit });
-        if (limit - ids.length > 0) ids.push(...await ctx.sonic.query('problem', `${domainId}@content`, query, { limit: limit - ids.length }));
+        if (limit - ids.length > 0) ids.push(...(await ctx.sonic.query('problem', `${domainId}@content`, query, { limit: limit - ids.length })));
         return {
             countRelation: ids.length >= limit ? 'gte' : 'eq',
             total: ids.length,
@@ -31,10 +28,13 @@ export function apply(ctx: Context) {
             const tasks = [];
             for (const did of [pdoc.domainId, ...union.map((j) => j._id)]) {
                 tasks.push(
-                    pdoc.title && ctx.sonic.push(
-                        'problem', `${did}@title`, `${pdoc.domainId}/${pdoc.docId}`,
-                        `${pdoc.pid || ''} ${pdoc.title} ${pdoc.tag.join(' ')}`,
-                    ),
+                    pdoc.title &&
+                        ctx.sonic.push(
+                            'problem',
+                            `${did}@title`,
+                            `${pdoc.domainId}/${pdoc.docId}`,
+                            `${pdoc.pid || ''} ${pdoc.title} ${pdoc.tag.join(' ')}`,
+                        ),
                     pdoc.content.toString() && ctx.sonic.push('problem', `${did}@content`, `${pdoc.domainId}/${pdoc.docId}`, pdoc.content.toString()),
                 );
             }
@@ -63,9 +63,11 @@ export function apply(ctx: Context) {
         const id = `${pdoc.domainId}/${pdoc.docId}`;
         for (const domainId of [pdoc.domainId, ...union.map((i) => i._id)]) {
             tasks.push(
-                ctx.sonic.flusho('problem', `${domainId}@title`, id)
+                ctx.sonic
+                    .flusho('problem', `${domainId}@title`, id)
                     .then(() => ctx.sonic.push('problem', `${domainId}@title`, id, `${pdoc.pid || ''} ${pdoc.title} ${pdoc.tag?.join(' ')}`)),
-                ctx.sonic.flusho('problem', `${domainId}@content`, id)
+                ctx.sonic
+                    .flusho('problem', `${domainId}@content`, id)
                     .then(() => ctx.sonic.push('problem', `${domainId}@content`, id, pdoc.content.toString())),
             );
         }
@@ -77,16 +79,14 @@ export function apply(ctx: Context) {
         const tasks = [];
         const id = `${domainId}/${docId}`;
         for (const domain of [domainId, ...union.map((i) => i._id)]) {
-            tasks.push(
-                ctx.sonic.flusho('problem', `${domain}@title`, id),
-                ctx.sonic.flusho('problem', `${domain}@content`, id),
-            );
+            tasks.push(ctx.sonic.flusho('problem', `${domain}@title`, id), ctx.sonic.flusho('problem', `${domain}@content`, id));
         }
         await Promise.all(tasks);
     });
 
     ctx.addScript(
-        'ensureSonicSearch', 'Sonic problem search re-index',
+        'ensureSonicSearch',
+        'Sonic problem search re-index',
         Schema.object({
             domainId: Schema.string(),
         }),

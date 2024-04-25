@@ -3,9 +3,7 @@ import { statSync } from 'fs-extra';
 import { pick } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
 import { sortFiles } from '@hydrooj/utils/lib/utils';
-import {
-    FileLimitExceededError, FileUploadError, ProblemNotFoundError, ValidationError,
-} from '../error';
+import { FileLimitExceededError, FileUploadError, ProblemNotFoundError, ValidationError } from '../error';
 import { Tdoc, TrainingDoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as oplog from '../model/oplog';
@@ -14,9 +12,7 @@ import storage from '../model/storage';
 import * as system from '../model/system';
 import * as training from '../model/training';
 import user from '../model/user';
-import {
-    Handler, param, post, Types,
-} from '../service/server';
+import { Handler, param, post, Types } from '../service/server';
 
 async function _parseDagJson(domainId: string, _dag: string): Promise<Tdoc['dag']> {
     const parsed = [];
@@ -37,10 +33,12 @@ async function _parseDagJson(domainId: string, _dag: string): Promise<Tdoc['dag'
             }
             const tasks = [];
             for (const i in node.pids) {
-                tasks.push(problem.get(domainId, node.pids[i]).then((pdoc) => {
-                    if (!pdoc) throw new ProblemNotFoundError(domainId, node.pids[i]);
-                    node.pids[i] = pdoc.docId;
-                }));
+                tasks.push(
+                    problem.get(domainId, node.pids[i]).then((pdoc) => {
+                        if (!pdoc) throw new ProblemNotFoundError(domainId, node.pids[i]);
+                        node.pids[i] = pdoc.docId;
+                    }),
+                );
             }
             // eslint-disable-next-line no-await-in-loop
             await Promise.all(tasks);
@@ -63,21 +61,19 @@ class TrainingMainHandler extends Handler {
     async get(domainId: string, page = 1) {
         const query: Filter<TrainingDoc> = {};
         await this.ctx.parallel('training/list', query, this);
-        const [tdocs, tpcount] = await this.paginate(
-            training.getMulti(domainId),
-            page,
-            'training',
-        );
+        const [tdocs, tpcount] = await this.paginate(training.getMulti(domainId), page, 'training');
         const tids: Set<ObjectId> = new Set();
         for (const tdoc of tdocs) tids.add(tdoc.docId);
         const tsdict = {};
         let tdict = {};
         if (this.user.hasPriv(PRIV.PRIV_USER_PROFILE)) {
             const enrolledTids: Set<ObjectId> = new Set();
-            const tsdocs = await training.getMultiStatus(domainId, {
-                uid: this.user._id,
-                $or: [{ docId: { $in: Array.from(tids) } }, { enroll: 1 }],
-            }).toArray();
+            const tsdocs = await training
+                .getMultiStatus(domainId, {
+                    uid: this.user._id,
+                    $or: [{ docId: { $in: Array.from(tids) } }, { enroll: 1 }],
+                })
+                .toArray();
             for (const tsdoc of tsdocs) {
                 tsdict[tsdoc.docId] = tsdoc;
                 enrolledTids.add(tsdoc.docId);
@@ -90,7 +86,11 @@ class TrainingMainHandler extends Handler {
         for (const tdoc of tdocs) tdict[tdoc.docId.toHexString()] = tdoc;
         this.response.template = 'training_main.html';
         this.response.body = {
-            tdocs, page, tpcount, tsdict, tdict,
+            tdocs,
+            page,
+            tpcount,
+            tsdict,
+            tdict,
         };
     }
 }
@@ -105,8 +105,13 @@ class TrainingDetailHandler extends Handler {
         let shouldCompare = false;
         const pids = training.getPids(tdoc.dag);
         if (this.user.hasPriv(PRIV.PRIV_USER_PROFILE)) {
-            enrollUsers = (await training.getMultiStatus(domainId, { docId: tid, uid: { $gt: 1 }, enroll: 1 })
-                .project({ uid: 1 }).limit(500).toArray()).map((x) => +x.uid);
+            enrollUsers = (
+                await training
+                    .getMultiStatus(domainId, { docId: tid, uid: { $gt: 1 }, enroll: 1 })
+                    .project({ uid: 1 })
+                    .limit(500)
+                    .toArray()
+            ).map((x) => +x.uid);
             shouldCompare = uid !== this.user._id;
         } else uid = this.user._id;
         const canViewHidden = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id;
@@ -149,10 +154,19 @@ class TrainingDetailHandler extends Handler {
             donePids: Array.from(donePids),
             done: doneNids.size === tdoc.dag.length,
         });
-        const groups = this.user.hasPerm(PERM.PERM_EDIT_DOMAIN)
-            ? await user.listGroup(domainId) : [];
+        const groups = this.user.hasPerm(PERM.PERM_EDIT_DOMAIN) ? await user.listGroup(domainId) : [];
         this.response.body = {
-            tdoc, tsdoc, pids, pdict, psdict, ndict, nsdict, udoc, udict, selfPsdict, groups,
+            tdoc,
+            tsdoc,
+            pids,
+            pdict,
+            psdict,
+            ndict,
+            nsdict,
+            udoc,
+            udict,
+            selfPsdict,
+            groups,
         };
         this.response.body.tdoc.description = this.response.body.tdoc.description
             .replace(/\(file:\/\//g, `(./${tdoc.docId}/file/`)
@@ -208,12 +222,8 @@ class TrainingEditHandler extends Handler {
     @param('dag', Types.Content)
     @param('pin', Types.UnsignedInt)
     @param('description', Types.Content)
-    async post(
-        domainId: string, tid: ObjectId,
-        title: string, content: string,
-        _dag: string, pin = 0, description: string,
-    ) {
-        if ((!!this.tdoc?.pin) !== (!!pin)) this.checkPerm(PERM.PERM_PIN_TRAINING);
+    async post(domainId: string, tid: ObjectId, title: string, content: string, _dag: string, pin = 0, description: string) {
+        if (!!this.tdoc?.pin !== !!pin) this.checkPerm(PERM.PERM_PIN_TRAINING);
         const dag = await _parseDagJson(domainId, _dag);
         const pids = training.getPids(dag);
         assert(pids.length, new ValidationError('dag', null, 'Please specify at least one problem'));
@@ -221,7 +231,11 @@ class TrainingEditHandler extends Handler {
             tid = await training.add(domainId, title, content, this.user._id, dag, description, pin);
         } else {
             await training.edit(domainId, tid, {
-                title, content, dag, description, pin,
+                title,
+                content,
+                dag,
+                description,
+                pin,
             });
         }
         this.response.body = { tid };
@@ -278,7 +292,10 @@ export class TrainingFilesHandler extends Handler {
     @post('files', Types.ArrayOf(Types.Filename))
     async postDeleteFiles(domainId: string, tid: ObjectId, files: string[]) {
         await Promise.all([
-            storage.del(files.map((t) => `training/${domainId}/${tid}/${t}`), this.user._id),
+            storage.del(
+                files.map((t) => `training/${domainId}/${tid}/${t}`),
+                this.user._id,
+            ),
             training.edit(domainId, tid, { files: this.tdoc.files.filter((i) => !files.includes(i.name)) }),
         ]);
         this.back();
@@ -296,9 +313,7 @@ export class TrainingFileDownloadHandler extends Handler {
             target,
             size: file?.size || 0,
         });
-        this.response.redirect = await storage.signDownloadLink(
-            target, noDisposition ? undefined : filename, false, 'user',
-        );
+        this.response.redirect = await storage.signDownloadLink(target, noDisposition ? undefined : filename, false, 'user');
     }
 }
 

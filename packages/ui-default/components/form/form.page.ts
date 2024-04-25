@@ -13,7 +13,9 @@ const formPage = new AutoloadPage('formPage', () => {
   $(document).on('click', '[type="submit"]', (ev) => {
     if (submitting[ev.currentTarget]) ev.preventDefault();
     submitting[ev.currentTarget] = true;
-    delay(5000).then(() => { submitting[ev.currentTarget] = false; });
+    delay(5000).then(() => {
+      submitting[ev.currentTarget] = false;
+    });
   });
 });
 

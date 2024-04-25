@@ -20,10 +20,10 @@ async function getFiles(folder: string, base = ''): Promise<string[]> {
     const f = await fs.readdir(folder);
     for (const i of f) {
         if ((await fs.stat(path.join(folder, i))).isDirectory()) {
-            files.push(...await getFiles(path.join(folder, i), path.join(base, i)));
+            files.push(...(await getFiles(path.join(folder, i), path.join(base, i))));
         } else files.push(path.join(base, i));
     }
-    return files.map((item) => item.replace(/\\/gmi, '/'));
+    return files.map((item) => item.replace(/\\/gim, '/'));
 }
 
 function locateFile(basePath: string, filenames: string[]) {
@@ -36,28 +36,26 @@ function locateFile(basePath: string, filenames: string[]) {
 
 // comment by clzh: 通用加载器，也是addon的加载器
 type LoadTask = 'handler' | 'model' | 'addon' | 'lib' | 'script' | 'service';
-const getLoader = (type: LoadTask, filename: string) => async function loader(pending: string[], fail: string[], ctx: Context) {
-    for (const i of pending) {
-        const p = locateFile(i, [`${filename}.ts`, `${filename}.js`]);
-        if (p && !fail.includes(i)) {
-            const name = type.replace(/^(.)/, (t) => t.toUpperCase());
-            try {
-                const m = unwrapExports(require(p));
-                if (m.apply) ctx.loader.reloadPlugin(ctx, p, {});
-                else logger.info(`${name} init: %s`, i);
-            } catch (e) {
-                fail.push(i);
-                app.injectUI(
-                    'Notification', `${name} load fail: {0}`,
-                    { args: [i], type: 'warn' }, PRIV.PRIV_VIEW_SYSTEM_NOTIFICATION,
-                );
-                logger.info(`${name} load fail: %s`, i);
-                logger.error(e);
+const getLoader = (type: LoadTask, filename: string) =>
+    async function loader(pending: string[], fail: string[], ctx: Context) {
+        for (const i of pending) {
+            const p = locateFile(i, [`${filename}.ts`, `${filename}.js`]);
+            if (p && !fail.includes(i)) {
+                const name = type.replace(/^(.)/, (t) => t.toUpperCase());
+                try {
+                    const m = unwrapExports(require(p));
+                    if (m.apply) ctx.loader.reloadPlugin(ctx, p, {});
+                    else logger.info(`${name} init: %s`, i);
+                } catch (e) {
+                    fail.push(i);
+                    app.injectUI('Notification', `${name} load fail: {0}`, { args: [i], type: 'warn' }, PRIV.PRIV_VIEW_SYSTEM_NOTIFICATION);
+                    logger.info(`${name} load fail: %s`, i);
+                    logger.error(e);
+                }
             }
         }
-    }
-    await bus.parallel(`app/load/${type}`);
-};
+        await bus.parallel(`app/load/${type}`);
+    };
 
 export const handler = getLoader('handler', 'handler');
 export const addon = getLoader('addon', 'index');
@@ -118,15 +116,17 @@ export async function setting(pending: string[], fail: string[], modelSetting: t
                 for (const key in cfg) {
                     let val = cfg[key].default || cfg[key].value;
                     if (typeof val === 'string') {
-                        val = val
-                            .replace(/\$TEMP/g, os.tmpdir())
-                            .replace(/\$HOME/g, os.homedir());
+                        val = val.replace(/\$TEMP/g, os.tmpdir()).replace(/\$HOME/g, os.homedir());
                     }
                     const category = cfg[key].category || 'system';
                     map[category](
                         modelSetting.Setting(
-                            cfg[key].family || name, category === 'system' ? `${name}.${key}` : key, val, cfg[key].type || 'text',
-                            cfg[key].name || key, cfg[key].desc || '',
+                            cfg[key].family || name,
+                            category === 'system' ? `${name}.${key}` : key,
+                            val,
+                            cfg[key].type || 'text',
+                            cfg[key].name || key,
+                            cfg[key].desc || '',
                         ),
                     );
                 }

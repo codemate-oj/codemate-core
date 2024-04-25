@@ -1,6 +1,4 @@
-import {
-    collectDefaultMetrics, Counter, Gauge, Metric, Registry,
-} from 'prom-client';
+import { collectDefaultMetrics, Counter, Gauge, Metric, Registry } from 'prom-client';
 import { Context, db } from 'hydrooj';
 
 declare module 'hydrooj' {
@@ -13,9 +11,12 @@ export function createRegistry(ctx: Context) {
     const registry = new Registry();
 
     registry.setDefaultLabels({ instanceid: process.env.NODE_APP_INSTANCE });
-    function createMetric<Q extends string, T extends (new (a: any) => Metric<Q>)>(
-        C: T, name: string, help: string, extra?: T extends new (a: infer R) => any ? Partial<R> : never,
-    ): T extends (new (a) => Gauge<Q>) ? Gauge<Q> : T extends (new (a) => Counter<Q>) ? Counter<Q> : Metric<Q> {
+    function createMetric<Q extends string, T extends new (a: any) => Metric<Q>>(
+        C: T,
+        name: string,
+        help: string,
+        extra?: T extends new (a: infer R) => any ? Partial<R> : never,
+    ): T extends new (a) => Gauge<Q> ? Gauge<Q> : T extends new (a) => Counter<Q> ? Counter<Q> : Metric<Q> {
         const metric = new C({ name, help, ...(extra || {}) });
         registry.registerMetric(metric);
         return metric as any;
@@ -55,9 +56,7 @@ export function createRegistry(ctx: Context) {
     const taskColl = db.collection('task');
     createMetric(Gauge, 'hydro_task', 'taskcount', {
         async collect() {
-            const data = await taskColl.aggregate([
-                { $group: { _id: '$type', count: { $sum: 1 } } },
-            ]).toArray();
+            const data = await taskColl.aggregate([{ $group: { _id: '$type', count: { $sum: 1 } } }]).toArray();
             this.reset();
             for (const line of data) {
                 this.set({ type: line._id as unknown as string }, line.count);

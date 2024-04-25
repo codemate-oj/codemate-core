@@ -37,7 +37,7 @@ monaco.languages.registerCodeLensProvider('markdown', {
     if (!users.length) {
       return {
         lenses: [],
-        dispose: () => { },
+        dispose: () => {},
       };
     }
     const { data } = await api(gql`
@@ -56,7 +56,7 @@ monaco.languages.registerCodeLensProvider('markdown', {
           title: `@${data.users.find((doc) => doc._id.toString() === i.matches[1])?.uname || i.matches[1]}`,
         },
       })),
-      dispose: () => { },
+      dispose: () => {},
     };
   },
   resolveCodeLens(model, codeLens) {
@@ -82,14 +82,17 @@ monaco.languages.registerCompletionItemProvider('markdown', {
       endColumn: word.endColumn,
     };
     if (prefix === '@') {
-      const users = await api(gql`
+      const users = await api(
+        gql`
         users(search: ${word.word}) {
           _id
           uname
           avatarUrl
           priv
         }
-      `, ['data', 'users']);
+      `,
+        ['data', 'users'],
+      );
       return {
         suggestions: users.map((i) => ({
           label: { label: `@${i.uname}`, description: `UID=${i._id}` },

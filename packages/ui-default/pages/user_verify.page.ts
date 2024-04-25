@@ -3,9 +3,7 @@ import $ from 'jquery';
 import { ActionDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
 import { AutoloadPage } from 'vj/misc/Page';
-import {
-  api, gql, i18n, request, tpl,
-} from 'vj/utils';
+import { api, gql, i18n, request, tpl } from 'vj/utils';
 
 async function verifywebauthn($form) {
   if (!window.isSecureContext || !('credentials' in navigator)) {
@@ -20,11 +18,10 @@ async function verifywebauthn($form) {
     return null;
   }
   Notification.info(i18n('Please follow the instructions on your device to complete the verification.'));
-  const result = await startAuthentication(authnInfo.authOptions)
-    .catch((e) => {
-      Notification.error(i18n('Failed to get credential: {0}', e));
-      return null;
-    });
+  const result = await startAuthentication(authnInfo.authOptions).catch((e) => {
+    Notification.error(i18n('Failed to get credential: {0}', e));
+    return null;
+  });
   if (!result) return null;
   try {
     const authn = await request.post('/user/webauthn', {
@@ -74,14 +71,17 @@ export default new AutoloadPage('user_verify', () => {
     ev.preventDefault();
     const form = ev.currentTarget.form;
     const uname = $(form).find('[name="uname"]').val() as string;
-    const info = await api(gql`
+    const info = await api(
+      gql`
       uname: user(uname:${uname}){
         tfa authn
       }
       mail: user(mail:${uname}){
         tfa authn
       }
-    `, ['data']);
+    `,
+      ['data'],
+    );
     if (!info.uname && !info.mail) {
       Notification.error(i18n('User not found.'));
       return;
@@ -96,7 +96,7 @@ export default new AutoloadPage('user_verify', () => {
         }
       };
       $(document).on('keydown', handleKeyDown);
-      let action = (authn && tfa) ? await chooseAction(true) : '';
+      let action = authn && tfa ? await chooseAction(true) : '';
       action ||= tfa ? await chooseAction(false) : 'webauthn';
       $(document).off('keydown', handleKeyDown);
       if (action === 'webauthn') {

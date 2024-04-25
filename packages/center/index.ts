@@ -1,16 +1,12 @@
 import assert from 'assert';
 import crypto from 'crypto-js';
 import { lt } from 'semver';
-import {
-    db, definePlugin, ForbiddenError, Handler, post, Types, yaml,
-} from 'hydrooj';
+import { db, definePlugin, ForbiddenError, Handler, post, Types, yaml } from 'hydrooj';
 
 function decrypt(encrypted: string) {
-    return crypto.DES.decrypt(
-        { ciphertext: crypto.enc.Hex.parse(encrypted) },
-        crypto.enc.Utf8.parse('hydro-oj'),
-        { mode: crypto.mode.ECB },
-    ).toString(crypto.enc.Utf8);
+    return crypto.DES.decrypt({ ciphertext: crypto.enc.Hex.parse(encrypted) }, crypto.enc.Utf8.parse('hydro-oj'), { mode: crypto.mode.ECB }).toString(
+        crypto.enc.Utf8,
+    );
 }
 
 declare module 'hydrooj' {
@@ -74,13 +70,17 @@ class DataReportHandler extends Handler {
                 },
             );
         } else {
-            await coll.updateOne({ _id: installId }, {
-                $addToSet: {
-                    ips: this.request.ip,
+            await coll.updateOne(
+                { _id: installId },
+                {
+                    $addToSet: {
+                        ips: this.request.ip,
+                    },
+                    $set: setPayload,
+                    $setOnInsert: { init: new Date() },
                 },
-                $set: setPayload,
-                $setOnInsert: { init: new Date() },
-            }, { upsert: true });
+                { upsert: true },
+            );
         }
         this.ctx.emit('center/report', this, installId, old, payload);
         // TODO deliver messages

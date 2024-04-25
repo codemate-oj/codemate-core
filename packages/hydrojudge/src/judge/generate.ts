@@ -14,13 +14,13 @@ export const judge = async (ctx: JudgeTask) => {
     ctx.stat.judge = new Date();
     ctx.next({ status: STATUS.STATUS_COMPILING });
     if (!('content' in ctx.code)) throw new SystemError('Unsupported input');
-    const [generator, std] = ctx.code.content.toString().split('\n').map((i) => i.trim());
+    const [generator, std] = ctx.code.content
+        .toString()
+        .split('\n')
+        .map((i) => i.trim());
     if (generator.includes('/') || generator === '..') throw new SystemError('Invalid input');
     if (std.includes('/') || std === '..') throw new SystemError('Invalid input');
-    const [executeGenerator, executeStd] = await Promise.all([
-        ctx.compileLocalFile('generator', generator),
-        ctx.compileLocalFile('std', std),
-    ]);
+    const [executeGenerator, executeStd] = await Promise.all([ctx.compileLocalFile('generator', generator), ctx.compileLocalFile('std', std)]);
     ctx.next({ status: STATUS.STATUS_JUDGING, progress: 0 });
     let totalTime = 0;
     let totalMemory = 0;
@@ -44,9 +44,7 @@ export const judge = async (ctx: JudgeTask) => {
             if (fs.existsSync(tmp)) fs.removeSync(tmp);
             return res.fileIds['stdout'] ? client.deleteFile(res.fileIds['stdout']) : Promise.resolve();
         });
-        const {
-            code, signalled, time, memory, fileIds, stderr,
-        } = res;
+        const { code, signalled, time, memory, fileIds, stderr } = res;
         let { status } = res;
         const message = [stderr.substring(0, 1024)];
         if (time > parseTimeMS(ctx.config.time || '2s')) {
@@ -96,9 +94,7 @@ export const judge = async (ctx: JudgeTask) => {
             if (fs.existsSync(tmp)) fs.removeSync(tmp);
             return res.fileIds['stdout'] ? client.deleteFile(res.fileIds['stdout']) : Promise.resolve();
         });
-        const {
-            code, signalled, time, memory, fileIds, stderr,
-        } = res;
+        const { code, signalled, time, memory, fileIds, stderr } = res;
         let { status } = res;
         const message = [stderr.substring(0, 1024)];
         if (time > parseTimeMS(ctx.config.time || '2s')) {

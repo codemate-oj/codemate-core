@@ -10,14 +10,10 @@ import { Filter, ObjectId } from 'mongodb';
 import type { Readable } from 'stream';
 import { Logger, size, streamToBuffer } from '@hydrooj/utils/lib/utils';
 import { FileUploadError, ProblemNotFoundError, ValidationError } from '../error';
-import type {
-    Document, ProblemDict, ProblemStatusDoc, User,
-} from '../interface';
+import type { Document, ProblemDict, ProblemStatusDoc, User } from '../interface';
 import { parseConfig } from '../lib/testdataConfig';
 import * as bus from '../service/bus';
-import {
-    ArrayKeys, MaybeArray, NumberKeys, Projection,
-} from '../typeutils';
+import { ArrayKeys, MaybeArray, NumberKeys, Projection } from '../typeutils';
 import { buildProjection } from '../utils';
 import { PERM, STATUS } from './builtin';
 import * as document from './document';
@@ -25,12 +21,12 @@ import DomainModel from './domain';
 import storage from './storage';
 import user from './user';
 
-export interface ProblemDoc extends Document { }
+export interface ProblemDoc extends Document {}
 export type Field = keyof ProblemDoc;
 
 const logger = new Logger('problem');
 function sortable(source: string) {
-    return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : ('0'.repeat(6 - str.length) + str)));
+    return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
 }
 
 function findOverrideContent(dir: string) {
@@ -45,35 +41,28 @@ function findOverrideContent(dir: string) {
         try {
             content = JSON.parse(content);
             if (!(content instanceof Array)) content = JSON.stringify(content);
-        } catch (e) { }
+        } catch (e) {}
         languages[lang] = content;
     }
     return JSON.stringify(languages);
 }
 
 export class ProblemModel {
-    static PROJECTION_CONTEST_LIST: Field[] = [
-        '_id', 'domainId', 'docType', 'docId', 'pid',
-        'owner', 'title',
-    ];
+    static PROJECTION_CONTEST_LIST: Field[] = ['_id', 'domainId', 'docType', 'docId', 'pid', 'owner', 'title'];
 
-    static PROJECTION_LIST: Field[] = [
-        ...ProblemModel.PROJECTION_CONTEST_LIST,
-        'nSubmit', 'nAccept', 'difficulty', 'tag', 'hidden',
-        'stats',
-    ];
+    static PROJECTION_LIST: Field[] = [...ProblemModel.PROJECTION_CONTEST_LIST, 'nSubmit', 'nAccept', 'difficulty', 'tag', 'hidden', 'stats'];
 
     static PROJECTION_CONTEST_DETAIL: Field[] = [
         ...ProblemModel.PROJECTION_CONTEST_LIST,
-        'content', 'html', 'data', 'config', 'additional_file',
+        'content',
+        'html',
+        'data',
+        'config',
+        'additional_file',
         'reference',
     ];
 
-    static PROJECTION_PUBLIC: Field[] = [
-        ...ProblemModel.PROJECTION_LIST,
-        'content', 'html', 'data', 'config', 'additional_file',
-        'reference',
-    ];
+    static PROJECTION_PUBLIC: Field[] = [...ProblemModel.PROJECTION_LIST, 'content', 'html', 'data', 'config', 'additional_file', 'reference'];
 
     static default = {
         _id: new ObjectId(),
@@ -118,26 +107,36 @@ export class ProblemModel {
     };
 
     static async add(
-        domainId: string, pid: string = '', title: string, content: string, owner: number,
-        tag: string[] = [], meta: { difficulty?: number, hidden?: boolean } = {},
+        domainId: string,
+        pid: string = '',
+        title: string,
+        content: string,
+        owner: number,
+        tag: string[] = [],
+        meta: { difficulty?: number; hidden?: boolean } = {},
     ) {
-        const [doc] = await ProblemModel.getMulti(domainId, {})
-            .sort({ docId: -1 }).limit(1).project({ docId: 1 })
-            .toArray();
-        const result = await ProblemModel.addWithId(
-            domainId, (doc?.docId || 0) + 1, pid,
-            title, content, owner, tag, meta,
-        );
+        const [doc] = await ProblemModel.getMulti(domainId, {}).sort({ docId: -1 }).limit(1).project({ docId: 1 }).toArray();
+        const result = await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
         return result;
     }
 
     static async addWithId(
-        domainId: string, docId: number, pid: string = '', title: string,
-        content: string, owner: number, tag: string[] = [],
-        meta: { difficulty?: number, hidden?: boolean } = {},
+        domainId: string,
+        docId: number,
+        pid: string = '',
+        title: string,
+        content: string,
+        owner: number,
+        tag: string[] = [],
+        meta: { difficulty?: number; hidden?: boolean } = {},
     ) {
         const args: Partial<ProblemDoc> = {
-            title, tag, hidden: meta.hidden || false, nSubmit: 0, nAccept: 0, sort: sortable(pid || `P${docId}`),
+            title,
+            tag,
+            hidden: meta.hidden || false,
+            nSubmit: 0,
+            nAccept: 0,
+            sort: sortable(pid || `P${docId}`),
         };
         if (pid) args.pid = pid;
         if (meta.difficulty) args.difficulty = meta.difficulty;
@@ -152,14 +151,16 @@ export class ProblemModel {
     }
 
     static async get(
-        domainId: string, pid: string | number,
+        domainId: string,
+        pid: string | number,
         projection: Projection<ProblemDoc> = ProblemModel.PROJECTION_PUBLIC,
         rawConfig = false,
     ): Promise<ProblemDoc | null> {
         if (Number.isSafeInteger(+pid)) pid = +pid;
-        const res = typeof pid === 'number'
-            ? await document.get(domainId, document.TYPE_PROBLEM, pid, projection)
-            : (await document.getMulti(domainId, document.TYPE_PROBLEM, { sort: sortable(pid), pid }).toArray())[0];
+        const res =
+            typeof pid === 'number'
+                ? await document.get(domainId, document.TYPE_PROBLEM, pid, projection)
+                : (await document.getMulti(domainId, document.TYPE_PROBLEM, { sort: sortable(pid), pid }).toArray())[0];
         if (!res) return null;
         try {
             if (!rawConfig) res.config = await parseConfig(res.config);
@@ -174,9 +175,12 @@ export class ProblemModel {
     }
 
     static async list(
-        domainId: string, query: Filter<ProblemDoc>,
-        page: number, pageSize: number,
-        projection = ProblemModel.PROJECTION_LIST, uid?: number,
+        domainId: string,
+        query: Filter<ProblemDoc>,
+        page: number,
+        pageSize: number,
+        projection = ProblemModel.PROJECTION_LIST,
+        uid?: number,
     ): Promise<[ProblemDoc[], number, number]> {
         const union = await DomainModel.get(domainId);
         const domainIds = [domainId, ...(union.union || [])];
@@ -193,9 +197,14 @@ export class ProblemModel {
             const ccount = await document.count(id, document.TYPE_PROBLEM, query);
             if (pdocs.length < pageSize && (page - 1) * pageSize - count <= ccount) {
                 // eslint-disable-next-line no-await-in-loop
-                pdocs.push(...await document.getMulti(id, document.TYPE_PROBLEM, query, projection)
-                    .sort({ sort: 1, docId: 1 })
-                    .skip(Math.max((page - 1) * pageSize - count, 0)).limit(pageSize - pdocs.length).toArray());
+                pdocs.push(
+                    ...(await document
+                        .getMulti(id, document.TYPE_PROBLEM, query, projection)
+                        .sort({ sort: 1, docId: 1 })
+                        .skip(Math.max((page - 1) * pageSize - count, 0))
+                        .limit(pageSize - pdocs.length)
+                        .toArray()),
+                );
             }
             count += ccount;
         }
@@ -228,12 +237,11 @@ export class ProblemModel {
         const original = await ProblemModel.get(domainId, _id);
         if (!original) throw new ProblemNotFoundError(domainId, _id);
         // TODO: refuse to copy referenced problem
-        if (pid && (/^[0-9]+$/.test(pid) || await ProblemModel.get(target, pid))) pid = '';
-        if (!pid && original.pid && !await ProblemModel.get(target, original.pid)) pid = original.pid;
-        const docId = await ProblemModel.add(
-            target, pid, original.title, original.content,
-            original.owner, original.tag, { hidden: original.hidden },
-        );
+        if (pid && (/^[0-9]+$/.test(pid) || (await ProblemModel.get(target, pid)))) pid = '';
+        if (!pid && original.pid && !(await ProblemModel.get(target, original.pid))) pid = original.pid;
+        const docId = await ProblemModel.add(target, pid, original.title, original.content, original.owner, original.tag, {
+            hidden: original.hidden,
+        });
         await ProblemModel.edit(target, docId, { reference: { domainId, pid: _id } });
         return docId;
     }
@@ -288,29 +296,25 @@ export class ProblemModel {
         if (sdoc) await ProblemModel.delTestdata(domainId, pid, newName);
         const payload = { _id: newName, name: newName, lastModified: new Date() };
         await Promise.all([
-            storage.rename(
-                `problem/${domainId}/${pid}/testdata/${file}`,
-                `problem/${domainId}/${pid}/testdata/${newName}`,
-                operator,
-            ),
+            storage.rename(`problem/${domainId}/${pid}/testdata/${file}`, `problem/${domainId}/${pid}/testdata/${newName}`, operator),
             document.setSub(domainId, document.TYPE_PROBLEM, pid, 'data', file, payload),
         ]);
         await bus.emit('problem/renameTestdata', domainId, pid, file, newName);
     }
 
     static async delTestdata(domainId: string, pid: number, name: string | string[], operator = 1) {
-        const names = (name instanceof Array) ? name : [name];
+        const names = name instanceof Array ? name : [name];
         await Promise.all([
-            storage.del(names.map((t) => `problem/${domainId}/${pid}/testdata/${t}`), operator),
+            storage.del(
+                names.map((t) => `problem/${domainId}/${pid}/testdata/${t}`),
+                operator,
+            ),
             ProblemModel.pull(domainId, pid, 'data', names),
         ]);
         await bus.emit('problem/delTestdata', domainId, pid, names);
     }
 
-    static async addAdditionalFile(
-        domainId: string, pid: number, name: string,
-        f: Readable | Buffer | string, operator = 1, skipUpload = false,
-    ) {
+    static async addAdditionalFile(domainId: string, pid: number, name: string, f: Readable | Buffer | string, operator = 1, skipUpload = false) {
         name = name.trim();
         const [[, fileinfo]] = await Promise.all([
             document.getSub(domainId, document.TYPE_PROBLEM, pid, 'additional_file', name),
@@ -329,20 +333,19 @@ export class ProblemModel {
         if (sdoc) await ProblemModel.delAdditionalFile(domainId, pid, newName);
         const payload = { _id: newName, name: newName, lastModified: new Date() };
         await Promise.all([
-            storage.rename(
-                `problem/${domainId}/${pid}/additional_file/${file}`,
-                `problem/${domainId}/${pid}/additional_file/${newName}`,
-                operator,
-            ),
+            storage.rename(`problem/${domainId}/${pid}/additional_file/${file}`, `problem/${domainId}/${pid}/additional_file/${newName}`, operator),
             document.setSub(domainId, document.TYPE_PROBLEM, pid, 'additional_file', file, payload),
         ]);
         await bus.emit('problem/renameAdditionalFile', domainId, pid, file, newName);
     }
 
     static async delAdditionalFile(domainId: string, pid: number, name: MaybeArray<string>, operator = 1) {
-        const names = (name instanceof Array) ? name : [name];
+        const names = name instanceof Array ? name : [name];
         await Promise.all([
-            storage.del(names.map((t) => `problem/${domainId}/${pid}/additional_file/${t}`), operator),
+            storage.del(
+                names.map((t) => `problem/${domainId}/${pid}/additional_file/${t}`),
+                operator,
+            ),
             ProblemModel.pull(domainId, pid, 'additional_file', names),
         ]);
         await bus.emit('problem/delAdditionalFile', domainId, pid, names);
@@ -351,21 +354,27 @@ export class ProblemModel {
     static async random(domainId: string, query: Filter<ProblemDoc>) {
         const pcount = await document.count(domainId, document.TYPE_PROBLEM, query);
         if (!pcount) return null;
-        const pdoc = await document.getMulti(domainId, document.TYPE_PROBLEM, query)
-            .skip(Math.floor(Math.random() * pcount)).limit(1).toArray();
+        const pdoc = await document
+            .getMulti(domainId, document.TYPE_PROBLEM, query)
+            .skip(Math.floor(Math.random() * pcount))
+            .limit(1)
+            .toArray();
         return pdoc[0].pid || pdoc[0].docId;
     }
 
     static async getList(
-        domainId: string, pids: number[], canViewHidden: number | boolean = false,
-        doThrow = true, projection = ProblemModel.PROJECTION_PUBLIC, indexByDocIdOnly = false,
+        domainId: string,
+        pids: number[],
+        canViewHidden: number | boolean = false,
+        doThrow = true,
+        projection = ProblemModel.PROJECTION_PUBLIC,
+        indexByDocIdOnly = false,
     ): Promise<ProblemDict> {
         if (!pids?.length) return [];
         const r: Record<number, ProblemDoc> = {};
         const l: Record<string, ProblemDoc> = {};
         const q: any = { docId: { $in: pids } };
-        let pdocs = await document.getMulti(domainId, document.TYPE_PROBLEM, q)
-            .project<ProblemDoc>(buildProjection(projection)).toArray();
+        let pdocs = await document.getMulti(domainId, document.TYPE_PROBLEM, q).project<ProblemDoc>(buildProjection(projection)).toArray();
         if (canViewHidden !== true) {
             pdocs = pdocs.filter((i) => i.owner === canViewHidden || i.maintainer?.includes(canViewHidden as any) || !i.hidden);
         }
@@ -394,14 +403,11 @@ export class ProblemModel {
     static async getPrefixList(domainId: string, prefix: string) {
         const $regex = new RegExp(`^${escapeRegExp(prefix.toLowerCase())}`, 'i');
         const filter = { $or: [{ pid: { $regex } }, { title: { $regex } }] };
-        return await document.getMulti(domainId, document.TYPE_PROBLEM, filter, ['domainId', 'docId', 'pid', 'title'])
-            .limit(20).toArray();
+        return await document.getMulti(domainId, document.TYPE_PROBLEM, filter, ['domainId', 'docId', 'pid', 'title']).limit(20).toArray();
     }
 
     static async getListStatus(domainId: string, uid: number, pids: number[]) {
-        const psdocs = await ProblemModel.getMultiStatus(
-            domainId, { uid, docId: { $in: Array.from(new Set(pids)) } },
-        ).toArray();
+        const psdocs = await ProblemModel.getMultiStatus(domainId, { uid, docId: { $in: Array.from(new Set(pids)) } }).toArray();
         const r: Record<string, ProblemStatusDoc> = {};
         for (const psdoc of psdocs) {
             r[psdoc.docId] = psdoc;
@@ -410,22 +416,13 @@ export class ProblemModel {
         return r;
     }
 
-    static async updateStatus(
-        domainId: string, pid: number, uid: number,
-        rid: ObjectId, status: number, score: number,
-    ) {
+    static async updateStatus(domainId: string, pid: number, uid: number, rid: ObjectId, status: number, score: number) {
         const filter: Filter<ProblemStatusDoc> = { rid: { $ne: rid }, status: STATUS.STATUS_ACCEPTED };
-        const res = await document.setStatusIfNotCondition(
-            domainId, document.TYPE_PROBLEM, pid, uid,
-            filter, { rid, status, score },
-        );
+        const res = await document.setStatusIfNotCondition(domainId, document.TYPE_PROBLEM, pid, uid, filter, { rid, status, score });
         return !!res;
     }
 
-    static async incStatus(
-        domainId: string, pid: number, uid: number,
-        key: NumberKeys<ProblemStatusDoc>, count: number,
-    ) {
+    static async incStatus(domainId: string, pid: number, uid: number, key: NumberKeys<ProblemStatusDoc>, count: number) {
         return await document.incStatus(domainId, document.TYPE_PROBLEM, pid, uid, key, count);
     }
 
@@ -478,7 +475,7 @@ export class ProblemModel {
                 let pid = pdoc.pid;
 
                 const isValidPid = async (id: string) => {
-                    if (!(/^[A-Za-z]+[0-9A-Za-z]*$/.test(id))) return false;
+                    if (!/^[A-Za-z]+[0-9A-Za-z]*$/.test(id)) return false;
                     if (await ProblemModel.get(domainId, id)) return false;
                     return true;
                 };
@@ -488,14 +485,19 @@ export class ProblemModel {
                         const newPid = pid.replace(/^[A-Za-z]+/, preferredPrefix);
                         if (await isValidPid(newPid)) pid = newPid;
                     }
-                    if (!await isValidPid(pid)) pid = undefined;
+                    if (!(await isValidPid(pid))) pid = undefined;
                 }
                 const overrideContent = findOverrideContent(path.join(tmpdir, i));
                 if (pdoc.difficulty && !Number.isSafeInteger(pdoc.difficulty)) delete pdoc.difficulty;
                 if (typeof pdoc.title !== 'string') throw new ValidationError('title', null, 'Invalid title');
                 const docId = await ProblemModel.add(
-                    domainId, pid, pdoc.title.trim(), overrideContent || pdoc.content || 'No content',
-                    operator || pdoc.owner, pdoc.tag || [], { hidden: pdoc.hidden, difficulty: pdoc.difficulty },
+                    domainId,
+                    pid,
+                    pdoc.title.trim(),
+                    overrideContent || pdoc.content || 'No content',
+                    operator || pdoc.owner,
+                    pdoc.tag || [],
+                    { hidden: pdoc.hidden, difficulty: pdoc.difficulty },
                 );
                 if (files.includes('testdata')) {
                     const datas = await fs.readdir(path.join(tmpdir, i, 'testdata'), { withFileTypes: true });
@@ -529,7 +531,7 @@ export class ProblemModel {
         await fs.mkdir(tmpdir);
         const pdocs = await ProblemModel.getMulti(domainId, {}, ProblemModel.PROJECTION_PUBLIC).toArray();
         for (const pdoc of pdocs) {
-            if (process.env.HYDRO_CLI) logger.info(`Exporting problem ${pdoc.pid || (`P${pdoc.docId}`)} (${pdoc.title})`);
+            if (process.env.HYDRO_CLI) logger.info(`Exporting problem ${pdoc.pid || `P${pdoc.docId}`} (${pdoc.title})`);
             const problemPath = path.join(tmpdir, `${pdoc.docId}`);
             await fs.mkdir(problemPath);
             const problemYaml = path.join(problemPath, 'problem.yaml');

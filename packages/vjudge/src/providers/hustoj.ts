@@ -1,6 +1,4 @@
-import {
-    _, Logger, sleep, STATUS,
-} from 'hydrooj';
+import { _, Logger, sleep, STATUS } from 'hydrooj';
 import { BasicFetcher } from '../fetch';
 import { IBasicProvider, RemoteAccount } from '../interface';
 import { VERDICT } from '../verdict';
@@ -47,7 +45,7 @@ interface HustOJRemoteConfig {
         endpoint?: string;
         matcher?: RegExp;
         selector?: string;
-    },
+    };
     server?: string;
 }
 
@@ -68,7 +66,7 @@ const defaultConfig: HustOJRemoteConfig = {
     // },
     ceInfo: {
         endpoint: '/ceinfo.php?sid={rid}',
-        matcher: /<pre class=".*?" id='errtxt' >(.*?)<\/pre>/gmi,
+        matcher: /<pre class=".*?" id='errtxt' >(.*?)<\/pre>/gim,
     },
     monit: {
         endpoint: '/status.php?pid={pid}&user_id={uid}',
@@ -87,7 +85,7 @@ const defaultConfig: HustOJRemoteConfig = {
         codeField: 'source',
         extra: {},
         tooFrequent: 'UNKNOWN',
-        rid: /<tbody>\n<tr class="evenrow"><td>([0-9]+)<\/td>/gmi,
+        rid: /<tbody>\n<tr class="evenrow"><td>([0-9]+)<\/td>/gim,
     },
     server: 'https://acm.hust.edu.cn',
 };
@@ -103,7 +101,10 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
         pid: '',
     };
 
-    constructor(public account: RemoteAccount, private save: (data: any) => Promise<void>) {
+    constructor(
+        public account: RemoteAccount,
+        private save: (data: any) => Promise<void>,
+    ) {
         const config = _.defaultsDeep({ ...defaultConfig }, account);
         super(account, '', 'form', logger, {
             post: {
@@ -119,7 +120,7 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
         if (this.config.server) this.setEndpoint(this.config.server);
     }
 
-    updateConfig() { }
+    updateConfig() {}
 
     getProblem() {
         return null;
@@ -153,7 +154,7 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
         if (!this.account.handle || !this.account.password) return false;
         if (await this.loggedIn) return true;
         await this.login(this.account.handle, this.account.password);
-        if (!await this.loggedIn) {
+        if (!(await this.loggedIn)) {
             // assume rate limit triggered or incorrect captcha
             await this.login(this.account.handle, this.account.password);
         }
@@ -188,7 +189,10 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
     async waitForSubmission(rid, next, end) {
         let url = this.config.monit.endpoint.replace('{uid}', this.state.username).replace('{pid}', this.state.pid);
         // eslint-disable-next-line max-len
-        const RE = new RegExp(`<tr.*?class="evenrow".*?><td>${rid}</td>.*?</td><td>.*?</td><td><font color=".*?">(.*?)</font></td><td>(.*?)<font color="red">kb</font></td><td>(.*?)<font color="red">ms`, 'gmi');
+        const RE = new RegExp(
+            `<tr.*?class="evenrow".*?><td>${rid}</td>.*?</td><td>.*?</td><td><font color=".*?">(.*?)</font></td><td>(.*?)<font color="red">kb</font></td><td>(.*?)<font color="red">ms`,
+            'gmi',
+        );
         const res = await this.get(url);
         let [, status, time, memory] = RE.exec(res.text);
         while (isProcessing(status)) {
@@ -200,8 +204,13 @@ export class HUSTOJ extends BasicFetcher implements IBasicProvider {
         if (VERDICT[status] === STATUS.STATUS_COMPILE_ERROR) {
             url = this.config.ceInfo.endpoint.replace('{rid}', rid);
             const resp = await this.get(url);
-            const compilerText = decodeURIComponent(this.config.ceInfo.matcher.exec(resp.text)[1]
-                ?.replace(/\n/g, '')?.replace(/<br\/>/g, '\n')?.replace(/\n\n/g, '\n'));
+            const compilerText = decodeURIComponent(
+                this.config.ceInfo.matcher
+                    .exec(resp.text)[1]
+                    ?.replace(/\n/g, '')
+                    ?.replace(/<br\/>/g, '\n')
+                    ?.replace(/\n\n/g, '\n'),
+            );
             end({
                 status: STATUS.STATUS_COMPILE_ERROR,
                 score: 0,
@@ -254,7 +263,7 @@ export class YBT extends HUSTOJ {
         };
         this.config.ceInfo = {
             endpoint: '/show_ce_info.php?runid={rid}',
-            matcher: /<td class="ceinfo">(.*?)<\/td>/gmi,
+            matcher: /<td class="ceinfo">(.*?)<\/td>/gim,
         };
         this.config.server = 'http://ybt.ssoier.cn:8088/';
     }
@@ -275,11 +284,19 @@ export class YBT extends HUSTOJ {
             if (this.config.ceInfo.matcher) {
                 const resp = await this.get(ceInfoUrl);
                 const match = this.config.ceInfo.matcher.exec(resp.text);
-                if (match) compilerText = decodeURIComponent(match[1]).replace(/\n/g, '').replace(/<br\/>/g, '\n').replace(/\n\n/g, '\n');
+                if (match)
+                    compilerText = decodeURIComponent(match[1])
+                        .replace(/\n/g, '')
+                        .replace(/<br\/>/g, '\n')
+                        .replace(/\n\n/g, '\n');
             } else if (this.config.ceInfo.selector) {
                 const { document } = await this.html(ceInfoUrl);
                 const match = document.querySelector(this.config.ceInfo.selector)?.innerHTML;
-                if (match) compilerText = decodeURIComponent(match).replace(/\n/g, '').replace(/<br\/>/g, '\n').replace(/\n\n/g, '\n');
+                if (match)
+                    compilerText = decodeURIComponent(match)
+                        .replace(/\n/g, '')
+                        .replace(/<br\/>/g, '\n')
+                        .replace(/\n\n/g, '\n');
             }
             end({
                 status: STATUS.STATUS_COMPILE_ERROR,
@@ -393,7 +410,7 @@ export class YBTBAS extends YBT {
             codeField: 'source',
             extra: { submit: '提交', user_id: this.account.handle },
             tooFrequent: '提交频繁啦！',
-            rid: /runidx=([0-9]+)/mi,
+            rid: /runidx=([0-9]+)/im,
             noRefetch: true,
         };
         this.config.ceInfo = {
@@ -417,7 +434,7 @@ export class BZOJ extends HUSTOJ {
             extra: { submit: 'Submit' },
         };
         this.config.submit.tooFrequent = 'You should not submit more than twice in 10 seconds.....';
-        this.config.submit.rid = /Submit_Time<\/td><\/tr>\n<tr align="center" class="evenrow"><td>([0-9]+)/igm;
+        this.config.submit.rid = /Submit_Time<\/td><\/tr>\n<tr align="center" class="evenrow"><td>([0-9]+)/gim;
         this.config.ceInfo.matcher = /<pre>([\s\S]*?)<\/pre>/im;
     }
 }
@@ -438,15 +455,12 @@ export class XJOI extends HUSTOJ {
             codeField: 'source',
             tooFrequent: '请稍后再提交',
             extra: {},
-            rid: /<tr class="table-bordered"><td class="status-table-text"> <a href="\/detail\/([0-9]+)"/igm,
+            rid: /<tr class="table-bordered"><td class="status-table-text"> <a href="\/detail\/([0-9]+)"/gim,
         };
     }
 
     async waitForSubmission(rid, next, end) {
-        const SUPERMONIT = [
-            /<textarea .*?>([\s\S]*?)<\/textarea>/igm,
-            /time: ([0-9]+)ms, memory: ([0-9]+)kb, points: ([0-9]+), status: (.*?)/gmi,
-        ];
+        const SUPERMONIT = [/<textarea .*?>([\s\S]*?)<\/textarea>/gim, /time: ([0-9]+)ms, memory: ([0-9]+)kb, points: ([0-9]+), status: (.*?)/gim];
         const url = `/detail${rid}`;
         let res = await this.get(url);
         let msg = SUPERMONIT[0].exec(res.text)[1].split('\n');

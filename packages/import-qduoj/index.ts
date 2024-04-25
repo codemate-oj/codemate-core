@@ -1,10 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import os from 'os';
 import path from 'path';
-import {
-    AdmZip, buildContent, ContentNode, Context, fs, Handler, PERM,
-    ProblemConfigFile, ProblemModel, ValidationError, yaml,
-} from 'hydrooj';
+import { AdmZip, buildContent, ContentNode, Context, fs, Handler, PERM, ProblemConfigFile, ProblemModel, ValidationError, yaml } from 'hydrooj';
 
 const tmpdir = path.join(os.tmpdir(), 'hydro', 'import-qduoj');
 fs.ensureDirSync(tmpdir);
@@ -54,11 +51,13 @@ class ImportQduojHandler extends Handler {
                     });
                 }
                 if (pdoc.samples?.length) {
-                    content.push(...pdoc.samples.map((sample) => ({
-                        type: 'Sample',
-                        sectionTitle: this.translate('Sample'),
-                        payload: [sample.input, sample.output],
-                    })));
+                    content.push(
+                        ...pdoc.samples.map((sample) => ({
+                            type: 'Sample',
+                            sectionTitle: this.translate('Sample'),
+                            payload: [sample.input, sample.output],
+                        })),
+                    );
                 }
                 if (pdoc.hint?.value) {
                     content.push({
@@ -78,14 +77,18 @@ class ImportQduojHandler extends Handler {
                 }
                 if (+pdoc.display_id) pdoc.display_id = `P${pdoc.display_id}`;
                 const isValidPid = async (id: string) => {
-                    if (!(/^[A-Za-z]+[0-9A-Za-z]*$/.test(id))) return false;
+                    if (!/^[A-Za-z]+[0-9A-Za-z]*$/.test(id)) return false;
                     if (await ProblemModel.get(domainId, id)) return false;
                     return true;
                 };
-                if (!await isValidPid(pdoc.display_id)) pdoc.display_id = null;
+                if (!(await isValidPid(pdoc.display_id))) pdoc.display_id = null;
                 const pid = await ProblemModel.add(
-                    domainId, pdoc.display_id, pdoc.title, buildContent(content, 'html'),
-                    this.user._id, pdoc.tags || [],
+                    domainId,
+                    pdoc.display_id,
+                    pdoc.title,
+                    buildContent(content, 'html'),
+                    this.user._id,
+                    pdoc.tags || [],
                 );
                 const config: ProblemConfigFile = {
                     time: `${pdoc.time_limit}ms`,
@@ -94,29 +97,22 @@ class ImportQduojHandler extends Handler {
                 };
                 const tasks = [];
                 for (const tc of pdoc.test_case_score) {
-                    tasks.push(ProblemModel.addTestdata(
-                        domainId, pid, tc.input_name,
-                        path.join(tmp, folder, 'testcase', tc.input_name),
-                    ));
+                    tasks.push(ProblemModel.addTestdata(domainId, pid, tc.input_name, path.join(tmp, folder, 'testcase', tc.input_name)));
                     if (tc.output_name !== '-') {
-                        tasks.push(ProblemModel.addTestdata(
-                            domainId, pid, tc.output_name,
-                            path.join(tmp, folder, 'testcase', tc.output_name),
-                        ));
+                        tasks.push(ProblemModel.addTestdata(domainId, pid, tc.output_name, path.join(tmp, folder, 'testcase', tc.output_name)));
                     }
                     config.subtasks.push({
                         score: tc.score,
-                        cases: [{
-                            input: tc.input_name,
-                            output: tc.output_name === '-' ? '/dev/null' : tc.output_name,
-                        }],
+                        cases: [
+                            {
+                                input: tc.input_name,
+                                output: tc.output_name === '-' ? '/dev/null' : tc.output_name,
+                            },
+                        ],
                     });
                 }
                 if (pdoc.spj?.language === 'C++') {
-                    tasks.push(ProblemModel.addTestdata(
-                        domainId, pid, 'checker.cc',
-                        Buffer.from(pdoc.spj.code),
-                    ));
+                    tasks.push(ProblemModel.addTestdata(domainId, pid, 'checker.cc', Buffer.from(pdoc.spj.code)));
                     config.checker = 'checker.cc';
                     config.checker_type = 'qduoj';
                 }

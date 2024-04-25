@@ -1,7 +1,4 @@
-import {
-    Context, ForbiddenError, Handler, superagent, SystemModel,
-    TokenModel, UserFacingError, ValidationError,
-} from 'hydrooj';
+import { Context, ForbiddenError, Handler, superagent, SystemModel, TokenModel, UserFacingError, ValidationError } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface SystemKeys {
@@ -21,16 +18,12 @@ async function get(this: Handler) {
 
 async function callback({ state, code }) {
     const [[appid, secret, endpoint, url], s] = await Promise.all([
-        SystemModel.getMany([
-            'login-with-github.id',
-            'login-with-github.secret',
-            'login-with-github.endpoint',
-            'server.url',
-        ]),
+        SystemModel.getMany(['login-with-github.id', 'login-with-github.secret', 'login-with-github.endpoint', 'server.url']),
         TokenModel.get(state, TokenModel.TYPE_OAUTH),
     ]);
     if (!s) throw new ValidationError('token');
-    const res = await superagent.post(`${endpoint || 'https://github.com'}/login/oauth/access_token`)
+    const res = await superagent
+        .post(`${endpoint || 'https://github.com'}/login/oauth/access_token`)
         .send({
             client_id: appid,
             client_secret: secret,
@@ -40,12 +33,11 @@ async function callback({ state, code }) {
         })
         .set('accept', 'application/json');
     if (res.body.error) {
-        throw new UserFacingError(
-            res.body.error, res.body.error_description, res.body.error_uri,
-        );
+        throw new UserFacingError(res.body.error, res.body.error_description, res.body.error_uri);
     }
     const t = res.body.access_token;
-    const userInfo = await superagent.get(`${endpoint ? `${endpoint}/api` : 'https://api.github.com'}/user`)
+    const userInfo = await superagent
+        .get(`${endpoint ? `${endpoint}/api` : 'https://api.github.com'}/user`)
         .set('User-Agent', 'Hydro-OAuth')
         .set('Accept', 'application/vnd.github.v3+json')
         .set('Authorization', `token ${t}`);
@@ -57,7 +49,8 @@ async function callback({ state, code }) {
         avatar: `github:${userInfo.body.login}`,
     };
     if (!ret.email) {
-        const emailInfo = await superagent.get(`${endpoint ? `${endpoint}/api` : 'https://api.github.com'}/user/emails`)
+        const emailInfo = await superagent
+            .get(`${endpoint ? `${endpoint}/api` : 'https://api.github.com'}/user/emails`)
             .set('User-Agent', 'Hydro-OAuth')
             .set('Accept', 'application/vnd.github.v3+json')
             .set('Authorization', `token ${t}`);

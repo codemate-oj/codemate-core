@@ -17,35 +17,27 @@ export async function judge(ctx: Context) {
     ]);
     ctx.clean.push(() => fs.unlink(input));
     ctx.next({ status: STATUS.STATUS_JUDGING, progress: 0 });
-    const validateResult = await runQueued(
-        validator.execute,
-        {
-            stdin: { src: input },
-            copyIn: validator.copyIn,
-            time: parseTimeMS(ctx.config.time || '1s'),
-            memory: parseMemoryMB(ctx.config.memory || '256m'),
-        },
-    );
+    const validateResult = await runQueued(validator.execute, {
+        stdin: { src: input },
+        copyIn: validator.copyIn,
+        time: parseTimeMS(ctx.config.time || '1s'),
+        memory: parseMemoryMB(ctx.config.memory || '256m'),
+    });
     if (validateResult.status !== STATUS.STATUS_ACCEPTED) {
         const message = `${validateResult.stdout || ''}\n${validateResult.stderr || ''}`.trim();
         return ctx.end({ status: STATUS.STATUS_FORMAT_ERROR, message });
     }
     const { address_space_limit, process_limit } = ctx.session.getLang(ctx.lang);
-    const res = await runQueued(
-        execute.execute,
-        {
-            stdin: { src: input },
-            copyIn: execute.copyIn,
-            time: parseTimeMS(ctx.config.time || '1s'),
-            memory: parseMemoryMB(ctx.config.memory || '256m'),
-            cacheStdoutAndStderr: true,
-            addressSpaceLimit: address_space_limit,
-            processLimit: process_limit,
-        },
-    );
-    const {
-        code, signalled, time, memory,
-    } = res;
+    const res = await runQueued(execute.execute, {
+        stdin: { src: input },
+        copyIn: execute.copyIn,
+        time: parseTimeMS(ctx.config.time || '1s'),
+        memory: parseMemoryMB(ctx.config.memory || '256m'),
+        cacheStdoutAndStderr: true,
+        addressSpaceLimit: address_space_limit,
+        processLimit: process_limit,
+    });
+    const { code, signalled, time, memory } = res;
     let { status } = res;
     let message: any = '';
     if (status === STATUS.STATUS_ACCEPTED) {

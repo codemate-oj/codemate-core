@@ -1,14 +1,22 @@
 /* eslint-disable no-await-in-loop */
-import {
-    BSON, Db, Filter, ObjectId, OnlyFieldsOfType,
-} from 'mongodb';
+import { BSON, Db, Filter, ObjectId, OnlyFieldsOfType } from 'mongodb';
 import pm2 from '@hydrooj/utils/lib/locate-pm2';
 import type { ProblemSolutionHandler } from '../handler/problem';
 import type { UserRegisterHandler } from '../handler/user';
 import type {
-    BaseUserDict, ContestBalloonDoc, DiscussionDoc, DomainDoc, FileInfo,
-    MessageDoc, ProblemDict, ProblemDoc, RecordDoc,
-    ScoreboardRow, Tdoc, TrainingDoc, User,
+    BaseUserDict,
+    ContestBalloonDoc,
+    DiscussionDoc,
+    DomainDoc,
+    FileInfo,
+    MessageDoc,
+    ProblemDict,
+    ProblemDoc,
+    RecordDoc,
+    ScoreboardRow,
+    Tdoc,
+    TrainingDoc,
+    User,
 } from '../interface';
 import type { DocType } from '../model/document';
 import type { ConnectionHandler, Handler } from './server';
@@ -19,92 +27,92 @@ type HookType = 'before-prepare' | 'before' | 'before-operation' | 'after' | 'fi
 type ModuleCategories = 'lib' | 'locale' | 'template' | 'script' | 'model' | 'setting' | 'handler' | 'service' | 'addon';
 type LifecycleEvents = Record<`app/load/${ModuleCategories}`, () => VoidReturn>;
 type MapHandlerEvents<N extends string, H extends Handler> = Record<`handler/${HookType}/${N}`, (thisArg: H) => VoidReturn>;
-type KnownHandlerEvents =
-    MapHandlerEvents<'UserRegister', UserRegisterHandler>
-    & MapHandlerEvents<'ProblemSolution', ProblemSolutionHandler>;
-type HandlerEvents =
-    KnownHandlerEvents
-    & Record<`handler/${HookType}/${string}`, (thisArg: Handler & Record<string, any>) => VoidReturn>
-    & Record<`handler/${HookType}`, (thisArg: Handler) => VoidReturn>
-    & Record<`handler/register/${string}`, (HandlerClass: typeof Handler) => VoidReturn>
-    & Record<`connection/${'create' | 'active' | 'close'}`, (thisArg: ConnectionHandler) => VoidReturn>;
+type KnownHandlerEvents = MapHandlerEvents<'UserRegister', UserRegisterHandler> & MapHandlerEvents<'ProblemSolution', ProblemSolutionHandler>;
+type HandlerEvents = KnownHandlerEvents &
+    Record<`handler/${HookType}/${string}`, (thisArg: Handler & Record<string, any>) => VoidReturn> &
+    Record<`handler/${HookType}`, (thisArg: Handler) => VoidReturn> &
+    Record<`handler/register/${string}`, (HandlerClass: typeof Handler) => VoidReturn> &
+    Record<`connection/${'create' | 'active' | 'close'}`, (thisArg: ConnectionHandler) => VoidReturn>;
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export interface EventMap extends LifecycleEvents, HandlerEvents {
-    'app/started': () => void
-    'app/listen': () => void
-    'app/ready': () => VoidReturn
-    'app/exit': () => VoidReturn
-    'app/before-reload': (entries: Set<string>) => VoidReturn
-    'app/reload': (entries: Set<string>) => VoidReturn
+    'app/started': () => void;
+    'app/listen': () => void;
+    'app/ready': () => VoidReturn;
+    'app/exit': () => VoidReturn;
+    'app/before-reload': (entries: Set<string>) => VoidReturn;
+    'app/reload': (entries: Set<string>) => VoidReturn;
 
-    'app/watch/change': (path: string) => VoidReturn
-    'app/watch/unlink': (path: string) => VoidReturn
+    'app/watch/change': (path: string) => VoidReturn;
+    'app/watch/unlink': (path: string) => VoidReturn;
 
-    'database/connect': (db: Db) => void
-    'database/config': () => VoidReturn
+    'database/connect': (db: Db) => void;
+    'database/config': () => VoidReturn;
 
-    'system/setting': (args: Record<string, any>) => VoidReturn
-    'bus/broadcast': (event: keyof EventMap, ...args: any[]) => VoidReturn
-    'monitor/update': (type: 'server' | 'judge', $set: any) => VoidReturn
-    'monitor/collect': (info: any) => VoidReturn
+    'system/setting': (args: Record<string, any>) => VoidReturn;
+    'bus/broadcast': (event: keyof EventMap, ...args: any[]) => VoidReturn;
+    'monitor/update': (type: 'server' | 'judge', $set: any) => VoidReturn;
+    'monitor/collect': (info: any) => VoidReturn;
     'api/update': () => void;
     'task/daily': () => void;
 
-    'user/message': (uid: number, mdoc: MessageDoc) => void
-    'user/get': (udoc: User) => void
-    'user/delcache': (content: string | true) => void
+    'user/message': (uid: number, mdoc: MessageDoc) => void;
+    'user/get': (udoc: User) => void;
+    'user/delcache': (content: string | true) => void;
 
-    'domain/create': (ddoc: DomainDoc) => VoidReturn
-    'domain/before-get': (query: Filter<DomainDoc>) => VoidReturn
-    'domain/get': (ddoc: DomainDoc) => VoidReturn
-    'domain/before-update': (domainId: string, $set: Partial<DomainDoc>) => VoidReturn
-    'domain/update': (domainId: string, $set: Partial<DomainDoc>, ddoc: DomainDoc) => VoidReturn
-    'domain/delete': (domainId: string) => VoidReturn
-    'domain/delete-cache': (domainId: string) => VoidReturn
+    'domain/create': (ddoc: DomainDoc) => VoidReturn;
+    'domain/before-get': (query: Filter<DomainDoc>) => VoidReturn;
+    'domain/get': (ddoc: DomainDoc) => VoidReturn;
+    'domain/before-update': (domainId: string, $set: Partial<DomainDoc>) => VoidReturn;
+    'domain/update': (domainId: string, $set: Partial<DomainDoc>, ddoc: DomainDoc) => VoidReturn;
+    'domain/delete': (domainId: string) => VoidReturn;
+    'domain/delete-cache': (domainId: string) => VoidReturn;
 
-    'document/add': (doc: any) => VoidReturn
+    'document/add': (doc: any) => VoidReturn;
     'document/set': <T extends keyof DocType>(
-        domainId: string, docType: T, docId: DocType[T],
-        $set: any, $unset: OnlyFieldsOfType<DocType[T], any, true | '' | 1>
-    ) => VoidReturn
+        domainId: string,
+        docType: T,
+        docId: DocType[T],
+        $set: any,
+        $unset: OnlyFieldsOfType<DocType[T], any, true | '' | 1>,
+    ) => VoidReturn;
 
-    'handler/create': (thisArg: Handler) => VoidReturn
-    'handler/init': (thisArg: Handler) => VoidReturn
-    'handler/error': (thisArg: Handler, e: Error) => VoidReturn
+    'handler/create': (thisArg: Handler) => VoidReturn;
+    'handler/init': (thisArg: Handler) => VoidReturn;
+    'handler/error': (thisArg: Handler, e: Error) => VoidReturn;
 
-    'discussion/before-add': (payload: Partial<DiscussionDoc>) => VoidReturn
-    'discussion/add': (payload: Partial<DiscussionDoc>) => VoidReturn
+    'discussion/before-add': (payload: Partial<DiscussionDoc>) => VoidReturn;
+    'discussion/add': (payload: Partial<DiscussionDoc>) => VoidReturn;
 
-    'problem/before-add': (domainId: string, content: string, owner: number, docId: number, doc: Partial<ProblemDoc>) => VoidReturn
-    'problem/add': (doc: Partial<ProblemDoc>, docId: number) => VoidReturn
-    'problem/before-edit': (doc: Partial<ProblemDoc>) => VoidReturn
-    'problem/edit': (doc: ProblemDoc) => VoidReturn
-    'problem/before-del': (domainId: string, docId: number) => VoidReturn
-    'problem/del': (domainId: string, docId: number) => VoidReturn
-    'problem/list': (query: Filter<ProblemDoc>, handler: any) => VoidReturn
-    'problem/get': (doc: ProblemDoc, handler: any) => VoidReturn
-    'problem/delete': (domainId: string, docId: number) => VoidReturn
-    'problem/addTestdata': (domainId: string, docId: number, name: string, payload: Omit<FileInfo, '_id'>) => VoidReturn
-    'problem/renameTestdata': (domainId: string, docId: number, name: string, newName: string) => VoidReturn
-    'problem/delTestdata': (domainId: string, docId: number, name: string[]) => VoidReturn
-    'problem/addAdditionalFile': (domainId: string, docId: number, name: string, payload: Omit<FileInfo, '_id'>) => VoidReturn
-    'problem/renameAdditionalFile': (domainId: string, docId: number, name: string, newName: string) => VoidReturn
-    'problem/delAdditionalFile': (domainId: string, docId: number, name: string[]) => VoidReturn
+    'problem/before-add': (domainId: string, content: string, owner: number, docId: number, doc: Partial<ProblemDoc>) => VoidReturn;
+    'problem/add': (doc: Partial<ProblemDoc>, docId: number) => VoidReturn;
+    'problem/before-edit': (doc: Partial<ProblemDoc>) => VoidReturn;
+    'problem/edit': (doc: ProblemDoc) => VoidReturn;
+    'problem/before-del': (domainId: string, docId: number) => VoidReturn;
+    'problem/del': (domainId: string, docId: number) => VoidReturn;
+    'problem/list': (query: Filter<ProblemDoc>, handler: any) => VoidReturn;
+    'problem/get': (doc: ProblemDoc, handler: any) => VoidReturn;
+    'problem/delete': (domainId: string, docId: number) => VoidReturn;
+    'problem/addTestdata': (domainId: string, docId: number, name: string, payload: Omit<FileInfo, '_id'>) => VoidReturn;
+    'problem/renameTestdata': (domainId: string, docId: number, name: string, newName: string) => VoidReturn;
+    'problem/delTestdata': (domainId: string, docId: number, name: string[]) => VoidReturn;
+    'problem/addAdditionalFile': (domainId: string, docId: number, name: string, payload: Omit<FileInfo, '_id'>) => VoidReturn;
+    'problem/renameAdditionalFile': (domainId: string, docId: number, name: string, newName: string) => VoidReturn;
+    'problem/delAdditionalFile': (domainId: string, docId: number, name: string[]) => VoidReturn;
 
-    'contest/before-add': (payload: Partial<Tdoc>) => VoidReturn
-    'contest/add': (payload: Partial<Tdoc>, id: ObjectId) => VoidReturn
-    'contest/list': (query: Filter<Tdoc>, handler: any) => VoidReturn
-    'contest/scoreboard': (tdoc: Tdoc, rows: ScoreboardRow[], udict: BaseUserDict, pdict: ProblemDict) => VoidReturn
-    'contest/balloon': (domainId: string, tid: ObjectId, bdoc: ContestBalloonDoc) => VoidReturn
+    'contest/before-add': (payload: Partial<Tdoc>) => VoidReturn;
+    'contest/add': (payload: Partial<Tdoc>, id: ObjectId) => VoidReturn;
+    'contest/list': (query: Filter<Tdoc>, handler: any) => VoidReturn;
+    'contest/scoreboard': (tdoc: Tdoc, rows: ScoreboardRow[], udict: BaseUserDict, pdict: ProblemDict) => VoidReturn;
+    'contest/balloon': (domainId: string, tid: ObjectId, bdoc: ContestBalloonDoc) => VoidReturn;
 
     'oplog/log': (type: string, handler: Handler, args: any, data: any) => VoidReturn;
 
-    'training/list': (query: Filter<TrainingDoc>, handler: any) => VoidReturn
-    'training/get': (tdoc: TrainingDoc, handler: any) => VoidReturn
+    'training/list': (query: Filter<TrainingDoc>, handler: any) => VoidReturn;
+    'training/get': (tdoc: TrainingDoc, handler: any) => VoidReturn;
 
-    'record/change': (rdoc: RecordDoc, $set?: any, $push?: any, body?: any) => void
-    'record/judge': (rdoc: RecordDoc, updated: boolean) => VoidReturn
+    'record/change': (rdoc: RecordDoc, $set?: any, $push?: any, body?: any) => void;
+    'record/judge': (rdoc: RecordDoc, updated: boolean) => VoidReturn;
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 

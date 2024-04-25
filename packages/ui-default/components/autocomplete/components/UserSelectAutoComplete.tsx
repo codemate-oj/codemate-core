@@ -10,30 +10,43 @@ const UserSelectAutoComplete = forwardRef<AutoCompleteHandle<Udoc>, AutoComplete
     ref={ref as any}
     cacheKey="user"
     {...props}
-    queryItems={(query) => api(gql`
+    queryItems={(query) =>
+      api(
+        gql`
       users(search: ${query}) {
         _id
         uname
         displayName
         avatarUrl
       }
-    `, ['data', 'users'])}
-    fetchItems={(ids) => api(gql`
+    `,
+        ['data', 'users'],
+      )
+    }
+    fetchItems={(ids) =>
+      api(
+        gql`
       users(ids: ${ids.map((i) => +i)}) {
         _id
         uname
         displayName
       }
-    `, ['data', 'users'])}
+    `,
+        ['data', 'users'],
+      )
+    }
     itemText={(user) => user.uname + (user.displayName ? ` (${user.displayName})` : '')}
-    itemKey={(user) => ((props.multi || /^[+-]?\d+$/.test(user.uname.trim())) ? user._id.toString() : user.uname)}
+    itemKey={(user) => (props.multi || /^[+-]?\d+$/.test(user.uname.trim()) ? user._id.toString() : user.uname)}
     renderItem={(user) => (
       <div className="media">
         <div className="media__left medium">
           <img className="small user-profile-avatar" alt="" src={user.avatarUrl} width="30" height="30" />
         </div>
         <div className="media__body medium">
-          <div className="user-select__uname">{user.uname}{user.displayName && ` (${user.displayName})`}</div>
+          <div className="user-select__uname">
+            {user.uname}
+            {user.displayName && ` (${user.displayName})`}
+          </div>
           <div className="user-select__uid">UID = {user._id}</div>
         </div>
       </div>

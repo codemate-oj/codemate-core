@@ -9,19 +9,27 @@ const ProblemSelectAutoComplete = forwardRef<AutoCompleteHandle<ProblemDoc>, Aut
     ref={ref as any}
     cacheKey={`problem-${UiContext.domainId}`}
     queryItems={(query) => request.get(`/d/${UiContext.domainId}/problem/list`, { prefix: query })}
-    fetchItems={(ids) => api(gql`
+    fetchItems={(ids) =>
+      api(
+        gql`
       problems(ids: ${ids.map((i) => +i)}) {
         docId
         pid
         title
       }
-    `, ['data', 'problems'])}
+    `,
+        ['data', 'problems'],
+      )
+    }
     itemText={(pdoc) => `${`${pdoc.docId} ${pdoc.title}`}`}
     itemKey={(pdoc) => `${pdoc.docId || pdoc}`}
     renderItem={(pdoc) => (
       <div className="media">
         <div className="media__body medium">
-          <div className="problem-select__name">{pdoc.pid ? `${pdoc.pid} ` : ''}{pdoc.title}</div>
+          <div className="problem-select__name">
+            {pdoc.pid ? `${pdoc.pid} ` : ''}
+            {pdoc.title}
+          </div>
           <div className="problem-select__id">ID = {pdoc.docId}</div>
         </div>
       </div>

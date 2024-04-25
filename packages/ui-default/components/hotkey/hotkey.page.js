@@ -68,14 +68,19 @@ const hotkeyPage = new AutoloadPage('hotkeyPage', () => {
 
     triggered = false;
     // Find all global hotkeys
-    $('[data-global-hotkey]').get().forEach((element) => {
-      testElementHotkey(hotkey, $(element), 'data-global-hotkey');
-    });
+    $('[data-global-hotkey]')
+      .get()
+      .forEach((element) => {
+        testElementHotkey(hotkey, $(element), 'data-global-hotkey');
+      });
 
     // Find all local hotkeys
-    $(ev.target).parents('[data-hotkey]').get().forEach((element) => {
-      testElementHotkey(hotkey, $(element), 'data-hotkey');
-    });
+    $(ev.target)
+      .parents('[data-hotkey]')
+      .get()
+      .forEach((element) => {
+        testElementHotkey(hotkey, $(element), 'data-hotkey');
+      });
     if (triggered) ev.preventDefault();
   });
 });

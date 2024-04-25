@@ -1,17 +1,11 @@
 import $ from 'jquery';
 import { renderLanguageSelect } from 'vj/components/languageselect';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  delay, getAvailableLangs, i18n, tpl,
-} from 'vj/utils';
+import { delay, getAvailableLangs, i18n, tpl } from 'vj/utils';
 
 async function initCodeLangHelper() {
   const $el = $(tpl`<div class="row" id="codelang-select"></div>`);
-  $('[name="codeLang"]')
-    .parent().parent().parent()
-    .parent()
-    .hide()
-    .after($el);
+  $('[name="codeLang"]').parent().parent().parent().parent().hide().after($el);
 
   const main = {};
   for (const key in window.LANGS) {
@@ -19,13 +13,7 @@ async function initCodeLangHelper() {
   }
 
   await delay(50);
-  renderLanguageSelect(
-    document.getElementById('codelang-select'),
-    $('[name="codeLang"]'),
-    getAvailableLangs(),
-    main,
-    [$('[name="codeLang"]').val()],
-  );
+  renderLanguageSelect(document.getElementById('codelang-select'), $('[name="codeLang"]'), getAvailableLangs(), main, [$('[name="codeLang"]').val()]);
 }
 
 function supportFontFamily(f) {

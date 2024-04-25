@@ -18,7 +18,10 @@ const Component = React.forwardRef<any, any>((props, ref) => {
     <FileSelectAutoCompleteFC
       ref={ref as any}
       height="auto"
-      selectedKeys={value.split(',').map((i) => i.trim()).filter((i) => i)}
+      selectedKeys={value
+        .split(',')
+        .map((i) => i.trim())
+        .filter((i) => i)}
       onChange={(v) => {
         setValue(v);
         props.onChange(v);
@@ -49,7 +52,9 @@ export default class FileSelectAutoComplete<Multi extends boolean> extends AutoC
     const value = this.$dom.val();
     ReactDOM.createRoot(this.container).render(
       <Component
-        ref={(ref) => { this.ref = ref; }}
+        ref={(ref) => {
+          this.ref = ref;
+        }}
         data={this.options.data}
         value={value}
         multi={this.options.multi}

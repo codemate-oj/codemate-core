@@ -1,7 +1,7 @@
 import * as cordis from 'cordis';
 import type { EventMap } from './api';
 
-export interface Events<C extends Context = Context> extends cordis.Events<C>, EventMap { }
+export interface Events<C extends Context = Context> extends cordis.Events<C>, EventMap {}
 
 export type { Disposable, ScopeStatus, Plugin } from 'cordis';
 

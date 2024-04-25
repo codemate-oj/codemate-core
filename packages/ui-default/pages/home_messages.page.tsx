@@ -8,7 +8,10 @@ import { NamedPage } from 'vj/misc/Page';
 import { api, gql, loadReactRedux } from 'vj/utils';
 
 class MessagePadService extends Service {
-  constructor(public store, public WebSocket: typeof import('../components/socket').default) {
+  constructor(
+    public store,
+    public WebSocket: typeof import('../components/socket').default,
+  ) {
     super(ctx, 'messagepad', true);
   }
 }
@@ -87,14 +90,17 @@ const page = new NamedPage('home_messages', () => {
   async function loadSendTarget() {
     const target = new URL(window.location.href).searchParams.get('target');
     if (!target) return;
-    const user = await api(gql`
+    const user = await api(
+      gql`
       users(search: ${target}, exact: true) {
         _id
         uname
         avatarUrl
         mail
       }
-    `, ['data', 'users']);
+    `,
+      ['data', 'users'],
+    );
     if (!user?.length) return;
     createDialog(user[0]);
   }

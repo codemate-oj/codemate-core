@@ -45,8 +45,7 @@ String.prototype.translate = function translate(...languages: string[]) {
         return app.i18n.get(this, languages[0]) || app.i18n.get(this, 'en') || this.toString();
     }
     for (const language of languages.filter(Boolean)) {
-        const curr = app.i18n.get(this, language) || app.i18n.get(this, language.split('_')[0])
-            || app.i18n.get(this, language.split('-')[0]);
+        const curr = app.i18n.get(this, language) || app.i18n.get(this, language.split('_')[0]) || app.i18n.get(this, language.split('-')[0]);
         if (curr) return curr;
     }
     return this.toString();

@@ -25,9 +25,7 @@ export default class AutoComplete extends DOMAttachedObject {
   container = document.createElement('div');
   options: AutoCompleteOptions;
   component = ReactDOM.createRoot(this.container);
-  changeListener = [
-    (val) => this.$dom.val(val),
-  ];
+  changeListener = [(val) => this.$dom.val(val)];
 
   constructor($dom, options = {}) {
     super($dom);
@@ -67,7 +65,9 @@ export default class AutoComplete extends DOMAttachedObject {
     const value = this.$dom.val();
     this.component.render(
       <AutoCompleteFC
-        ref={(ref) => { this.ref = ref; }}
+        ref={(ref) => {
+          this.ref = ref;
+        }}
         height="34px"
         queryItems={this.options.items}
         renderItem={this.options.render}

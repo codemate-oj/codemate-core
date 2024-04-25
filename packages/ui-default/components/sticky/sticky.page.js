@@ -6,14 +6,12 @@ import responsiveCutoff from 'vj/breakpoints.json';
 import { AutoloadPage } from 'vj/misc/Page';
 import { isAbove, isBelow } from 'vj/utils/mediaQuery';
 
-const navHeight = isBelow(responsiveCutoff.mobile)
-  ? 0
-  : $('.nav').height();
+const navHeight = isBelow(responsiveCutoff.mobile) ? 0 : $('.nav').height();
 
 function updateStickies($stickies) {
   $stickies.get().forEach((element) => {
     const $sticky = $(element);
-    const shouldEnableSticky = (isAbove($sticky.data('sticky-cutoff-min')));
+    const shouldEnableSticky = isAbove($sticky.data('sticky-cutoff-min'));
     const stickyEnabled = $sticky.data('sticky-enabled');
     if (shouldEnableSticky && !stickyEnabled) {
       const stickyOptions = {};
@@ -34,7 +32,8 @@ function updateStickies($stickies) {
 function getCutoff(str) {
   if (str === 'medium') {
     return responsiveCutoff.mobile;
-  } if (str === 'large') {
+  }
+  if (str === 'large') {
     return responsiveCutoff.desktop;
   }
   return 0;
@@ -58,7 +57,10 @@ const stickyPage = new AutoloadPage('stickyPage', () => {
   });
   updateStickies($stickies);
   if (shouldListenResize) {
-    $(window).on('resize', _.throttle(() => updateStickies($stickies), 300));
+    $(window).on(
+      'resize',
+      _.throttle(() => updateStickies($stickies), 300),
+    );
   }
   $(document).on('vjLayout', _.throttle(stickyRelayout, 100));
 });

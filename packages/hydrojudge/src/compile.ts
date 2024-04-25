@@ -3,20 +3,14 @@ import { STATUS } from '@hydrooj/utils/lib/status';
 import { findFileSync } from '@hydrooj/utils/lib/utils';
 import { CompileError, FormatError } from './error';
 import { Execute } from './interface';
-import {
-    CopyIn, CopyInFile, del, runQueued,
-} from './sandbox';
+import { CopyIn, CopyInFile, del, runQueued } from './sandbox';
 import { compilerText } from './utils';
 
-export default async function compile(
-    lang: LangConfig, code: CopyInFile, copyIn: CopyIn = {}, next?: Function,
-): Promise<Execute> {
+export default async function compile(lang: LangConfig, code: CopyInFile, copyIn: CopyIn = {}, next?: Function): Promise<Execute> {
     const target = lang.target || 'foo';
     const execute = copyIn['execute.sh'] ? '/bin/bash execute.sh' : lang.execute;
     if (lang.compile) {
-        const {
-            status, stdout, stderr, fileIds,
-        } = await runQueued(
+        const { status, stdout, stderr, fileIds } = await runQueued(
             copyIn['compile.sh'] ? '/bin/bash compile.sh' : lang.compile,
             {
                 copyIn: { ...copyIn, [lang.code_file]: code },
@@ -51,8 +45,12 @@ const testlibFile = {
 };
 
 export async function compileLocalFile(
-    src: string, type: 'checker' | 'validator' | 'interactor' | 'generator' | 'std',
-    getLang, copyIn: CopyIn, withTestlib = true, next?: any,
+    src: string,
+    type: 'checker' | 'validator' | 'interactor' | 'generator' | 'std',
+    getLang,
+    copyIn: CopyIn,
+    withTestlib = true,
+    next?: any,
 ) {
     const s = src.replace('@', '.').split('.');
     let lang;

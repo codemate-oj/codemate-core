@@ -36,11 +36,12 @@ const loaders = {
   yaml: () => import('./languages/yaml'),
   external: async (monaco, feat) => {
     for (const item of await getFeatures(`monaco-${feat}`)) {
-      let apply = typeof item === 'function'
-        ? item
-        : (item.startsWith('http') || item.startsWith('/'))
-          ? await legacyLoadExternalModule(item)
-          : (await loadModule(item)).apply;
+      let apply =
+        typeof item === 'function'
+          ? item
+          : item.startsWith('http') || item.startsWith('/')
+            ? await legacyLoadExternalModule(item)
+            : (await loadModule(item)).apply;
       if (typeof apply !== 'function') apply = apply.default || apply.apply;
       if (typeof apply === 'function') await apply(monaco);
     }
@@ -53,7 +54,9 @@ export async function load(features = ['markdown']) {
   let s = Date.now();
   await loadPromise;
   let resolve;
-  loadPromise = new Promise((r) => { resolve = r; });
+  loadPromise = new Promise((r) => {
+    resolve = r;
+  });
   if (!loaded) {
     await loaders.i18n();
     console.log('Loading monaco editor');

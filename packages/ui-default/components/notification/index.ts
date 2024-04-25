@@ -8,11 +8,14 @@ ToasterContainer.style.bottom = '0px';
 ToasterContainer.style.zIndex = '9999';
 document.body.append(ToasterContainer);
 
-export const AppToaster = Toaster.create({
-  className: 'recipe-toaster',
-  position: Position.LEFT_BOTTOM,
-  usePortal: true,
-} as any, ToasterContainer);
+export const AppToaster = Toaster.create(
+  {
+    className: 'recipe-toaster',
+    position: Position.LEFT_BOTTOM,
+    usePortal: true,
+  } as any,
+  ToasterContainer,
+);
 
 interface NotificationOptions {
   avatar?: string;
@@ -31,22 +34,18 @@ export default class Notification {
   duration: number;
   autoHideTimer?: NodeJS.Timeout;
 
-  constructor({
-    avatar, title, message, type = '', duration = 3000, action,
-  }: NotificationOptions) {
+  constructor({ avatar, title, message, type = '', duration = 3000, action }: NotificationOptions) {
     this.type = type;
     if (avatar) this.type += ' avatar';
     if (title) this.type += ' title';
-    this.action = action || (() => { });
+    this.action = action || (() => {});
     this.$dom = $(tpl`<div class="notification ${type} hide"></div>`);
     if (avatar) $(tpl`<img width="64" height="64" class="avatar" src="${avatar}"></img>`).appendTo(this.$dom);
     if (title) {
       $(tpl`<div class="notification-content"><h2>${title}</h2><p>${message}</p></div>`).appendTo(this.$dom);
     } else $(tpl`<p>${message}</p>`).appendTo(this.$dom);
     this.$dom.on('click', this.handleClick.bind(this));
-    this.$n = this.$dom
-      .css('z-index', zIndexManager.getNext())
-      .appendTo(document.body);
+    this.$n = this.$dom.css('z-index', zIndexManager.getNext()).appendTo(document.body);
     this.$n.width(); // force reflow
     this.duration = duration;
   }

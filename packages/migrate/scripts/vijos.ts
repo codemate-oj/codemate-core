@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-await-in-loop */
 import mongodb, { Db, FindCursor } from 'mongodb';
-import {
-    db as dst,
-    DiscussionModel, DiscussionTailReplyDoc, DocumentModel,
-    MessageDoc, RecordDoc, TestCase, TrainingNode,
-} from 'hydrooj';
+import { db as dst, DiscussionModel, DiscussionTailReplyDoc, DocumentModel, MessageDoc, RecordDoc, TestCase, TrainingNode } from 'hydrooj';
 
 const map = {};
 const pid = (id) => {
@@ -287,8 +283,11 @@ async function discussionNode(src: Db, report: Function) {
     await report({ progress: 1, message: `discussion.node: ${count}` });
     const total = Math.floor(count / 5);
     for (let i = 0; i <= total; i++) {
-        const docs = await src.collection('document')
-            .find({ doc_type: 20 }).skip(i * 5).limit(5)
+        const docs = await src
+            .collection('document')
+            .find({ doc_type: 20 })
+            .skip(i * 5)
+            .limit(5)
             .toArray();
         for (const doc of docs) {
             const t = [];
@@ -297,9 +296,7 @@ async function discussionNode(src: Db, report: Function) {
                 const nodes = item[1];
                 for (const node of nodes || []) {
                     if (node.pic) {
-                        t.push(DiscussionModel.addNode(
-                            doc.domain_id, node.name, category, { pic: node.pic },
-                        ));
+                        t.push(DiscussionModel.addNode(doc.domain_id, node.name, category, { pic: node.pic }));
                     } else {
                         t.push(DiscussionModel.addNode(doc.domain_id, node.name, category, {}));
                     }
@@ -321,10 +318,7 @@ function addSpace(content: string) {
 }
 
 async function fix(doc) {
-    await dst.collection('document').updateOne(
-        { _id: doc._id },
-        { $set: { pid: doc.pid || doc.docId.toString(), content: addSpace(doc.content) } },
-    );
+    await dst.collection('document').updateOne({ _id: doc._id }, { $set: { pid: doc.pid || doc.docId.toString(), content: addSpace(doc.content) } });
 }
 
 async function fixProblem(report: Function) {
@@ -332,8 +326,11 @@ async function fixProblem(report: Function) {
     await report({ progress: 1, message: `Fix pid: ${count}` });
     const total = Math.floor(count / 50);
     for (let i = 0; i <= total; i++) {
-        const docs = await dst.collection('document')
-            .find({ docType: 10 }).skip(i * 50).limit(50)
+        const docs = await dst
+            .collection('document')
+            .find({ docType: 10 })
+            .skip(i * 50)
+            .limit(50)
             .toArray();
         for (const doc of docs) {
             await fix(doc).catch((e) => report({ message: `${e.toString()}\n${e.stack}` }));
@@ -354,8 +351,11 @@ async function message(src: Db, report: Function) {
     await report({ progress: 1, message: `Messages: ${count}` });
     const total = Math.floor(count / 50);
     for (let i = 0; i <= total; i++) {
-        const docs = await src.collection('message')
-            .find().skip(i * 50).limit(50)
+        const docs = await src
+            .collection('message')
+            .find()
+            .skip(i * 50)
+            .limit(50)
             .toArray();
         for (const doc of docs) {
             for (const msg of doc.reply) {
@@ -380,8 +380,11 @@ async function removeInvalidPid(report: Function) {
     await report({ progress: 1, message: `Remove pid: ${count}` });
     const total = Math.floor(count / 50);
     for (let i = 0; i <= total; i++) {
-        const docs = await dst.collection('document')
-            .find({ docType: 10 }).skip(i * 50).limit(50)
+        const docs = await dst
+            .collection('document')
+            .find({ docType: 10 })
+            .skip(i * 50)
+            .limit(50)
             .toArray();
         for (const doc of docs) {
             const id = parseInt(doc.pid, 10);
@@ -397,7 +400,10 @@ async function task(name: any, src: Db, report: Function) {
     await report({ progress: 1, message: `${name}` });
     let lastProgress = -1;
     for (let i = 0; ; i++) {
-        const docs = await cursor[name](src).skip(i * 50).limit(50).toArray();
+        const docs = await cursor[name](src)
+            .skip(i * 50)
+            .limit(50)
+            .toArray();
         if (!docs.length) break;
         const res = [];
         for (const doc of docs) {
@@ -433,27 +439,38 @@ async function task(name: any, src: Db, report: Function) {
                 if (d.domainId && d.docId && d.docType) {
                     const query: any = { domainId: d.domainId, docId: d.docId, docType: d.docType };
                     if (d.uid) query.uid = d.uid;
-                    res.push((async () => {
-                        const data = await dst.collection(name).findOne(query);
-                        if (data) {
-                            await dst.collection(name).updateOne(query, { $set: docWithoutDid });
-                        } else if (d._id) {
-                            const dat = await dst.collection(name).findOne({ _id: d._id });
-                            if (dat) {
-                                await dst.collection(name).updateOne({
-                                    _id: d._id,
-                                }, { $set: docWithoutId });
+                    res.push(
+                        (async () => {
+                            const data = await dst.collection(name).findOne(query);
+                            if (data) {
+                                await dst.collection(name).updateOne(query, { $set: docWithoutDid });
+                            } else if (d._id) {
+                                const dat = await dst.collection(name).findOne({ _id: d._id });
+                                if (dat) {
+                                    await dst.collection(name).updateOne(
+                                        {
+                                            _id: d._id,
+                                        },
+                                        { $set: docWithoutId },
+                                    );
+                                } else {
+                                    await dst.collection(name).insertOne(d);
+                                }
                             } else {
                                 await dst.collection(name).insertOne(d);
                             }
-                        } else {
-                            await dst.collection(name).insertOne(d);
-                        }
-                    })());
+                        })(),
+                    );
                 } else if (d._id) {
-                    res.push(dst.collection(name).updateOne({
-                        _id: d._id,
-                    }, { $set: docWithoutId }, { upsert: true }));
+                    res.push(
+                        dst.collection(name).updateOne(
+                            {
+                                _id: d._id,
+                            },
+                            { $set: docWithoutId },
+                            { upsert: true },
+                        ),
+                    );
                 } else res.push(dst.collection(name).insertOne(d));
             }
         }
@@ -465,9 +482,7 @@ async function task(name: any, src: Db, report: Function) {
     }
 }
 
-export async function run({
-    host = 'localhost', port = 27017, name = 'vijos4', username, password,
-}, report: Function) {
+export async function run({ host = 'localhost', port = 27017, name = 'vijos4', username, password }, report: Function) {
     let mongourl = 'mongodb://';
     if (username) mongourl += `${username}:${password}@`;
     mongourl += `${host}:${port}/${name}`;
@@ -480,7 +495,7 @@ export async function run({
         return false;
     }
     await report({ progress: 1, message: 'Collection:system done.' });
-    if (!await dst.collection('system').findOne({ _id: 'migrateVijosFs' })) {
+    if (!(await dst.collection('system').findOne({ _id: 'migrateVijosFs' }))) {
         const f = ['fs.files', 'fs.chunks'] as any;
         for (const i of f) {
             await dst.collection(i).deleteMany({});

@@ -35,12 +35,7 @@ class TokenModel {
         [TokenModel.TYPE_ACTIVATION]: 'Activation Code',
     };
 
-    static async add(
-        tokenType: number,
-        expireSeconds: number,
-        data: any,
-        id = String.random(32),
-    ): Promise<[string, TokenDoc]> {
+    static async add(tokenType: number, expireSeconds: number, data: any, id = String.random(32)): Promise<[string, TokenDoc]> {
         const now = new Date();
         const payload = {
             ...data,
@@ -98,11 +93,7 @@ class TokenModel {
 
     @ArgMethod
     static getSessionListByUid(uid: number) {
-        return TokenModel.coll
-            .find({ uid, tokenType: TokenModel.TYPE_SESSION })
-            .sort('updateAt', -1)
-            .limit(100)
-            .toArray();
+        return TokenModel.coll.find({ uid, tokenType: TokenModel.TYPE_SESSION }).sort('updateAt', -1).limit(100).toArray();
     }
 
     @ArgMethod
@@ -132,12 +123,7 @@ class TokenModel {
             expireAt = typeof expireAt === 'string' ? new Date(expireAt) : expireAt;
             const expireSeconds = Math.round((expireAt.getTime() - new Date().getTime()) / 1000);
             // eslint-disable-next-line no-await-in-loop
-            const [_, doc] = await this.add(
-                TokenModel.TYPE_ACTIVATION,
-                expireSeconds,
-                { ...data, owner, remaining: times },
-                code,
-            );
+            const [_, doc] = await this.add(TokenModel.TYPE_ACTIVATION, expireSeconds, { ...data, owner, remaining: times }, code);
             _docs.push(doc as ActivationCode);
         }
         return _docs;

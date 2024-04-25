@@ -9,9 +9,7 @@ import { Context, ContextSubTask } from './interface';
 function judgeCase(c: NormalizedCase) {
     return async (ctx: Context, ctxSubtask: ContextSubTask) => {
         const { address_space_limit, process_limit } = ctx.session.getLang(ctx.lang);
-        const [{
-            code, signalled, time, memory,
-        }, resInteractor] = await runPiped(
+        const [{ code, signalled, time, memory }, resInteractor] = await runPiped(
             {
                 execute: ctx.executeUser.execute,
                 copyIn: ctx.executeUser.copyIn,
@@ -42,7 +40,7 @@ function judgeCase(c: NormalizedCase) {
             status = STATUS.STATUS_TIME_LIMIT_EXCEEDED;
         } else if (memory > c.memory * 1024) {
             status = STATUS.STATUS_MEMORY_LIMIT_EXCEEDED;
-        } else if (detail && ((code && code !== 13/* Broken Pipe */) || (code === 13 && !resInteractor.code))) {
+        } else if (detail && ((code && code !== 13) /* Broken Pipe */ || (code === 13 && !resInteractor.code))) {
             status = STATUS.STATUS_RUNTIME_ERROR;
             if (code < 32 && signalled) message = signals[code];
             else message = { message: 'Your program returned {0}.', params: [code] };
@@ -65,12 +63,13 @@ function judgeCase(c: NormalizedCase) {
     };
 }
 
-export const judge = async (ctx: Context) => await runFlow(ctx, {
-    compile: async () => {
-        [ctx.executeUser, ctx.executeInteractor] = await Promise.all([
-            ctx.compile(ctx.lang, ctx.code),
-            ctx.compileLocalFile('interactor', ctx.config.interactor),
-        ]);
-    },
-    judgeCase,
-});
+export const judge = async (ctx: Context) =>
+    await runFlow(ctx, {
+        compile: async () => {
+            [ctx.executeUser, ctx.executeInteractor] = await Promise.all([
+                ctx.compile(ctx.lang, ctx.code),
+                ctx.compileLocalFile('interactor', ctx.config.interactor),
+            ]);
+        },
+        judgeCase,
+    });

@@ -3,9 +3,7 @@ import _ from 'lodash';
 import { ActionDialog, ConfirmDialog } from 'vj/components/dialog';
 import Notification from 'vj/components/notification';
 import { NamedPage } from 'vj/misc/Page';
-import {
-  delay, i18n, request, tpl,
-} from 'vj/utils';
+import { delay, i18n, request, tpl } from 'vj/utils';
 
 const page = new NamedPage('domain_role', () => {
   const createRoleDialog = new ActionDialog({
@@ -25,10 +23,7 @@ const page = new NamedPage('domain_role', () => {
   };
 
   function ensureAndGetSelectedRoles() {
-    const roles = _.map(
-      $('.domain-roles tbody [type="checkbox"]:checked'),
-      (ch) => $(ch).closest('tr').attr('data-role'),
-    );
+    const roles = _.map($('.domain-roles tbody [type="checkbox"]:checked'), (ch) => $(ch).closest('tr').attr('data-role'));
     if (roles.length === 0) {
       Notification.error(i18n('Please select at least one role to perform this operation.'));
       return null;

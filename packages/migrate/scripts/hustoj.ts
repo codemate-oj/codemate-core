@@ -4,8 +4,26 @@ import path from 'path';
 import mariadb from 'mariadb';
 import TurndownService from 'turndown';
 import {
-    _, buildContent, ContestModel, DomainModel, fs, MessageModel, moment, noop, NotFoundError, ObjectId, postJudge, ProblemModel,
-    RecordDoc, RecordModel, SolutionModel, STATUS, StorageModel, SystemModel, Time, UserModel,
+    _,
+    buildContent,
+    ContestModel,
+    DomainModel,
+    fs,
+    MessageModel,
+    moment,
+    noop,
+    NotFoundError,
+    ObjectId,
+    postJudge,
+    ProblemModel,
+    RecordDoc,
+    RecordModel,
+    SolutionModel,
+    STATUS,
+    StorageModel,
+    SystemModel,
+    Time,
+    UserModel,
 } from 'hydrooj';
 
 const turndown = new TurndownService({
@@ -60,11 +78,22 @@ async function addContestFile(domainId: string, tid: ObjectId, filename: string,
     return true;
 }
 
-export async function run({
-    host = 'localhost', port = 3306, name = 'jol',
-    username, password, domainId, contestType = 'oi',
-    dataDir, uploadDir = '/home/judge/src/web/upload/', rerun = true, randomMail = false,
-}, report: Function) {
+export async function run(
+    {
+        host = 'localhost',
+        port = 3306,
+        name = 'jol',
+        username,
+        password,
+        domainId,
+        contestType = 'oi',
+        dataDir,
+        uploadDir = '/home/judge/src/web/upload/',
+        rerun = true,
+        randomMail = false,
+    },
+    report: Function,
+) {
     let remoteUsed = false;
     const src = await mariadb.createConnection({
         host,
@@ -73,9 +102,12 @@ export async function run({
         password,
         database: name,
     });
-    const query = (q: string) => new Promise<any[]>((res, rej) => {
-        src.query(q).then((r) => res(r)).catch((e) => rej(e));
-    });
+    const query = (q: string) =>
+        new Promise<any[]>((res, rej) => {
+            src.query(q)
+                .then((r) => res(r))
+                .catch((e) => rej(e));
+        });
     const target = await DomainModel.get(domainId);
     if (!target) throw new NotFoundError(domainId);
     report({ message: 'Connected to database' });
@@ -107,8 +139,12 @@ export async function run({
             uidMap[udoc.user_id] = current._id;
         } else {
             const uid = await UserModel.create(
-                udoc.email || `${udoc.user_id}@hustoj.local`, udoc.user_id, '',
-                null, udoc.ip, udoc.defunct === 'Y' ? 0 : SystemModel.get('default.priv'),
+                udoc.email || `${udoc.user_id}@hustoj.local`,
+                udoc.user_id,
+                '',
+                null,
+                udoc.ip,
+                udoc.defunct === 'Y' ? 0 : SystemModel.get('default.priv'),
             );
             uidMap[udoc.user_id] = uid;
             await UserModel.setById(uid, {
@@ -167,14 +203,17 @@ export async function run({
             }
             if (!pidMap[pdoc.problem_id]) {
                 const files = {};
-                let content = buildContent({
-                    description: pdoc.description,
-                    input: pdoc.input,
-                    output: pdoc.output,
-                    samples: [[pdoc.sample_input.trim(), pdoc.sample_output.trim()]],
-                    hint: pdoc.hint,
-                    source: pdoc.source,
-                }, 'html');
+                let content = buildContent(
+                    {
+                        description: pdoc.description,
+                        input: pdoc.input,
+                        output: pdoc.output,
+                        samples: [[pdoc.sample_input.trim(), pdoc.sample_output.trim()]],
+                        hint: pdoc.hint,
+                        source: pdoc.source,
+                    },
+                    'html',
+                );
                 const uploadFiles = content.matchAll(/(?:src|href)="\/upload\/([^"]+\/([^"]+))"/g);
                 for (const file of uploadFiles) {
                     try {
@@ -185,9 +224,17 @@ export async function run({
                     }
                 }
                 const pid = await ProblemModel.add(
-                    domainId, `P${pdoc.problem_id}`,
-                    pdoc.title, content,
-                    1, pdoc.source?.trim().length ? pdoc.source.split(' ').map((i) => i.trim()).filter((i) => i) : [],
+                    domainId,
+                    `P${pdoc.problem_id}`,
+                    pdoc.title,
+                    content,
+                    1,
+                    pdoc.source?.trim().length
+                        ? pdoc.source
+                              .split(' ')
+                              .map((i) => i.trim())
+                              .filter((i) => i)
+                        : [],
                     { hidden: pdoc.defunct === 'Y' },
                 );
                 pidMap[pdoc.problem_id] = pid;
@@ -202,10 +249,14 @@ export async function run({
                 nSubmit: pdoc.submit,
                 config: `time: ${pdoc.time_limit}s
 memory: ${pdoc.memory_limit}m
-${pdoc.remote_oj === 'bas' ? `type: remote_judge
+${
+    pdoc.remote_oj === 'bas'
+        ? `type: remote_judge
 subType: ybtbas
 target: ybtbas/${+pdoc.id - 3000}
-` : ''}`,
+`
+        : ''
+}`,
                 owner: uidMap[cdoc[0]?.user_id] || 1,
                 maintainer,
                 html: true,
@@ -254,8 +305,15 @@ hydrooj install https://hydro.ac/hydroac-client.zip
         // WHY you allow contest with end time BEFORE start time? WHY???
         const endAt = moment(tdoc.end_time).isSameOrBefore(tdoc.start_time) ? moment(tdoc.end_time).add(1, 'minute').toDate() : tdoc.end_time;
         const tid = await ContestModel.add(
-            domainId, tdoc.title, tdoc.description || 'Description',
-            adminUids[0], contestType, tdoc.start_time, endAt, pids, true,
+            domainId,
+            tdoc.title,
+            tdoc.description || 'Description',
+            adminUids[0],
+            contestType,
+            tdoc.start_time,
+            endAt,
+            pids,
+            true,
             { _code: password },
         );
         tidMap[tdoc.contest_id] = tid.toHexString();

@@ -31,9 +31,7 @@ const compilerOptionsBase = {
 const baseOutDir = path.resolve(__dirname, '../.cache/ts-out');
 const config = {
     compilerOptions: compilerOptionsBase,
-    references: [
-        { path: 'tsconfig.ui.json' },
-    ],
+    references: [{ path: 'tsconfig.ui.json' }],
     files: [],
 };
 const configSrc = (name) => ({
@@ -43,11 +41,7 @@ const configSrc = (name) => ({
         rootDir: 'src',
     },
     include: ['src'],
-    exclude: [
-        '**/__mocks__',
-        'bin',
-        'dist',
-    ],
+    exclude: ['**/__mocks__', 'bin', 'dist'],
 });
 const configFlat = (name) => ({
     compilerOptions: {
@@ -55,9 +49,7 @@ const configFlat = (name) => ({
         outDir: path.join(baseOutDir, name),
         rootDir: '.',
         paths: {
-            'vj/*': [
-                '../../packages/ui-default/*',
-            ],
+            'vj/*': ['../../packages/ui-default/*'],
         },
     },
     include: ['**/*.ts'],
@@ -75,16 +67,17 @@ for (const name of ['plugins', 'modules']) {
 const modules = [
     'packages/hydrooj',
     ...['packages', 'plugins', 'modules'].flatMap((i) => fs.readdirSync(path.resolve(process.cwd(), i)).map((j) => `${i}/${j}`)),
-].filter((i) => !i.includes('/.') && !i.includes('ui-default')).filter((i) => fs.statSync(path.resolve(process.cwd(), i)).isDirectory());
+]
+    .filter((i) => !i.includes('/.') && !i.includes('ui-default'))
+    .filter((i) => fs.statSync(path.resolve(process.cwd(), i)).isDirectory());
 
 const UIConfig = {
-    exclude: [
-        'packages/ui-default/public',
-    ],
-    include: ['ts', 'tsx']
-        .flatMap((ext) => ['plugins', 'modules']
+    exclude: ['packages/ui-default/public'],
+    include: ['ts', 'tsx'].flatMap((ext) =>
+        ['plugins', 'modules']
             .flatMap((name) => [`${name}/**/public/**/*.${ext}`, `${name}/**/frontend/**/*.${ext}`])
-            .concat(`packages/ui-default/**/*.${ext}`)),
+            .concat(`packages/ui-default/**/*.${ext}`),
+    ),
     compilerOptions: {
         experimentalDecorators: true,
         esModuleInterop: true,
@@ -98,9 +91,7 @@ const UIConfig = {
         outDir: path.join(baseOutDir, 'ui'),
         moduleResolution: 'node',
         paths: {
-            'vj/*': [
-                './packages/ui-default/*',
-            ],
+            'vj/*': ['./packages/ui-default/*'],
         },
     },
 };
@@ -108,12 +99,8 @@ const UIConfig = {
 const nm = path.resolve(__dirname, '../node_modules');
 fs.ensureDirSync(path.join(nm, '@hydrooj'));
 try {
-    fs.symlinkSync(
-        path.join(process.cwd(), 'packages/ui-default'),
-        path.join(nm, '@hydrooj/ui-default'),
-        'dir',
-    );
-} catch (e) { }
+    fs.symlinkSync(path.join(process.cwd(), 'packages/ui-default'), path.join(nm, '@hydrooj/ui-default'), 'dir');
+} catch (e) {}
 for (const package of modules) {
     const basedir = path.resolve(process.cwd(), package);
     const files = fs.readdirSync(basedir);
@@ -121,7 +108,7 @@ for (const package of modules) {
         // eslint-disable-next-line import/no-dynamic-require
         const name = require(path.join(basedir, 'package.json')).name;
         fs.symlinkSync(basedir, path.join(nm, name), 'dir');
-    } catch (e) { }
+    } catch (e) {}
     if (!files.includes('src') && !files.filter((i) => i.endsWith('.ts')).length && package !== 'packages/utils') continue;
     config.references.push({ path: package });
     const origConfig = (files.includes('src') ? configSrc : configFlat)(package);

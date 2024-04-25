@@ -1,9 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { PassThrough } from 'stream';
 import { JSDOM } from 'jsdom';
-import {
-    htmlEncode, Logger, parseMemoryMB, parseTimeMS, sleep, STATUS,
-} from 'hydrooj';
+import { htmlEncode, Logger, parseMemoryMB, parseTimeMS, sleep, STATUS } from 'hydrooj';
 import { BasicFetcher } from '../fetch';
 import { IBasicProvider, RemoteAccount } from '../interface';
 import { VERDICT } from '../verdict';
@@ -58,7 +56,10 @@ const langs = {
 };
 
 export default class POJProvider extends BasicFetcher implements IBasicProvider {
-    constructor(public account: RemoteAccount, private save: (data: any) => Promise<void>) {
+    constructor(
+        public account: RemoteAccount,
+        private save: (data: any) => Promise<void>,
+    ) {
         super(account, 'http://poj.org', 'form', logger);
     }
 
@@ -76,27 +77,25 @@ export default class POJProvider extends BasicFetcher implements IBasicProvider 
         if (await this.loggedIn) return true;
         logger.info('retry login');
         await this.getCsrfToken('/');
-        await this.post('/login')
-            .set('referer', 'http://poj.org/')
-            .send({
-                user_id1: this.account.handle,
-                password1: this.account.password,
-                B1: 'login',
-                url: '/',
-            });
+        await this.post('/login').set('referer', 'http://poj.org/').send({
+            user_id1: this.account.handle,
+            password1: this.account.password,
+            B1: 'login',
+            url: '/',
+        });
         return this.loggedIn;
     }
 
     async getProblem(id: string) {
         logger.info(id);
         const res = await this.get(`/problem?id=${id.split('P')[1]}`);
-        const { window: { document } } = new JSDOM(res.text);
+        const {
+            window: { document },
+        } = new JSDOM(res.text);
         const files = {};
         const main = document.querySelector('[background="images/table_back.jpg"]>tbody>tr>td');
-        const languages = [...main.children[0].children[0].children]
-            .map((i) => i.getAttribute('value'));
-        const info = main.getElementsByClassName('plm')[0]
-            .children[0].children[0].children[0];
+        const languages = [...main.children[0].children[0].children].map((i) => i.getAttribute('value'));
+        const info = main.getElementsByClassName('plm')[0].children[0].children[0].children[0];
         const time = info.children[0].innerHTML.split('</b> ')[1].toLowerCase().trim();
         const memory = info.children[2].innerHTML.split('</b> ')[1].toLowerCase().trim();
         const contents = {};
@@ -105,7 +104,9 @@ export default class POJProvider extends BasicFetcher implements IBasicProvider 
         for (const lang of languages) {
             await sleep(1000);
             const { text } = await this.get(`/problem?id=${id.split('P')[1]}&lang=${lang}&change=true`);
-            const { window: { document: page } } = new JSDOM(text);
+            const {
+                window: { document: page },
+            } = new JSDOM(text);
             const content = page.querySelector('[background="images/table_back.jpg"]>tbody>tr>td');
             content.children[0].remove();
             content.children[0].remove();
@@ -188,8 +189,9 @@ export default class POJProvider extends BasicFetcher implements IBasicProvider 
         if (resync && page > 1) return [];
         const { text } = await this.get(`/problemlist?volume=${page}`);
         const $dom = new JSDOM(text);
-        return Array.from($dom.window.document.querySelectorAll('.a>tbody>tr[align="center"]'))
-            .map((i) => `P${+i.children[0].innerHTML ? i.children[0].innerHTML : i.children[1].innerHTML}`);
+        return Array.from($dom.window.document.querySelectorAll('.a>tbody>tr[align="center"]')).map(
+            (i) => `P${+i.children[0].innerHTML ? i.children[0].innerHTML : i.children[1].innerHTML}`,
+        );
     }
 
     async submitProblem(id: string, lang: string, code: string) {
@@ -219,10 +221,11 @@ export default class POJProvider extends BasicFetcher implements IBasicProvider 
             count++;
             await sleep(3000);
             const { text } = await this.get(`/status?top=${+id + 1}`);
-            const { window: { document } } = new JSDOM(text);
+            const {
+                window: { document },
+            } = new JSDOM(text);
             const submission = document.querySelector('.a>tbody>tr[align="center"]');
-            const status = VERDICT[submission.children[3].children[0].textContent.trim().toUpperCase()]
-                || STATUS.STATUS_SYSTEM_ERROR;
+            const status = VERDICT[submission.children[3].children[0].textContent.trim().toUpperCase()] || STATUS.STATUS_SYSTEM_ERROR;
             if (status === STATUS.STATUS_JUDGING) continue;
             if (status === STATUS.STATUS_COMPILE_ERROR) {
                 const { text: info } = await this.get(`/showcompileinfo?solution_id=${id}`);

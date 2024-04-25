@@ -1,17 +1,12 @@
 import esbuild from 'esbuild';
-import {
-  Context, fs, Handler, Logger, NotFoundError, param, SettingModel, sha1,
-  size, Types, UiContextBase,
-} from 'hydrooj';
+import { Context, fs, Handler, Logger, NotFoundError, param, SettingModel, sha1, size, Types, UiContextBase } from 'hydrooj';
 import { debounce } from 'lodash';
 import { tmpdir } from 'os';
-import {
-  basename, join, relative, resolve,
-} from 'path';
+import { basename, join, relative, resolve } from 'path';
 
 declare module 'hydrooj' {
   interface UI {
-    esbuildPlugins?: esbuild.Plugin[]
+    esbuildPlugins?: esbuild.Plugin[];
   }
   interface SystemKeys {
     'ui-default.nav_logo_dark': string;
@@ -49,10 +44,7 @@ const build = async (contents: string) => {
     splitting: false,
     write: false,
     target: ['chrome65'],
-    plugins: [
-      ...(global.Hydro.ui.esbuildPlugins || []),
-      federationPlugin,
-    ],
+    plugins: [...(global.Hydro.ui.esbuildPlugins || []), federationPlugin],
     minify: !process.env.DEV,
     stdin: {
       contents,
@@ -101,10 +93,11 @@ export async function buildUI() {
     const str = `window.LOCALES=${JSON.stringify(global.Hydro.locales[lang][Symbol.for('iterate')])};`;
     addFile(`lang-${lang}.js`, str);
   }
-  const entry = await build([
-    `window.lazyloadMetadata = ${JSON.stringify(hashes)};`,
-    ...entryPoints.map((i) => `import '${relative(tmp, i).replace(/\\/g, '\\\\')}';`),
-  ].join('\n'));
+  const entry = await build(
+    [`window.lazyloadMetadata = ${JSON.stringify(hashes)};`, ...entryPoints.map((i) => `import '${relative(tmp, i).replace(/\\/g, '\\\\')}';`)].join(
+      '\n',
+    ),
+  );
   const pages = entry.outputFiles.map((i) => i.text);
   const str = `window.LANGS=${JSON.stringify(SettingModel.langs)};${pages.join('\n')}`;
   addFile('entry.js', str);

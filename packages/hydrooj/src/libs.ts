@@ -9,9 +9,7 @@ export { WebSocket, WebSocketServer } from 'ws';
 export * from './utils';
 export * from './interface';
 export * from './typeutils';
-export {
-    Schema, AdmZip, superagent, _, ObjectID,
-};
+export { Schema, AdmZip, superagent, _, ObjectID };
 export const definePlugin = <T = never>(args: {
     using?: keyof Context[];
     apply: (ctx: Context, config: T) => Promise<void> | void;

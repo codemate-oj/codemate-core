@@ -4,18 +4,12 @@ import $ from 'jquery';
 import { ConfirmDialog } from 'vj/components/dialog';
 import CommentBox from 'vj/components/discussion/CommentBox';
 import { AutoloadPage } from 'vj/misc/Page';
-import {
-  delay, i18n, request, slideDown, slideUp, tpl,
-} from 'vj/utils';
+import { delay, i18n, request, slideDown, slideUp, tpl } from 'vj/utils';
 
 const $replyTemplate = $('.commentbox-container').eq(0).clone();
 
 function createReplyContainer($parent) {
-  const $container = $replyTemplate
-    .clone()
-    .hide()
-    .prependTo($parent.find('.commentbox-reply-target').eq(0))
-    .trigger('vjContentNew');
+  const $container = $replyTemplate.clone().hide().prependTo($parent.find('.commentbox-reply-target').eq(0)).trigger('vjContentNew');
   return $container.find('.commentbox-placeholder');
 }
 
@@ -64,10 +58,7 @@ function onClickDummyBox(ev) {
 
   $mediaBody.addClass('is-editing');
 
-  CommentBox
-    .getOrConstruct($evTarget, opt)
-    .appendTo($mediaBody.find('.commentbox-placeholder').eq(0))
-    .focus();
+  CommentBox.getOrConstruct($evTarget, opt).appendTo($mediaBody.find('.commentbox-placeholder').eq(0)).focus();
 }
 
 async function onCommentClickReplyComment(ev, options: any = {}) {
@@ -76,8 +67,7 @@ async function onCommentClickReplyComment(ev, options: any = {}) {
   if (CommentBox.get($evTarget)) {
     // If comment box is already expanded,
     // we should insert "initialText"
-    CommentBox
-      .get($evTarget)
+    CommentBox.get($evTarget)
       .insertText(options.initialText || '')
       .focus();
     return;
@@ -94,12 +84,10 @@ async function onCommentClickReplyComment(ev, options: any = {}) {
     },
   };
 
-  const cbox = CommentBox
-    .getOrConstruct($evTarget, {
-      form: JSON.parse($evTarget.attr('data-form')),
-      ...opt,
-    })
-    .appendTo(createReplyContainer($mediaBody));
+  const cbox = CommentBox.getOrConstruct($evTarget, {
+    form: JSON.parse($evTarget.attr('data-form')),
+    ...opt,
+  }).appendTo(createReplyContainer($mediaBody));
   await showReplyContainer($mediaBody);
   cbox.focus();
 }
@@ -107,13 +95,12 @@ async function onCommentClickReplyComment(ev, options: any = {}) {
 async function onCommentClickReplyReply(ev) {
   const $evTarget = $(ev.currentTarget);
   const $mediaBody = $evTarget.closest('.media__body');
-  const uid = $mediaBody
-    .find('.user-profile-name')
-    .attr('href').split('/user/')[1];
+  const uid = $mediaBody.find('.user-profile-name').attr('href').split('/user/')[1];
 
   $evTarget
     .closest('.dczcomments__item')
-    .find('[data-op="reply"][data-type="comment"]').eq(0)
+    .find('[data-op="reply"][data-type="comment"]')
+    .eq(0)
     .trigger('click', { initialText: `@[](/user/${uid.trim()}) ` });
 }
 
@@ -127,11 +114,7 @@ async function onCommentClickEdit(mode, ev) {
 
   const $mediaBody = $evTarget.closest('.media__body');
 
-  const raw = await request.get(
-    $mediaBody.find('.typo').eq(0).attr('data-raw-url'),
-    {},
-    { dataType: 'text' },
-  );
+  const raw = await request.get($mediaBody.find('.typo').eq(0).attr('data-raw-url'), {}, { dataType: 'text' });
 
   const opt = {
     initialText: raw,
@@ -144,10 +127,7 @@ async function onCommentClickEdit(mode, ev) {
 
   $mediaBody.addClass('is-editing');
 
-  CommentBox
-    .getOrConstruct($evTarget, opt)
-    .appendTo($mediaBody.find('.commentbox-edit-target').eq(0))
-    .focus();
+  CommentBox.getOrConstruct($evTarget, opt).appendTo($mediaBody.find('.commentbox-edit-target').eq(0)).focus();
 }
 
 function onCommentClickEditComment(ev) {
@@ -159,9 +139,7 @@ function onCommentClickEditReply(ev) {
 }
 
 async function onCommentClickDelete(type, ev) {
-  const message = (type === 'comment')
-    ? 'Confirm deleting this comment? Its replies will be deleted as well.'
-    : 'Confirm deleting this reply?';
+  const message = type === 'comment' ? 'Confirm deleting this comment? Its replies will be deleted as well.' : 'Confirm deleting this reply?';
   const action = await new ConfirmDialog({
     $body: tpl.typoMsg(i18n(message)),
   }).open();

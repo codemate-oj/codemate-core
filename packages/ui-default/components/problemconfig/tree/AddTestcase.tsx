@@ -1,6 +1,4 @@
-import {
-  Button, Classes, Dialog, DialogBody, DialogFooter, Icon,
-} from '@blueprintjs/core';
+import { Button, Classes, Dialog, DialogBody, DialogFooter, Icon } from '@blueprintjs/core';
 import { readSubtasksFromFiles } from '@hydrooj/utils/lib/common';
 import React, { useEffect, useRef } from 'react';
 import { useSelector, useStore } from 'react-redux';
@@ -65,7 +63,10 @@ export function AddTestcase() {
 
   function auto() {
     const state = store.getState();
-    const subtasks = readSubtasksFromFiles(state.testdata.map((i) => i.name), {});
+    const subtasks = readSubtasksFromFiles(
+      state.testdata.map((i) => i.name),
+      {},
+    );
     const current = state.config.subtasks.flatMap((i) => i.cases).concat(state.config.__cases);
     const pending = [];
     for (const c of subtasks.flatMap((s) => s.cases)) {
@@ -82,64 +83,70 @@ export function AddTestcase() {
     });
   }
 
-  return (<>
-    <li className={Classes.TREE_NODE} onClick={auto}>
-      <div className="bp5-tree-node-content bp5-tree-node-content-0">
-        <Icon icon="clean" />&nbsp;
-        <span className={Classes.TREE_NODE_LABEL}>{i18n('Auto detect')}</span>
-      </div>
-    </li>
-    <li
-      className={Classes.TREE_NODE}
-      onClick={() => {
-        setInput('');
-        setOutput('');
-        setAutoInput(true);
-        setAutoOutput(true);
-        setOpen(true);
-      }}
-    >
-      <div className="bp5-tree-node-content bp5-tree-node-content-0">
-        <Icon icon="clean" />&nbsp;
-        <span className={Classes.TREE_NODE_LABEL}>{i18n('Add testcase')}</span>
-      </div>
-    </li>
-    <Dialog title="Add testcase" icon="cog" isOpen={open} onClose={() => setOpen(false)}>
-      <DialogBody>
-        <div className="row">
-          <div className="columns medium-6">
-            <FileSelectAutoComplete
-              ref={refInput}
-              data={testdata}
-              label="Input"
-              width="100%"
-              onChange={(e) => setInput(e)}
-              placeholder={i18n('Input')}
-              value={input || ''}
-            />
-          </div>
-          <div className="columns medium-6">
-            <FileSelectAutoComplete
-              ref={refOutput}
-              data={testdata}
-              label="Output"
-              width="100%"
-              onChange={(e) => setOutput(e)}
-              placeholder={i18n('Output')}
-              value={input || ''}
-            />
-          </div>
+  return (
+    <>
+      <li className={Classes.TREE_NODE} onClick={auto}>
+        <div className="bp5-tree-node-content bp5-tree-node-content-0">
+          <Icon icon="clean" />
+          &nbsp;
+          <span className={Classes.TREE_NODE_LABEL}>{i18n('Auto detect')}</span>
         </div>
-      </DialogBody>
-      <DialogFooter
-        actions={<Button
-          className={`primary rounded button${valid ? '' : ' disabled'}`}
-          onClick={onConfirm}
-          disabled={!valid}
-          intent="primary"
-          text="Save"
-        />}
-      />
-    </Dialog>
-  </>);
+      </li>
+      <li
+        className={Classes.TREE_NODE}
+        onClick={() => {
+          setInput('');
+          setOutput('');
+          setAutoInput(true);
+          setAutoOutput(true);
+          setOpen(true);
+        }}
+      >
+        <div className="bp5-tree-node-content bp5-tree-node-content-0">
+          <Icon icon="clean" />
+          &nbsp;
+          <span className={Classes.TREE_NODE_LABEL}>{i18n('Add testcase')}</span>
+        </div>
+      </li>
+      <Dialog title="Add testcase" icon="cog" isOpen={open} onClose={() => setOpen(false)}>
+        <DialogBody>
+          <div className="row">
+            <div className="columns medium-6">
+              <FileSelectAutoComplete
+                ref={refInput}
+                data={testdata}
+                label="Input"
+                width="100%"
+                onChange={(e) => setInput(e)}
+                placeholder={i18n('Input')}
+                value={input || ''}
+              />
+            </div>
+            <div className="columns medium-6">
+              <FileSelectAutoComplete
+                ref={refOutput}
+                data={testdata}
+                label="Output"
+                width="100%"
+                onChange={(e) => setOutput(e)}
+                placeholder={i18n('Output')}
+                value={input || ''}
+              />
+            </div>
+          </div>
+        </DialogBody>
+        <DialogFooter
+          actions={
+            <Button
+              className={`primary rounded button${valid ? '' : ' disabled'}`}
+              onClick={onConfirm}
+              disabled={!valid}
+              intent="primary"
+              text="Save"
+            />
+          }
+        />
+      </Dialog>
+    </>
+  );
 }

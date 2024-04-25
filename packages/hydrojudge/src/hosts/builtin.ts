@@ -2,10 +2,7 @@
 /* eslint-disable no-await-in-loop */
 import path from 'path';
 import { fs } from '@hydrooj/utils';
-import {
-    JudgeResultBody, ObjectId, RecordModel, SettingModel,
-    StorageModel, SystemModel, TaskModel,
-} from 'hydrooj';
+import { JudgeResultBody, ObjectId, RecordModel, SettingModel, StorageModel, SystemModel, TaskModel } from 'hydrooj';
 import { end, next, processJudgeFileCallback } from 'hydrooj/src/handler/judge';
 import { getConfig } from '../config';
 import { FormatError, SystemError } from '../error';
@@ -56,7 +53,9 @@ const session = {
         let etags: Record<string, string> = {};
         try {
             etags = JSON.parse(await fs.readFile(path.join(filePath, 'etags'), 'utf-8'));
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            /* ignore */
+        }
         const version = {};
         const filenames = new Set<string>();
         for (const file of files) {
@@ -89,7 +88,7 @@ export async function postInit(ctx) {
             logger.debug('Record not found: %o', t);
             return;
         }
-        await (new JudgeTask(session, JSON.parse(JSON.stringify(Object.assign(rdoc, t))))).handle().catch(logger.error);
+        await new JudgeTask(session, JSON.parse(JSON.stringify(Object.assign(rdoc, t)))).handle().catch(logger.error);
     };
     const parallelism = Math.max(getConfig('parallelism'), 2);
     const taskConsumer = TaskModel.consume({ type: 'judge' }, handle, true, parallelism);

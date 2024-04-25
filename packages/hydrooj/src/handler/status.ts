@@ -62,11 +62,7 @@ class StatusUpdateHandler extends Handler {
         this.checkPriv(PRIV.PRIV_JUDGE);
         args.type = 'judge';
         args.updateAt = new Date();
-        return coll.updateOne(
-            { mid: args.mid, type: 'judge' },
-            { $set: args },
-            { upsert: true },
-        );
+        return coll.updateOne({ mid: args.mid, type: 'judge' }, { $set: args }, { upsert: true });
     }
 }
 

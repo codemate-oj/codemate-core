@@ -1,6 +1,4 @@
-import {
-  Card, InputGroup, Tag,
-} from '@blueprintjs/core';
+import { Card, InputGroup, Tag } from '@blueprintjs/core';
 import { isEqual } from 'lodash';
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -71,8 +69,13 @@ function ExtraFilesConfig() {
 
 function LangConfig() {
   const langs = useSelector((state: RootState) => state.config.langs) || [];
-  const prefixes = new Set(Object.keys(window.LANGS).filter((i) => i.includes('.')).map((i) => i.split('.')[0]));
-  const data = Object.keys(window.LANGS).filter((i) => !prefixes.has(i))
+  const prefixes = new Set(
+    Object.keys(window.LANGS)
+      .filter((i) => i.includes('.'))
+      .map((i) => i.split('.')[0]),
+  );
+  const data = Object.keys(window.LANGS)
+    .filter((i) => !prefixes.has(i))
     .map((i) => ({ name: `${i.includes('.') ? `${window.LANGS[i.split('.')[0]].display || ''}/` : ''}${window.LANGS[i].display}`, _id: i }));
   const dispatch = useDispatch();
   const ref = React.useRef<any>();

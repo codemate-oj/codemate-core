@@ -12,7 +12,8 @@ const result = child.execSync(`git diff ${target}`);
 const patch = result.toString().replace(new RegExp(`${target}/`, 'g'), '');
 const filename = `${path.basename(target)}.patch`;
 fs.writeFileSync(filename, patch);
-superagent.post('https://hydro.ac/paste')
+superagent
+    .post('https://hydro.ac/paste')
     .set('accept', 'application/json')
     .send({ body: patch, filename })
     .end((err, res) => {

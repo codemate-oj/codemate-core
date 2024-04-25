@@ -2,9 +2,7 @@ import { nanoid } from 'nanoid';
 import ReconnectingWebsocket from 'reconnecting-websocket';
 import { InfoDialog } from 'vj/components/dialog';
 import VjNotification from 'vj/components/notification/index';
-import {
-  FLAG_ALERT, FLAG_I18N, FLAG_INFO, FLAG_RICHTEXT,
-} from 'vj/constant/message';
+import { FLAG_ALERT, FLAG_I18N, FLAG_INFO, FLAG_RICHTEXT } from 'vj/constant/message';
 import { AutoloadPage } from 'vj/misc/Page';
 import { i18n, tpl } from 'vj/utils';
 
@@ -44,15 +42,16 @@ const onmessage = (msg) => {
   if (document.hidden) return false;
   // Is message
   new VjNotification({
-    ...(msg.udoc._id === 1)
+    ...(msg.udoc._id === 1
       ? {
-        type: 'info',
-        message: msg.mdoc.flag & FLAG_RICHTEXT ? i18n('You received a system message, click here to view.') : msg.mdoc.content,
-      } : {
-        title: msg.udoc.uname,
-        avatar: msg.udoc.avatarUrl,
-        message: msg.mdoc.content,
-      },
+          type: 'info',
+          message: msg.mdoc.flag & FLAG_RICHTEXT ? i18n('You received a system message, click here to view.') : msg.mdoc.content,
+        }
+      : {
+          title: msg.udoc.uname,
+          avatar: msg.udoc.avatarUrl,
+          message: msg.mdoc.content,
+        }),
     duration: 15000,
     action: () => window.open(msg.mdoc.url ? msg.mdoc.url : `/home/messages?uid=${msg.udoc._id}`, '_blank'),
   }).show();

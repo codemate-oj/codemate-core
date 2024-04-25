@@ -2,15 +2,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
 export default function DialogueListItemComponent(props) {
-  const {
-    userName,
-    summary,
-    faceUrl,
-    active,
-    onClick,
-    className,
-    ...rest
-  } = props;
+  const { userName, summary, faceUrl, active, onClick, className, ...rest } = props;
   const cn = classNames(className, 'messagepad__list-item media', {
     active,
   });

@@ -18,7 +18,9 @@ async function getFirst(query: Filter<Schedule>) {
     if (res.value) {
         logger.debug('%o', res.value);
         if (res.value.interval) {
-            const executeAfter = moment(res.value.executeAfter).add(...res.value.interval).toDate();
+            const executeAfter = moment(res.value.executeAfter)
+                .add(...res.value.interval)
+                .toDate();
             await coll.insertOne({ ...res.value, executeAfter });
         }
         return res.value;
@@ -76,7 +78,7 @@ export async function apply(ctx: Context) {
     ctx.on('domain/delete', (domainId) => coll.deleteMany({ domainId }));
 
     if (process.env.NODE_APP_INSTANCE !== '0') return;
-    if (!await ScheduleModel.count({ type: 'schedule', subType: 'task.daily' })) {
+    if (!(await ScheduleModel.count({ type: 'schedule', subType: 'task.daily' }))) {
         await ScheduleModel.add({
             type: 'schedule',
             subType: 'task.daily',
