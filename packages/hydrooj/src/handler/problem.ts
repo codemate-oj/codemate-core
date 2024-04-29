@@ -1,11 +1,12 @@
 import AdmZip from 'adm-zip';
+import { plist } from 'codemate-plugin/api';
 import { readFile, statSync } from 'fs-extra';
 import { escapeRegExp, flattenDeep, intersection, pick, uniqBy } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
 import { nanoid } from 'nanoid';
 import sanitize from 'sanitize-filename';
 import parser from '@hydrooj/utils/lib/search';
-import { sortFiles, streamToBuffer } from '@hydrooj/utils/lib/utils';
+import { sortFiles, streamToBuffer, yaml } from '@hydrooj/utils/lib/utils';
 import {
     BadRequestError,
     ContestNotAttendedError,
@@ -28,7 +29,7 @@ import {
     SolutionNotFoundError,
     ValidationError,
 } from '../error';
-import { ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User } from '../interface';
+import { ProblemConfig, ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -145,20 +146,39 @@ const defaultSearch = async (domainId: string, q: string, options?: ProblemSearc
 };
 
 export class ProblemMainHandler extends Handler {
-    @param('page', Types.PositiveInt, true)
-    @param('q', Types.Content, true)
-    @param('limit', Types.PositiveInt, true)
-    @param('pjax', Types.Boolean)
-    async get(domainId: string, page = 1, q = '', limit: number, pjax = false) {
+    @param('page', Types.PositiveInt, true) // 分页no
+    @param('tags', Types.CommaSeperatedArray, true) // 题目标签
+    @param('lang', Types.String, true) // 语言限定
+    @param('objective', Types.Boolean) // 是否为客观题
+    @param('q', Types.Content, true) // 查询文本，包括标签（category），难度和模糊匹配（只推荐使用文本模糊匹配）
+    @param('limit', Types.PositiveInt, true) // 分页size
+    @param('source', Types.ObjectId, true) // 查询范围，默认为全部题库，可指定为系统题单ID
+    @param('pjax', Types.Boolean) // pjax 已废弃
+    async get(domainId: string, page = 1, tags = [], lang = '', objective = false, q = '', limit: number, source: ObjectId, pjax = false) {
         this.response.template = 'problem_main.html';
         if (!limit || limit > this.ctx.setting.get('pagination.problem') || page > 1) limit = this.ctx.setting.get('pagination.problem');
         // eslint-disable-next-line @typescript-eslint/no-shadow
         const query = buildQuery(this.user);
+
+        // 指定题单范围
+        if (source) {
+            const pldoc = await plist.getWithChildren(domainId, source);
+            if (!pldoc) {
+                throw new NotFoundError(`System problem list ${source} not found`);
+            }
+            query.docId = { $in: pldoc.pids };
+        }
+
+        // 查询tag
+        if (tags.length) query.$and = tags.map((tag) => ({ tag }));
+
         const psdict = {};
         const search = global.Hydro.lib.problemSearch || defaultSearch;
-        let sort: string[];
-        let fail = false;
+        let sort: string[]; // search返回的排序结果
+        let fail = false; // search失败
         let pcountRelation = 'eq';
+
+        // 解析q字符串
         const parsed = parser.parse(q, {
             keywords: ['category', 'difficulty'],
             offsets: false,
@@ -170,11 +190,14 @@ export class ProblemMainHandler extends Handler {
         if (parsed.difficulty?.every((i) => Number.isSafeInteger(+i))) {
             query.difficulty = { $in: parsed.difficulty.map(Number) };
         }
-        if (category.length) query.$and = category.map((tag) => ({ tag }));
-        if (text) category.push(text);
-        if (category.length) this.UiContext.extraTitleContent = category.join(',');
+        if (category.length) query.$and.push(...category.map((tag) => ({ tag })));
+
+        // 更新hydro页面标题
+        this.UiContext.extraTitleContent = [...tags, ...category, text].join(',');
+
         let total = 0;
         if (text) {
+            // 文本模糊搜索
             const result = await search(domainId, q, { skip: (page - 1) * limit, limit });
             total = result.total;
             pcountRelation = result.countRelation;
@@ -189,10 +212,30 @@ export class ProblemMainHandler extends Handler {
             sort = result.hits;
         }
         await this.ctx.parallel('problem/list', query, this);
+
+        // console.debug(query);
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
             ? [[], 0, 0]
-            : await problem.list(domainId, query, sort?.length ? 1 : page, limit, undefined, this.user._id);
+            : await problem.list(domainId, query, sort?.length ? 1 : page, limit, [...problem.PROJECTION_LIST, 'config'], this.user._id);
+
+        const prevPdocCount = pdocs.length;
+        pdocs = pdocs.filter((doc) => {
+            const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
+            let pass = true;
+            if (lang) {
+                // 判断题目配置语言
+                const langs = _conf.langs ?? [];
+                pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
+            }
+            if (objective) {
+                // 判断题目是否为客观题
+                pass = _conf.type === 'objective';
+            }
+            return pass;
+        });
+        pcount = pcount - prevPdocCount + pdocs.length;
+
         if (total) {
             pcount = total;
             ppcount = Math.ceil(total / limit);
