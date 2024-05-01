@@ -68,13 +68,47 @@ export class ContestListHandler extends Handler {
     @param('rule', Types.Range(contest.RULES), true)
     @param('group', Types.Name, true)
     @param('page', Types.PositiveInt, true)
-    async get(domainId: string, rule = '', group = '', page = 1) {
+    @param('tags', Types.CommaSeperatedArray, true)
+    @param('category', Types.Range(contest.FilterCategory), true)
+    async get(domainId: string, rule = '', group = '', page = 1, tags: string[] = [], category = '') {
         if (rule && contest.RULES[rule].hidden) throw new BadRequestError();
         const groups = (await user.listGroup(domainId, this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST) ? undefined : this.user._id)).map(
             (i) => i.name,
         );
         if (group && !groups.includes(group)) throw new NotAssignedError(group);
         const rules = Object.keys(contest.RULES).filter((i) => !contest.RULES[i].hidden);
+        let _tq = {};
+        switch (category.toLowerCase()) {
+            case 'incoming':
+                // 未开始报名（预告中）
+                _tq = {
+                    checkinBeginAt: { $gte: new Date() },
+                };
+                break;
+            case 'ready':
+                // 可报名
+                _tq = {
+                    checkinBeginAt: { $lte: new Date() },
+                    checkinEndAt: { $gte: new Date() },
+                };
+                break;
+            case 'ongoing':
+                // 进行中
+                _tq = {
+                    beginAt: { $lte: new Date() },
+                    endAt: { $gte: new Date() },
+                };
+                break;
+            case 'done':
+                // 已结束
+                _tq = {
+                    endAt: { $lte: new Date() },
+                };
+                break;
+            default:
+                break;
+        }
+
         const q = {
             ...(this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST) && !group
                 ? {}
@@ -83,11 +117,12 @@ export class ContestListHandler extends Handler {
                   }),
             ...(rule ? { rule } : { rule: { $in: rules } }),
             ...(group ? { assign: { $in: [group] } } : {}),
+            ...(tags.length ? { tag: { $in: tags } } : {}),
+            ..._tq,
         };
         await this.ctx.parallel('contest/list', q, this);
         const cursor = contest.getMulti(domainId, q).sort({ endAt: -1, beginAt: -1, _id: -1 });
-        let qs = rule ? `rule=${rule}` : '';
-        if (group) qs += qs ? `&group=${group}` : `group=${group}`;
+        const qs = new URLSearchParams({ rule, group, tags: tags.join(','), category }).toString();
         const [tdocs, tpcount] = await this.paginate(cursor, page, 'contest');
         const tids = [];
         for (const tdoc of tdocs) tids.push(tdoc.docId);
