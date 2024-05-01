@@ -392,6 +392,8 @@ export interface Tdoc extends Document {
     files?: FileInfo[];
     allowViewCode?: boolean;
 
+    tag?: string[]; // codemate新增：用于筛选比赛
+
     // For contest
     lockAt?: Date;
     unlocked?: boolean;
