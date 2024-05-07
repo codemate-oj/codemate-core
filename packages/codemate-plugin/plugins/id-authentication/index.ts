@@ -1,9 +1,10 @@
-import { Context, Handler, param, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
+import { Context, Handler, param, SettingModel, superagent, SystemModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
 import {
     AlreadyVerifiedError,
     DuplicatedIDNumberError,
     IDNumberValidationError,
     logger,
+    RealnameVerifyResult,
     RealnameVerifyStatus,
     UserSex,
     validateIDNumber,
@@ -32,7 +33,7 @@ export class IDVerifyHandler extends Handler {
 
     @param('idNumber', Types.String)
     @param('realName', Types.String)
-    async post(_, idNumber: string, realName: string) {
+    async post(_: string, idNumber: string, realName: string) {
         if (!validateIDNumber(idNumber)) throw new IDNumberValidationError(idNumber); // 过滤无效身份证号
         if (this.udoc.verifyPassed) throw new AlreadyVerifiedError(); // 不允许重复提交认证
 
@@ -70,4 +71,36 @@ export class IDVerifyHandler extends Handler {
 
 export function apply(ctx: Context) {
     ctx.Route('id_verify', '/user/verify', IDVerifyHandler);
+    ctx.inject(['setting'], (c) => {
+        c.setting.SystemSetting(SettingModel.Setting('setting_secrets', 'idVerify.appCode'));
+    });
+    global.Hydro.lib.idVerify = async (name: string, idCard: string): Promise<RealnameVerifyResult> => {
+        const appCode = await SystemModel.get('idVerify.appCode');
+        const response = await superagent
+            .post('https://eid.shumaidata.com/eid/check')
+            .query({
+                idcard: idCard,
+                name,
+            })
+            .set('Authorization', `APPCODE ${appCode}`)
+            .send();
+        if (response.body.code !== '0') {
+            return {
+                success: false,
+            };
+        }
+        const matchResult = {
+            '1': RealnameVerifyStatus.MATCH,
+            '2': RealnameVerifyStatus.NOT_MATCH,
+            '3': RealnameVerifyStatus.NOT_FOUND,
+        };
+        return {
+            success: true,
+            result: matchResult[response.body.result.res as '1' | '2' | '3'],
+            sex: response.body.result.sex,
+            birthday: response.body.result.birthday,
+            address: response.body.result.address,
+            description: response.body.result.description,
+        };
+    };
 }

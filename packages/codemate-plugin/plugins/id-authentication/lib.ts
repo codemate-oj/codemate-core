@@ -1,4 +1,4 @@
-import { Err, ForbiddenError, Logger, superagent, ValidationError } from 'hydrooj';
+import { Err, ForbiddenError, Logger, ValidationError } from 'hydrooj';
 
 export const IDNumberValidationError = Err('IDNumberValidationError', ValidationError, 'ID number {0} is invalid.');
 export const VerifyNotPassError = Err('VerifyNotPassError', ForbiddenError, 'Real-name info verification failed.');
@@ -58,33 +58,3 @@ declare module 'hydrooj' {
         sex?: UserSex;
     }
 }
-
-global.Hydro.lib.idVerify = async (name: string, idCard: string) => {
-    const appCode = '1689f16d61504a14aca0bc26eb318f53';
-    const response = await superagent
-        .post('https://eid.shumaidata.com/eid/check')
-        .query({
-            idcard: idCard,
-            name,
-        })
-        .set('Authorization', `APPCODE ${appCode}`)
-        .send();
-    if (response.body.code !== '0') {
-        return {
-            success: false,
-        };
-    }
-    const matchResult = {
-        '1': RealnameVerifyStatus.MATCH,
-        '2': RealnameVerifyStatus.NOT_MATCH,
-        '3': RealnameVerifyStatus.NOT_FOUND,
-    };
-    return {
-        success: true,
-        result: matchResult[response.body.result.res as '1' | '2' | '3'],
-        sex: response.body.result.sex,
-        birthday: response.body.result.birthday,
-        address: response.body.result.address,
-        description: response.body.result.description,
-    };
-};
