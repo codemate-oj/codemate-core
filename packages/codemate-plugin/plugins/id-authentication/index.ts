@@ -72,7 +72,7 @@ export class IDVerifyHandler extends Handler {
 export function apply(ctx: Context) {
     ctx.Route('id_verify', '/user/verify', IDVerifyHandler);
     ctx.inject(['setting'], (c) => {
-        c.setting.SystemSetting(SettingModel.Setting('setting_secrets', 'idVerify.appCode'));
+        c.setting.SystemSetting(SettingModel.Setting('setting_secrets', 'idVerify.appCode', '', 'text', 'Id Verify AppCode'));
     });
     global.Hydro.lib.idVerify = async (name: string, idCard: string): Promise<RealnameVerifyResult> => {
         const appCode = await SystemModel.get('idVerify.appCode');
