@@ -21,6 +21,7 @@ export interface Types {
     Password: Type<string>;
     UidOrName: Type<string>;
     Email: Type<string>;
+    Phone: Type<string>;
     Filename: Type<string>;
     DomainId: Type<string>;
     ProblemId: Type<string | number>;
@@ -91,6 +92,7 @@ export const Types: Types = {
         (s) => (Number.isSafeInteger(+s) ? +s : s),
     ),
     Email: saslprepString(/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/i),
+    Phone: saslprepString(/^1[3456789]\d{9}$/),
     DomainId: saslprepString(/^[a-zA-Z][a-zA-Z0-9_]{3,31}$/),
     Role: saslprepString(/^[_0-9A-Za-z\u4e00-\u9fa5]{1,31}$/i),
     Title: basicString(/^.{1,64}$/, (i) => !!i.trim()),
