@@ -10,7 +10,8 @@ jobs:
     - name: executing remote ssh commands to develop
       uses: appleboy/ssh-action@master
       with:
-        host: http://43.139.233.159/
+        host: 43.139.233.159
+        port: 22
         username: ubuntu
         key: ${{ secrets.DEPLOY_SECRET }}
         script: sudo su -c 'cd /root/codemate-core/ && git pull && /root/.nvm/versions/node/v20.13.1/bin/pm2 restart all'
