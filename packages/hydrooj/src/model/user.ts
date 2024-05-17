@@ -195,7 +195,6 @@ async function initAndCache(udoc: Udoc, dudoc, scope: bigint = PERM.PERM_ALL) {
     cache.set(`id/${udoc._id}/${dudoc.domainId}`, res);
     cache.set(`name/${udoc.unameLower}/${dudoc.domainId}`, res);
     cache.set(`mail/${udoc.mailLower}/${dudoc.domainId}`, res);
-    if (udoc.phoneNumber) cache.set(`phone/${udoc.phoneNumber}/${dudoc.domainId}`, res);
     return res;
 }
 
@@ -232,14 +231,6 @@ class UserModel {
         return initAndCache(udoc, dudoc, scope);
     }
 
-    static async getByPhone(domainId: string, phoneNumber: string) {
-        if (cache.has(`phone/${phoneNumber}/${domainId}`)) return cache.get(`phone/${phoneNumber}/${domainId}`);
-        const udoc = await coll.findOne({ phoneNumber });
-        if (!udoc) return null;
-        const dudoc = await domain.getDomainUser(domainId, udoc);
-        return initAndCache(udoc, dudoc);
-    }
-
     static async getList(domainId: string, uids: number[]): Promise<Udict> {
         const r: Udict = {};
         await Promise.all(
@@ -268,6 +259,10 @@ class UserModel {
         if (!udoc) return null;
         const dudoc = await domain.getDomainUser(domainId, udoc);
         return initAndCache(udoc, dudoc);
+    }
+
+    static getByPhone(domainId: string, phoneNumber: string) {
+        return this.getByEmail(domainId, `mob-${phoneNumber}@hydro.local`);
     }
 
     @ArgMethod

@@ -1,4 +1,5 @@
-import { ContestNotFoundError, DocumentModel as document, Filter, ObjectId, Projection, Tdoc } from 'hydrooj';
+import { ContestNotFoundError, DocumentModel as document, Filter, ObjectId, PERM, Projection, Tdoc, UserModel } from 'hydrooj';
+import { GroupModel } from '../privilege-group/model';
 
 const TYPE_SYSTEM_PLIST = document.TYPE_SYSTEM_PLIST;
 
@@ -63,6 +64,7 @@ export async function add(
         parent,
     });
     if (parent) {
+        // @ts-ignore
         await document.set(domainId, TYPE_SYSTEM_PLIST, parent, undefined, undefined, { children: res });
     }
     // await app.parallel('contest/add', data, res);
@@ -80,4 +82,12 @@ export async function del(domainId: string, tid: ObjectId) {
         document.deleteOne(domainId, TYPE_SYSTEM_PLIST, tid),
         document.deleteMultiStatus(domainId, TYPE_SYSTEM_PLIST, { docId: tid }),
     ]);
+}
+
+export async function checkPerm(domainId: string, tid: ObjectId, uid: number) {
+    const tdoc = await get(domainId, tid);
+    const user = await UserModel.getById(domainId, uid);
+    const isAssigned = (await Promise.all(tdoc.assign?.map?.((group) => GroupModel.has(domainId, user._id, group)) ?? [])).some(Boolean);
+
+    return user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || user.own(tdoc) || isAssigned;
 }

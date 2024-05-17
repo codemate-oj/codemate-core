@@ -64,10 +64,7 @@ export class SystemProblemListDetailHandler extends Handler {
     @query('pageSize', Types.PositiveInt, true)
     async get(domainId: string, page = 1, pageSize = 15) {
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, false, problem.PROJECTION_CONTEST_LIST);
-        const hasPermission =
-            this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) ||
-            this.user.own(this.tdoc) ||
-            this.tdoc.assign?.map((g) => GroupModel.has(domainId, this.user._id, g)).some(Boolean);
+        const hasPermission = await plist.checkPerm(domainId, this.tdoc._id, this.user._id);
         this.response.body = {
             tdoc: this.tdoc,
             pdict,
@@ -111,6 +108,13 @@ export class SystemProblemListDetailHandler extends Handler {
     @param('curPid', Types.ProblemId, true)
     async postPrev(_, curPid: string | number) {
         this.response.body = await this.getProblemInListBy(curPid, -1);
+    }
+
+    async postCheck() {
+        const hasPerm = await plist.checkPerm(this.domain._id, this.tdoc._id, this.user._id);
+        this.response.body = {
+            hasPermission: hasPerm,
+        };
     }
 }
 
