@@ -392,6 +392,7 @@ export interface Tdoc extends Document {
     files?: FileInfo[];
     allowViewCode?: boolean;
 
+    // TODO: 在编辑页面添加tag输入框
     tag?: string[]; // codemate新增：用于筛选比赛
 
     // For contest
