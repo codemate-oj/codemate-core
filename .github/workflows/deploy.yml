@@ -10,7 +10,7 @@ jobs:
     - name: executing remote ssh commands to develop
       uses: appleboy/ssh-action@master
       with:
-        host: http://43.139.233.159/
+        host: 43.139.233.159
         username: ubuntu
         key: ${{ secrets.DEPLOY_SECRET }}
         port: 22
