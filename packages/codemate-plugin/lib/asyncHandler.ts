@@ -1,12 +1,18 @@
-import { Handler, nanoid, param, Types } from 'hydrooj';
+import { DocumentModel, Handler, nanoid, param, Types } from 'hydrooj';
 import { TaskNotFoundError } from './error';
 
-type TaskResult = {
+type TaskResultDoc = {
+    docId: string;
     finished: boolean;
     result: any;
 };
 
-const taskMap = new Map<string, TaskResult>();
+export const TYPE_TASK_RESULT: 70 = 70;
+declare module 'hydrooj' {
+    interface DocType {
+        [TYPE_TASK_RESULT]: TaskResultDoc;
+    }
+}
 
 /*
 BaseAsyncHandler: 一个通用的异步任务接口方案，通常在任务时间较久且前端需要获取任务执行结果时候使用。工作步骤：
@@ -23,26 +29,23 @@ export class BaseAsyncHandler extends Handler {
 
     @param('taskId', Types.String)
     async get(domainId: string, taskId: string) {
-        if (!taskMap.has(taskId)) throw new TaskNotFoundError();
-        const task = taskMap.get(taskId);
-        if (!task.finished) {
+        const taskDoc: TaskResultDoc = await DocumentModel.get(domainId, TYPE_TASK_RESULT, taskId);
+        if (!taskDoc) throw new TaskNotFoundError();
+        if (!taskDoc.finished) {
             this.response.body = { finished: false };
         } else {
             this.response.body = {
                 finished: true,
-                result: JSON.stringify(task.result),
+                result: JSON.stringify(taskDoc.result),
             };
         }
     }
 
-    async post() {
+    async post(domainId: string) {
         const taskId = nanoid();
-        taskMap.set(taskId, {
-            finished: false,
-            result: null,
-        });
+        await DocumentModel.set(domainId, TYPE_TASK_RESULT, taskId);
         this.work().then((result) => {
-            taskMap.set(taskId, {
+            DocumentModel.set(domainId, TYPE_TASK_RESULT, taskId, {
                 finished: true,
                 result,
             });
