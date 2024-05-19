@@ -76,6 +76,6 @@ jobs:
     - name: Build Image & Push
       uses: docker/build-push-action@v2
       with:
-        push: true
+        # push: true
         context: .
         tags: docker.pkg.github.com/codemate-oj/codemate-core/backend:${{ github.sha }}

@@ -4,12 +4,15 @@ import {
     BlackListModel,
     Context,
     Handler,
+    InvalidTokenError,
     param,
     PERM,
     PRIV,
+    query,
     SettingModel,
     superagent,
     SystemModel,
+    TokenDoc,
     TokenModel,
     Types,
     UserAlreadyExistError,
@@ -27,24 +30,41 @@ declare module 'hydrooj' {
 
 export async function doVerifyToken(verifyToken: string): Promise<boolean> {
     // 检查一个 token 是否合法（防止机器人注册）
-    return !!verifyToken; // TODO implement this
+    return true; // TODO implement this
 }
 
-export class RequestSMSCodeHandler extends Handler {
-    @param('phoneNumber', Types.String)
-    @param('verifyToken', Types.String)
-    async post(domainId: string, phoneNumber: string, verifyToken: string) {
-        const verifyResult = await doVerifyToken(verifyToken);
-        if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
-        if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
-        const verifyCode = Math.floor(Math.random() * 1000000)
+export class SendTokenBaseHandler extends Handler {
+    generateCode = (length = 6) =>
+        Math.floor(Math.random() * 1000000)
             .toString()
-            .padStart(6, '0');
-        const sendResult = await global.Hydro.lib.sms(`【codemate】您的验证码是${verifyCode}，600s内有效`, phoneNumber);
-        if (!sendResult) throw new SendSMSFailedError();
-        await Promise.all([this.limitRate('send_message_code', 600, 3, false), this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
+            .padStart(length, '0');
+
+    generateToken = async (data = {}, code?: string) => {
         const id = nanoid();
-        await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { phoneNumber, verifyCode }, id);
+        const _code = code ?? this.generateCode();
+        await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { ...data, verifyCode: _code }, id);
+        return id;
+    };
+
+    @param('verifyToken', Types.String, true)
+    async _prepare(_, verifyToken: string = '') {
+        if (!(await doVerifyToken(verifyToken))) throw new VerifyTokenCheckNotPassedError();
+    }
+}
+
+export class SendSMSCodeHandler extends SendTokenBaseHandler {
+    @param('phoneNumber', Types.String)
+    async post(domainId: string, phoneNumber: string) {
+        if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
+
+        const _code = this.generateCode();
+        const sendResult = await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${_code}，600s内有效`, phoneNumber);
+        if (!sendResult) throw new SendSMSFailedError();
+
+        await Promise.all([this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
+
+        const id = await this.generateToken({ phoneNumber }, _code);
+
         this.response.body = {
             success: true,
             tokenId: id,
@@ -53,53 +73,25 @@ export class RequestSMSCodeHandler extends Handler {
     }
 }
 
-export class RegisterWithSMSCodeHandler extends Handler {
-    @param('tokenId', Types.String)
-    @param('verifyCode', Types.String)
-    @param('phoneNumber', Types.String)
-    @param('username', Types.String)
-    @param('password', Types.String)
-    async post(domainId: string, tokenId: string, verifyCode: string, phoneNumber: string, username: string, password: string) {
-        const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
-        if (!token) throw new VerifyCodeError();
-        if (token.phoneNumber !== phoneNumber) throw new ValidationError('phoneNumber');
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
-        const mail = `${nanoid()}@local.aioj.net`;
-        const uid = await UserModel.create(mail, username, password, undefined, this.request.ip);
-        await UserModel.setById(uid, { phoneNumber });
-        await TokenModel.del(tokenId, TokenModel.TYPE_REGISTRATION);
-        this.session.uid = uid;
-        this.session.sudoUid = null;
-        this.session.scope = PERM.PERM_ALL.toString();
-        this.session.recreate = true;
-        this.response.body = {
-            success: true,
-            code: 0,
-            uid,
-        };
-    }
-}
-
-export class RequestEmailCodeHandler extends Handler {
+export class SendEmailCodeHandler extends SendTokenBaseHandler {
     @param('mail', Types.String)
-    @param('verifyToken', Types.String)
-    async post(domainId: string, mail: string, verifyToken: string) {
-        const verifyResult = await doVerifyToken(verifyToken);
-        if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
+    async post(_, mail: string) {
         if (await UserModel.getByEmail('system', mail)) throw new UserAlreadyExistError(mail);
+
+        // 黑名单逻辑
         const mailDomain = mail.split('@')[1];
         if (await BlackListModel.get(`mail::${mailDomain}`)) throw new BlacklistedError(mailDomain);
-        await Promise.all([this.limitRate(`send_mail_${mail}`, 60, 3, false), this.limitRate('send_mail', 3600, 30, false)]);
 
-        const verifyCode = Math.floor(Math.random() * 1000000)
-            .toString()
-            .padStart(6, '0');
+        await Promise.all([this.limitRate(`send_mail_${mail}`, 60, 3, false)]);
+
+        const _code = this.generateCode();
+
         const html = await this.renderHTML('user_register_mail.html', {
-            verifyCode,
+            verifyCode: _code,
         });
         await global.Hydro.lib.mail.sendMail(mail, 'Codemate 注册验证码', 'Codemate 注册验证码', html);
-        const id = nanoid();
-        await TokenModel.add(TokenModel.TYPE_REGISTRATION, 600, { mail, verifyCode }, id);
+
+        const id = await this.generateToken({ mail }, _code);
 
         this.response.body = {
             success: true,
@@ -109,98 +101,103 @@ export class RequestEmailCodeHandler extends Handler {
     }
 }
 
-export class RegisterWithEmailCodeHandler extends Handler {
+export class RegisterBaseHandler extends Handler {
+    token: TokenDoc;
+    email: string;
+
     @param('tokenId', Types.String)
     @param('verifyCode', Types.String)
-    @param('mail', Types.String)
-    @param('username', Types.String)
-    @param('password', Types.String)
-    async post(domainId: string, tokenId: string, verifyCode: string, mail: string, username: string, password: string) {
+    async prepare(_, tokenId: string, verifyCode: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
-        if (!token) throw new VerifyCodeError();
-        if (token.mail !== mail) throw new ValidationError('mail');
+        if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_REGISTRATION], tokenId);
         if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
-        const uid = await UserModel.create(mail, username, password, undefined, this.request.ip);
-        await TokenModel.del(tokenId, TokenModel.TYPE_REGISTRATION);
-        this.session.uid = uid;
-        this.session.sudoUid = null;
-        this.session.scope = PERM.PERM_ALL.toString();
-        this.session.recreate = true;
+        this.token = token;
+        this.email = this.token.phoneNumber ? `mob-${this.token.phoneNumber}@hydro.local` : this.token.mail;
+    }
+
+    @param('uname', Types.Username)
+    @param('password', Types.Password)
+    @param('nationality', Types.String, true) // 国籍地区代码
+    @param('regionCode', Types.String, true) // 国内行政区划代码（国外用000000代替）
+    @param('userRole', Types.String, true) // 用户角色（如机构老师、学生等）
+    @param('age', Types.PositiveInt, true) // 年龄
+    async post(_, uname: string, password: string, nationality: string, regionCode: string, userRole: string, age: number) {
+        const uid = await UserModel.create(this.email, uname, password, undefined, this.request.ip);
+        await UserModel.setById(uid, {
+            nationality,
+            regionCode,
+            userRole,
+            age,
+            ...(this.token.phoneNumber ? { phone: this.token.phoneNumber } : {}),
+        });
+        await TokenModel.del(this.token._id, TokenModel.TYPE_REGISTRATION);
+
         this.response.body = {
             success: true,
             code: 0,
             uid,
         };
+        this.session.uid = uid;
+        this.session.sudoUid = null;
+        this.session.scope = PERM.PERM_ALL.toString();
+        this.session.recreate = true;
     }
 }
 
-export class RequestLoginSMSCodeHandler extends Handler {
-    @param('verifyToken', Types.String)
-    @param('uname', Types.String, true)
-    @param('phoneNumber', Types.String, true)
-    async post(domainId: string, verifyToken: string, uname?: string, phoneNumber?: string) {
-        const verifyResult = await doVerifyToken(verifyToken);
-        if (!verifyResult) throw new VerifyTokenCheckNotPassedError();
-        const doLimitRate = async () => {
-            await Promise.all([this.limitRate('send_message_code', 600, 3, false), this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
+export class SendTOTPCodeHandler extends SendTokenBaseHandler {
+    generateToken = async (data = {}, code?: string) => {
+        const id = nanoid();
+        const _code = code ?? this.generateCode();
+        await TokenModel.add(TokenModel.TYPE_SMSLOGIN, 600, { ...data, verifyCode: _code }, id);
+        return id;
+    };
+
+    @param('uname', Types.String)
+    async post(domainId: string, uname: string) {
+        const user = (await UserModel.getByUname(domainId, uname)) ?? (await UserModel.getByPhone(domainId, uname));
+        if (!user) throw new UserNotFoundError(uname);
+
+        const phoneNumber = user.phoneNumber ?? user.mail.split('@')[0].replace(/^mob-/, '') ?? '';
+        if (!phoneNumber) throw new ValidationError('phoneNumber');
+
+        const _code = this.generateCode();
+        const sendResult = await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${_code}，600s内有效`, phoneNumber);
+        if (!sendResult) throw new SendSMSFailedError();
+
+        await Promise.all([this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
+
+        const id = await this.generateToken({ phoneNumber, uid: user._id }, _code);
+
+        this.response.body = {
+            success: true,
+            tokenId: id,
+            code: 0,
         };
-        if (uname) {
-            const user = await UserModel.getByUname(domainId, uname);
-            if (!user) throw new UserNotFoundError(uname);
-            if (!user.phoneNumber) throw new UserNotBindPhoneError();
-            await doLimitRate();
-            const verifyCode = Math.floor(Math.random() * 1000000)
-                .toString()
-                .padStart(6, '0');
-            const id = nanoid();
-            await TokenModel.add(TokenModel.TYPE_SMSLOGIN, 600, { phoneNumber, verifyCode, uid: user._id }, id);
-            const sendResult = await global.Hydro.lib.sms(`【codemate】您的验证码是${verifyCode}，600s内有效`, user.phoneNumber);
-            if (!sendResult) throw new SendSMSFailedError();
-            this.response.body = {
-                success: true,
-                tokenId: id,
-                code: 0,
-            };
-        } else if (phoneNumber) {
-            const user = await UserModel.getByPhone(domainId, phoneNumber);
-            if (!user) throw new UserNotFoundError(phoneNumber);
-            await doLimitRate();
-            const verifyCode = Math.floor(Math.random() * 1000000)
-                .toString()
-                .padStart(6, '0');
-            const id = nanoid();
-            await TokenModel.add(TokenModel.TYPE_SMSLOGIN, 600, { phoneNumber, verifyCode, uid: user._id }, id);
-            const sendResult = await global.Hydro.lib.sms(`【codemate】您的验证码是${verifyCode}，600s内有效`, phoneNumber);
-            if (!sendResult) throw new SendSMSFailedError();
-            this.response.body = {
-                success: true,
-                tokenId: id,
-                code: 0,
-            };
-        } else throw new ValidationError('uname or phoneNumber');
     }
 }
 
-export class LoginWithSMSCodeHandler extends Handler {
+export class TOTPLoginHandler extends Handler {
     @param('tokenId', Types.String)
     @param('verifyCode', Types.String)
     @param('rememberme', Types.Boolean)
-    async post(domainId: string, tokenId: string, verifyCode: string, rememberme: boolean) {
+    @param('redirect', Types.String, true)
+    async post(domainId: string, tokenId: string, verifyCode: string, rememberme: boolean, redirect?: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_SMSLOGIN);
-        if (!token) throw new VerifyCodeError();
+        if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_SMSLOGIN], tokenId);
         if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+
         const udoc = await UserModel.getById(domainId, token.uid);
         await UserModel.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
         if (!udoc.hasPriv(PRIV.PRIV_USER_PROFILE)) throw new BlacklistedError(udoc.uname, udoc.banReason);
+
         this.session.viewLang = '';
         this.session.uid = udoc._id;
         this.session.sudo = null;
         this.session.scope = PERM.PERM_ALL.toString();
         this.session.save = rememberme;
         this.session.recreate = true;
-        this.response.body = {
-            redirect: (this.request.referer || '/login').endsWith('/login') ? this.url('homepage') : this.request.referer,
-        };
+        this.response.redirect = redirect || ((this.request.referer || '/login').endsWith('/login') ? this.url('homepage') : this.request.referer);
+
         await TokenModel.del(tokenId, TokenModel.TYPE_SMSLOGIN);
     }
 }
@@ -212,12 +209,11 @@ export function apply(ctx: Context) {
             SettingModel.Setting('setting_secrets', 'sms.password', '', 'text', 'SMS Password'),
         );
     });
-    ctx.Route('register_with_sms_code', '/user/register/sms', RegisterWithSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
-    ctx.Route('register_request_sms_code', '/user/register/sms/code', RequestSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
-    ctx.Route('register_with_email_code', '/user/register/email', RegisterWithEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
-    ctx.Route('request_email_code', '/user/register/email/code', RequestEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
-    ctx.Route('login_with_sms_code', '/user/login/sms', LoginWithSMSCodeHandler);
-    ctx.Route('request_login_sms_code', '/user/login/sms/code', RequestLoginSMSCodeHandler);
+    ctx.Route('register_request_sms_code', '/register/sms-code', SendSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
+    ctx.Route('register_request_email_code', '/register/email-code', SendEmailCodeHandler, PRIV.PRIV_REGISTER_USER);
+    ctx.Route('register_with_code', '/register/:tokenId', RegisterBaseHandler, PRIV.PRIV_REGISTER_USER);
+    ctx.Route('login_with_sms_code', '/login/sms-code', SendTOTPCodeHandler);
+    ctx.Route('request_login_sms_code', '/login/:tokenId', TOTPLoginHandler);
     global.Hydro.lib.sms = async (msg: string, targetPhoneNumber: string) => {
         const username: string = SystemModel.get('sms.username');
         const password: string = SystemModel.get('sms.password');
