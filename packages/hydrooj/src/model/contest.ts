@@ -38,6 +38,17 @@ interface AcmDetail extends AcmJournal {
     real: number;
 }
 
+export const FilterCategory = {
+    // 未开始报名
+    INCOMING: '预告中',
+    // 可报名
+    READY: '可报名',
+    // 进行中
+    ONGOING: '进行中',
+    // 已结束
+    DONE: '已结束',
+};
+
 export function isNew(tdoc: Tdoc, days = 1) {
     const readyAt = tdoc.beginAt.getTime();
     return Date.now() < readyAt - days * Time.day;
@@ -1071,6 +1082,7 @@ export const statusText = (tdoc: Tdoc, tsdoc?: any) =>
 
 global.Hydro.model.contest = {
     RULES,
+    FilterCategory,
     buildContestRule,
     add,
     getListStatus,
