@@ -1,15 +1,14 @@
 import { FindCursor } from 'mongodb';
 import { Context, Handler, ObjectId, paginate, param, PERM, route, SettingModel, SystemModel, Types } from 'hydrooj';
-import { DbVariable, getDbVariable } from '../../lib/getDbVariable';
 import { BulletinDoc, BulletinModel } from './model';
 
 export * from './model';
 
 class BulletinBaseHandler extends Handler {
-    bulletinTags: DbVariable<string[]>;
+    bulletinTags: { value: string[] };
 
     async _prepare({ domainId }) {
-        this.bulletinTags = await getDbVariable(`bulletinTags_${domainId}`);
+        this.bulletinTags = await this.ctx.kv.use<string[]>(`bulletinTags_${domainId}`);
     }
 }
 
