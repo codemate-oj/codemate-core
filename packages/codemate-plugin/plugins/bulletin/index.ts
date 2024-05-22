@@ -1,6 +1,9 @@
 import { FindCursor } from 'mongodb';
-import { Context, DocumentModel, Handler, ObjectId, paginate, param, PERM, route, SettingModel, SystemModel, Types } from 'hydrooj';
+import { Context, Handler, ObjectId, paginate, param, PERM, route, SettingModel, SystemModel, Types } from 'hydrooj';
 import { DbVariable, getDbVariable } from '../../lib/getDbVariable';
+import { BulletinDoc, BulletinModel } from './model';
+
+export * from './model';
 
 class BulletinBaseHandler extends Handler {
     bulletinTags: DbVariable<string[]>;
@@ -8,16 +11,6 @@ class BulletinBaseHandler extends Handler {
     async _prepare({ domainId }) {
         this.bulletinTags = await getDbVariable(`bulletinTags_${domainId}`);
     }
-}
-
-export interface BulletinDoc extends Document {
-    docId: ObjectId;
-    docType: typeof DocumentModel.TYPE_BULLETIN;
-    title: string;
-    content: string;
-    tags: string[];
-    postAt: number; // time stamp
-    owner: number;
 }
 
 class BulletinAdminBaseHandler extends BulletinBaseHandler {
@@ -32,11 +25,7 @@ class BulletinCreateHandler extends BulletinAdminBaseHandler {
     @param('tags', Types.CommaSeperatedArray)
     async post(domainId: string, title: string, content: string, _tags: string) {
         const tags = _tags.split(',');
-        const docId = await DocumentModel.add(domainId, content, this.user._id, DocumentModel.TYPE_BULLETIN, null, null, null, {
-            title,
-            tags,
-            postAt: Date.now(),
-        });
+        const docId = await BulletinModel.add(domainId, this.user._id, title, content, tags);
         this.response.body = {
             docId,
         };
@@ -52,9 +41,9 @@ class BulletinListHandler extends BulletinBaseHandler {
         const tags = _tags.split(',');
         let cursor: FindCursor<BulletinDoc>;
         if (_tags === '') {
-            cursor = DocumentModel.getMulti(domainId, DocumentModel.TYPE_BULLETIN);
+            cursor = BulletinModel.getMulti(domainId);
         } else {
-            cursor = DocumentModel.getMulti(domainId, DocumentModel.TYPE_BULLETIN, {
+            cursor = BulletinModel.getMulti(domainId, {
                 tags: { $elemMatch: { $in: tags } },
             });
         }
@@ -88,9 +77,19 @@ class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
 class BulletinDetailHandler extends BulletinBaseHandler {
     @route('bid', Types.ObjectId)
     async get(domainId: string, bid: ObjectId) {
-        const bdoc = await DocumentModel.get(domainId, DocumentModel.TYPE_BULLETIN, bid);
+        const bdoc = await BulletinModel.get(domainId, bid);
         this.response.body = {
             bdoc,
+        };
+    }
+}
+
+class BulletinDeleteHandler extends BulletinAdminBaseHandler {
+    @route('bid', Types.ObjectId)
+    async post(domainId: string, bid: ObjectId) {
+        const result = await BulletinModel.del(domainId, bid);
+        this.response.body = {
+            success: result[0].deletedCount > 0,
         };
     }
 }
@@ -101,6 +100,7 @@ export function apply(ctx: Context) {
     ctx.Route('bulletin_tags_list', '/bulletin/tags', BulletinTagsListHandler);
     ctx.Route('bulletin_tags_edit', '/bulletin/tags/edit', BulletinTagsEditHandler);
     ctx.Route('bulletin_detail', '/bulletin/detail/:bid', BulletinDetailHandler);
+    ctx.Route('bulletin_delete', '/bulletin/delete/:bid', BulletinDeleteHandler);
 
     ctx.inject(['setting'], (c) => {
         c.setting.SystemSetting(SettingModel.Setting('setting_basic', 'pagination.bulletin', 10, 'number', 'Bulletin page size'));
