@@ -1,6 +1,14 @@
 import { FindCursor } from 'mongodb';
-import { Context, DocumentModel, Handler, ObjectId, paginate, param, PRIV, route, SettingModel, SystemModel, Types } from 'hydrooj';
-import saveToDB from '../../lib/saveToDB';
+import { Context, DocumentModel, Handler, ObjectId, paginate, param, PERM, route, SettingModel, SystemModel, Types } from 'hydrooj';
+import { DbVariable, getDbVariable } from '../../lib/getDbVariable';
+
+class BulletinBaseHandler extends Handler {
+    bulletinTags: DbVariable<string[]>;
+
+    async _prepare({ domainId }) {
+        this.bulletinTags = await getDbVariable(`bulletinTags_${domainId}`);
+    }
+}
 
 export interface BulletinDoc {
     docId: ObjectId;
@@ -12,25 +20,16 @@ export interface BulletinDoc {
     owner: number;
 }
 
-export class BulletinAdminBaseHandler extends Handler {
+export class BulletinAdminBaseHandler extends BulletinBaseHandler {
     async prepare() {
-        this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
+        this.checkPerm(PERM.PERM_EDIT_DOMAIN);
     }
 }
-
-interface BulletinTagsVar {
-    tags: string[];
-}
-
-let bulletinTags: BulletinTagsVar;
-saveToDB<BulletinTagsVar>('bulletinTags').then((r) => {
-    bulletinTags = r;
-});
 
 export class BulletinCreateHandler extends BulletinAdminBaseHandler {
     @param('title', Types.String)
     @param('content', Types.String)
-    @param('tags', Types.String)
+    @param('tags', Types.CommaSeperatedArray)
     async post(domainId: string, title: string, content: string, _tags: string) {
         const tags = _tags.split(',');
         const docId = await DocumentModel.add(domainId, content, this.user._id, DocumentModel.TYPE_BULLETIN, null, null, null, {
@@ -44,10 +43,10 @@ export class BulletinCreateHandler extends BulletinAdminBaseHandler {
     }
 }
 
-export class BulletinListHandler extends Handler {
+export class BulletinListHandler extends BulletinBaseHandler {
     @param('page', Types.Int, true)
     @param('limit', Types.Int, true)
-    @param('tags', Types.String, true)
+    @param('tags', Types.CommaSeperatedArray, true)
     async get(domainId: string, page = 1, limit: number, _tags: string = '') {
         if (limit < 1 || limit > SystemModel.get('pagination.bulletin')) limit = SystemModel.get('pagination.bulletin');
         const tags = _tags.split(',');
@@ -67,10 +66,10 @@ export class BulletinListHandler extends Handler {
     }
 }
 
-export class BulletinTagsListHandler extends Handler {
+export class BulletinTagsListHandler extends BulletinBaseHandler {
     async get() {
         this.response.body = {
-            bulletinTags: bulletinTags.tags,
+            bulletinTags: this.bulletinTags.value,
         };
     }
 }
@@ -78,15 +77,15 @@ export class BulletinTagsListHandler extends Handler {
 export class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
     @param('tags', Types.String)
     async post(domainId: string, _tags: string) {
-        bulletinTags.tags = _tags.split(',');
+        this.bulletinTags.value = _tags.split(',');
         this.response.body = {
             success: true,
-            bulletinTags: bulletinTags.tags,
+            bulletinTags: this.bulletinTags.value,
         };
     }
 }
 
-export class BulletinDetailHandler extends Handler {
+export class BulletinDetailHandler extends BulletinBaseHandler {
     @route('bid', Types.ObjectId)
     async get(domainId: string, bid: ObjectId) {
         const bdoc = await DocumentModel.get(domainId, DocumentModel.TYPE_BULLETIN, bid);
