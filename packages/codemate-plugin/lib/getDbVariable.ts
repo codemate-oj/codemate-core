@@ -72,13 +72,12 @@ export class DbVariable<T> {
 }
 
 /**
- * 获取一个对象，对这个对象的修改将会被自动保存到数据库中。如果先前使用过相同的字段标识，则会恢复之前的记录。这是一个 K-V 存储。
+ * Get a reactive variable, use as ref() in vue.
+ * @param docKey {string} A key to identify the variable, should be unique.
  * @example
- * const obj = await useDbVariable('test');
- * obj.foo = 'bar'; // 将会自动保存到数据库
- *
- * @param {string} docKey - 用于唯一标识对象的字段。
- * @returns {Promise<T>} - 返回一个代理对象，其属性可以被设置，设置后的值会同步到数据库中。
+ * const foo = await getDbVariable('foo');
+ * foo.value = 'bar';
+ * foo.value; // 'bar'
  */
 export async function getDbVariable<T extends object>(docKey: string): Promise<DbVariable<T>> {
     return new DbVariable<T>((await coll.findOne({ docKey })).__value as T, docKey);
