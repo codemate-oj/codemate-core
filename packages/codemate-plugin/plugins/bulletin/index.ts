@@ -2,8 +2,6 @@ import { FindCursor } from 'mongodb';
 import { Context, Handler, ObjectId, paginate, param, PERM, route, SettingModel, SystemModel, Types } from 'hydrooj';
 import { BulletinDoc, BulletinModel } from './model';
 
-export * from './model';
-
 class BulletinBaseHandler extends Handler {
     bulletinTags: { value: string[] };
 
