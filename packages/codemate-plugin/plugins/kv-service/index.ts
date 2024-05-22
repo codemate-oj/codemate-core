@@ -52,21 +52,19 @@ export class KVService extends Service {
         });
         const that = this;
         return new Proxy<{ value: T }>(obj, {
-            get(target, prop) {
-                if (prop === 'value') return target.value;
-                return target[prop];
-            },
             set(target, prop, value) {
                 if (prop === 'value') {
-                    const _prev = target.value;
-                    target.value = value;
-                    that.set(key, value).catch(() => {
-                        target.value = _prev;
-                    });
+                    that.set(key, value)
+                        .then(() => {
+                            target.value = value;
+                        })
+                        .catch((e) => {
+                            console.error(e);
+                        });
                 } else {
                     target[prop] = value;
                 }
-                return true;
+                return value;
             },
         });
     }
