@@ -1,6 +1,6 @@
 /* eslint-disable object-curly-newline */
 import assert from 'assert';
-import { BulletinDoc, plist } from 'codemate-plugin';
+import { bulletin, plist } from 'codemate-plugin';
 import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter } from 'mongodb';
 import { Context } from '../context';
 import { Content, ContestClarificationDoc, DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc, Tdoc, TrainingDoc } from '../interface';
@@ -40,7 +40,7 @@ export interface DocType {
     [TYPE_CONTEST_CLARIFICATION]: ContestClarificationDoc;
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_SYSTEM_PLIST]: plist.SystemPList;
-    [TYPE_BULLETIN]: BulletinDoc;
+    [TYPE_BULLETIN]: bulletin.BulletinDoc;
 }
 
 export interface DocStatusType {
