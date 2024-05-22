@@ -10,7 +10,7 @@ class BulletinBaseHandler extends Handler {
     }
 }
 
-export interface BulletinDoc {
+export interface BulletinDoc extends Document {
     docId: ObjectId;
     docType: typeof DocumentModel.TYPE_BULLETIN;
     title: string;
@@ -20,13 +20,13 @@ export interface BulletinDoc {
     owner: number;
 }
 
-export class BulletinAdminBaseHandler extends BulletinBaseHandler {
+class BulletinAdminBaseHandler extends BulletinBaseHandler {
     async prepare() {
         this.checkPerm(PERM.PERM_EDIT_DOMAIN);
     }
 }
 
-export class BulletinCreateHandler extends BulletinAdminBaseHandler {
+class BulletinCreateHandler extends BulletinAdminBaseHandler {
     @param('title', Types.String)
     @param('content', Types.String)
     @param('tags', Types.CommaSeperatedArray)
@@ -43,7 +43,7 @@ export class BulletinCreateHandler extends BulletinAdminBaseHandler {
     }
 }
 
-export class BulletinListHandler extends BulletinBaseHandler {
+class BulletinListHandler extends BulletinBaseHandler {
     @param('page', Types.Int, true)
     @param('limit', Types.Int, true)
     @param('tags', Types.CommaSeperatedArray, true)
@@ -66,7 +66,7 @@ export class BulletinListHandler extends BulletinBaseHandler {
     }
 }
 
-export class BulletinTagsListHandler extends BulletinBaseHandler {
+class BulletinTagsListHandler extends BulletinBaseHandler {
     async get() {
         this.response.body = {
             bulletinTags: this.bulletinTags.value,
@@ -74,7 +74,7 @@ export class BulletinTagsListHandler extends BulletinBaseHandler {
     }
 }
 
-export class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
+class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
     @param('tags', Types.String)
     async post(domainId: string, _tags: string) {
         this.bulletinTags.value = _tags.split(',');
@@ -85,7 +85,7 @@ export class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
     }
 }
 
-export class BulletinDetailHandler extends BulletinBaseHandler {
+class BulletinDetailHandler extends BulletinBaseHandler {
     @route('bid', Types.ObjectId)
     async get(domainId: string, bid: ObjectId) {
         const bdoc = await DocumentModel.get(domainId, DocumentModel.TYPE_BULLETIN, bid);
