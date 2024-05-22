@@ -53,18 +53,15 @@ export class KVService extends Service {
         const that = this;
         return new Proxy<{ value: T }>(obj, {
             set(target, prop, value) {
-                if (prop === 'value') {
-                    that.set(key, value)
-                        .then(() => {
-                            target.value = value;
-                        })
-                        .catch((e) => {
-                            console.error(e);
-                        });
-                } else {
-                    target[prop] = value;
-                }
-                return value;
+                if (prop !== 'value') return false;
+                that.set(key, value)
+                    .then(() => {
+                        target.value = value;
+                    })
+                    .catch((e) => {
+                        console.error(e);
+                    });
+                return true;
             },
         });
     }
