@@ -4,11 +4,14 @@
     "dependencies": {
         "fs-extra": "^11.2.0",
         "hydrooj": "workspace:^",
+        "lodash": "^4.17.21",
+        "lru-cache": "^10.2.0",
         "nanoid": "^5.0.6"
     },
     "module": "api.ts",
     "main": "api.ts",
     "devDependencies": {
-        "@types/fs-extra": "^11.0.4"
+        "@types/fs-extra": "^11.0.4",
+        "@types/lodash": "^4.17.0"
     }
 }

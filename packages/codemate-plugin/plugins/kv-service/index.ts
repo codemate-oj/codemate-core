@@ -13,7 +13,7 @@ declare module 'hydrooj' {
     }
 
     interface EventMap {
-        'kv/change': <T extends any>(docKey: string, value: T) => void;
+        'kv/change': (docKey: string, value: any) => void;
     }
 
     interface Context {
@@ -21,16 +21,20 @@ declare module 'hydrooj' {
     }
 }
 
+export interface KVTypes {
+    [key: string]: any;
+}
+
 export class KVService extends Service {
     constructor(ctx: Context) {
         super(ctx, 'kv', true);
     }
 
-    async get<T extends any>(key: string): Promise<T | null> {
-        return ((await collKv.findOne({ _id: key }))?.value as T) ?? null;
+    async get<K extends keyof KVTypes & string>(key: K): Promise<KVTypes[K] | null> {
+        return (await collKv.findOne({ _id: key }))?.value ?? null;
     }
 
-    async set<T extends any>(key: string, value: T) {
+    async set<K extends keyof KVTypes & string>(key: K, value: KVTypes[K]) {
         const result = await collKv.updateOne({ _id: key }, { $set: { value } }, { upsert: true });
         global.app.emit('kv/change', key, value);
         return result;
@@ -41,17 +45,17 @@ export class KVService extends Service {
      * Proxy对象会监听值的变化，并相应地更新包装的值。
      *
      * @param {string} key - 要获取值的键。
-     * @return {Promise<Proxy<{ value: T }>>} 一个Promise，解析为包装获取到的值的Proxy对象。
+     * @return {Promise<{ value: KVTypes[K] }>} 一个Promise，解析为包装获取到的值的Proxy对象。
      */
-    async use<T extends any>(key: string) {
-        const _value = await this.get<T>(key);
+    async use<K extends keyof KVTypes & string>(key: K): Promise<{ value: KVTypes[K] } | null> {
+        const _value = await this.get(key);
         const obj = { value: _value };
         // 订阅kv变化
-        global.app.on('kv/change', (docKey, value: any) => {
+        global.app.on('kv/change', (docKey, value) => {
             if (docKey === key) obj.value = value;
         });
         const that = this;
-        return new Proxy<{ value: T }>(obj, {
+        return new Proxy<{ value: KVTypes[K] }>(obj, {
             set(target, prop, value) {
                 if (prop !== 'value') return false;
                 that.set(key, value)

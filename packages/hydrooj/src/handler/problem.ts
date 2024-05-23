@@ -274,7 +274,7 @@ export class ProblemMainHandler extends Handler {
                             page,
                             ppcount,
                             pcount,
-                            pdocs,
+                            pdocs: pdocs.map((pdoc) => global.Hydro.lib.tagsFilterProcessOne(pdoc)),
                             psdict,
                             qs: q,
                         }),
