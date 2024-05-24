@@ -2,6 +2,7 @@
     "name": "codemate-plugin",
     "packageManager": "yarn@4.0.2",
     "dependencies": {
+        "crypto-js": "^4.2.0",
         "fs-extra": "^11.2.0",
         "hydrooj": "workspace:^",
         "lodash": "^4.17.21",
@@ -11,7 +12,8 @@
     "module": "api.ts",
     "main": "api.ts",
     "devDependencies": {
-        "@types/fs-extra": "^11.0.4",
+        "@types/crypto-js": "^4",
+        "@types/fs-extra": "^11.0.4,
         "@types/lodash": "^4.17.0"
     }
 }
