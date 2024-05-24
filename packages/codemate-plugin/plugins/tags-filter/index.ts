@@ -5,7 +5,7 @@ import { Context, Handler, param, PRIV, ProblemDoc, Types, ValidationError } fro
 declare module 'hydrooj' {
     interface Lib {
         tagsFilter: (tags: string[]) => string[];
-        tagsFilterProcessOne: (pdoc: ProblemDoc) => ProblemDoc;
+        problemTagsFilter: (pdoc: ProblemDoc) => ProblemDoc;
     }
 }
 
@@ -43,38 +43,40 @@ export async function apply(ctx: Context) {
     ctx.inject(['kv'], async (c) => {
         const tagsFilters = await c.kv.use('tagsFilters');
         tagsFilters.value ||= [];
-        lodash.memoize.Cache = class extends LRUCache<string[], string[]> {
+        lodash.memoize.Cache = class extends LRUCache<string, string[]> {
             constructor() {
                 super({
                     max: 500,
                 });
             }
         };
-        global.Hydro.lib.tagsFilter = lodash.memoize((tags: string[]) =>
-            tags.filter(
-                (tag) =>
-                    !tagsFilters.value.some((filter) => {
-                        return new RegExp(filter).test(tag);
-                    }),
-            ),
+        global.Hydro.lib.tagsFilter = lodash.memoize(
+            (tags: string[]) =>
+                tags.filter(
+                    (tag) =>
+                        !tagsFilters.value.some((filter) => {
+                            return new RegExp(filter).test(tag);
+                        }),
+                ),
+            (tags) => tags.join(','),
         );
-        global.Hydro.lib.tagsFilterProcessOne = (pdoc: ProblemDoc) => ({
+        global.Hydro.lib.problemTagsFilter = (pdoc: ProblemDoc) => ({
             ...pdoc,
             tag: global.Hydro.lib.tagsFilter(pdoc.tag),
         });
 
         // a simple hook, not covered all cases
         c.on('handler/after', (that) => {
-            that.response.body['pdoc'] &&= global.Hydro.lib.tagsFilterProcessOne(that.response.body['pdoc']);
-            that.response.body['pdocs'] = that.response.body['pdocs']?.map((pdoc: any) => global.Hydro.lib.tagsFilterProcessOne(pdoc));
+            that.response.body['pdoc'] &&= global.Hydro.lib.problemTagsFilter(that.response.body['pdoc']);
+            that.response.body['pdocs'] = that.response.body['pdocs']?.map((pdoc: any) => global.Hydro.lib.problemTagsFilter(pdoc));
             if (that.response.body['pdict']) {
                 for (const [pid, pdoc] of Object.entries<any>(that.response.body['pdict'])) {
-                    that.response.body['pdict'][pid] = global.Hydro.lib.tagsFilterProcessOne(pdoc);
+                    that.response.body['pdict'][pid] = global.Hydro.lib.problemTagsFilter(pdoc);
                 }
             }
             if (that.response.body['psdict']) {
                 for (const [pid, pdoc] of Object.entries<any>(that.response.body['psdict'])) {
-                    that.response.body['psdict'][pid] = global.Hydro.lib.tagsFilterProcessOne(pdoc);
+                    that.response.body['psdict'][pid] = global.Hydro.lib.problemTagsFilter(pdoc);
                 }
             }
         });
