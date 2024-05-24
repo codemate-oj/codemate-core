@@ -1,6 +1,6 @@
 import lodash from 'lodash';
 import { LRUCache } from 'lru-cache';
-import { Context, Handler, param, ProblemDoc, Types, ValidationError } from 'hydrooj';
+import { Context, Handler, param, PRIV, ProblemDoc, Types, ValidationError } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface Lib {
@@ -19,6 +19,7 @@ class ModifyTagsFilterHandler extends Handler {
     @param('addFilter', Types.String, true)
     @param('delFilter', Types.String, true)
     async post(domainId: string, addFilter?: string, delFilter?: string) {
+        this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
         if (!addFilter && !delFilter) throw new ValidationError();
         const tagsFilters = (await this.ctx.kv.get('tagsFilters')) || [];
         if (addFilter) {
