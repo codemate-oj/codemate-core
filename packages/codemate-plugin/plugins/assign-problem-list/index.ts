@@ -78,12 +78,7 @@ export class SystemProblemListDetailHandler extends Handler {
     async checkProblemPerm(pid: string | number) {
         const pdoc = await problem.get(this.domain._id, pid);
         if (!pdoc) throw new ProblemNotFoundError(pid);
-        return (
-            // 检查基础权限
-            problem.canViewBy(pdoc, this.user)
-            // 检查是否激活小组
-            // problem.canViewByGroup(pdoc, this.user, this.user.group)
-        );
+        return problem.canViewBy(pdoc, this.user);
     }
 
     async getProblemInListBy(anchorPid: string | number, offset: number) {

@@ -405,7 +405,8 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             delete this.pdoc.nSubmit;
             delete this.pdoc.difficulty;
             delete this.pdoc.stats;
-        } else if (!problem.canViewBy(this.pdoc, this.user)) {
+        } else if (!problem.canViewBy(this.pdoc, this.user) && this.request.body.operation !== 'check') {
+            // 在`postCehck`时不抛出错误
             throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
         }
         let ddoc = this.domain;
@@ -573,6 +574,17 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         if (tdocs.length) throw new ProblemAlreadyUsedByContestError(this.pdoc.docId, tdocs[0]._id);
         await problem.del(this.pdoc.domainId, this.pdoc.docId);
         this.response.redirect = this.url('problem_main');
+    }
+
+    async postCheck() {
+        // 这可能会导致一个权限高危漏洞：仅在`postChck`时才会在无权限时不抛出错误
+        const hasPerm = await problem.canViewBy(this.pdoc, this.user);
+        // 这里先清空前面所有的内容
+        this.response.body = { hasPerm };
+        const ways = [];
+        if (this.pdoc.assign) ways.push('group');
+        // 如果没有权限则提供激活途径
+        if (!hasPerm) this.response.body.activation = ways;
     }
 }
 
