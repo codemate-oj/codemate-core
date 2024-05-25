@@ -1,0 +1,17 @@
+{% macro render(nodes) %}
+<ul style="margin: 20px 0 20px 10px;">
+  {% for node in nodes %}
+  <li style="margin-top: 5px">
+    <div>
+    <a target="_blank" href="/p-list/{{ node.docId }}/edit">
+      <span>{{ node.title }}</span>
+      <span style="font-size: 12px; color: gray; margin-left: 10px">{{ node.content }}</span>
+    </a>
+
+    {% if node.children and node.children.length > 0 %}
+      {{ render(node.children) }}
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
