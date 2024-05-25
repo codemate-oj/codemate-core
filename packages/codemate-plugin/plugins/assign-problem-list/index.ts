@@ -206,8 +206,10 @@ export class SystemProblemListEditHandler extends Handler {
                 parent: parent || null,
             });
         }
+        // 同步更新所有内部题目
+        const allPdocs = await plist.getWithChildren(domainId, tid);
         await Promise.all(
-            Object.values(pdocs).map((pdoc) =>
+            Object.values(allPdocs).map((pdoc) =>
                 problem.edit(domainId, pdoc.docId, {
                     assign: Array.from(new Set([...(pdoc.assign ?? []), ...assign])),
                     tag: Array.from(new Set([...(pdoc.tag ?? []), ...tag])),
