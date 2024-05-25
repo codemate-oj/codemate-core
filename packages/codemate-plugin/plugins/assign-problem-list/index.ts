@@ -11,11 +11,9 @@ import {
     ProblemNotFoundError,
     query,
     route,
-    Time,
     Types,
     yaml,
 } from 'hydrooj';
-import { GroupModel } from '../privilege-group/model';
 import { ProblemNoNextError, ProblemNoPreviousError, ProblemNotFoundInListError } from './lib';
 import * as plist from './model';
 
