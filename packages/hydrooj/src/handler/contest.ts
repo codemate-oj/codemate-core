@@ -17,6 +17,7 @@ import {
     InvalidTokenError,
     NotAssignedError,
     PermissionError,
+    UserNotAuthorizedError,
     ValidationError,
 } from '../error';
 import { ScoreboardConfig, Tdoc } from '../interface';
@@ -283,6 +284,11 @@ export class ContestDetailHandler extends Handler {
         this.checkPerm(PERM.PERM_ATTEND_CONTEST);
         if (contest.isDone(this.tdoc)) throw new ContestNotLiveError(tid);
         if (this.tdoc._code && code !== this.tdoc._code) throw new InvalidTokenError('Contest Invitation', code);
+        // 比赛实名检测逻辑（Tag是为了兼容老逻辑）
+        if (this.tdoc.needRealName && !this.tdoc.tag.includes('NoAuthorizedNeeded') && !user.isRealnameAuthorized(domainId, this.user._id)) {
+            // 有实名要求且未实名
+            throw new UserNotAuthorizedError();
+        }
         await contest.attend(domainId, tid, this.user._id);
         this.back();
     }
@@ -498,12 +504,18 @@ export class ContestEditHandler extends Handler {
         let ts = Date.now();
         ts = ts - (ts % (15 * Time.minute)) + 15 * Time.minute;
         const beginAt = moment(this.tdoc?.beginAt || new Date(ts)).tz(this.user.timeZone);
+
+        // codemate新增：报名的开始和结束时间
+        const checkinBeginAt = moment(this.tdoc?.checkinBeginAt || new Date(ts)).tz(this.user.timeZone);
+        const checkinEndAt = moment(this.tdoc?.checkinEndAt || new Date(ts)).tz(this.user.timeZone);
         this.response.body = {
             rules,
             tdoc: this.tdoc,
             duration: tid ? -beginAt.diff(this.tdoc.endAt, 'hour', true) : 2,
             pids: tid ? this.tdoc.pids.join(',') : '',
             beginAt,
+            checkinBeginAt,
+            checkinEndAt,
             page_name: tid ? 'contest_edit' : 'contest_create',
         };
     }
@@ -512,6 +524,10 @@ export class ContestEditHandler extends Handler {
     @param('beginAtDate', Types.Date)
     @param('beginAtTime', Types.Time)
     @param('duration', Types.Float)
+    @param('checkinBeginAtDate', Types.Date)
+    @param('checkinBeginAtTime', Types.Time)
+    @param('checkinEndAtDate', Types.Date)
+    @param('checkinEndAtTime', Types.Time)
     @param('title', Types.Title)
     @param('content', Types.Content)
     @param('rule', Types.Range(Object.keys(contest.RULES).filter((i) => !contest.RULES[i].hidden)))
@@ -523,13 +539,20 @@ export class ContestEditHandler extends Handler {
     @param('lock', Types.UnsignedInt, true)
     @param('contestDuration', Types.Float, true)
     @param('maintainer', Types.NumericArray, true)
+    @param('needRealName', Types.Boolean)
     @param('allowViewCode', Types.Boolean)
+    @param('imageURL', Types.String, true)
+    @param('tag', Types.CommaSeperatedArray, true)
     async postUpdate(
         domainId: string,
         tid: ObjectId,
         beginAtDate: string,
         beginAtTime: string,
         duration: number,
+        checkinBeginAtDate: string,
+        checkinBeginAtTime: string,
+        checkinEndAtDate: string,
+        checkinEndAtTime: string,
         title: string,
         content: string,
         rule: string,
@@ -541,7 +564,10 @@ export class ContestEditHandler extends Handler {
         lock: number = null,
         contestDuration: number = null,
         maintainer: number[] = [],
+        needRealName = false,
         allowViewCode = false,
+        imageURL?: string,
+        tag: string[] = [],
     ) {
         if (autoHide) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
         const pids = _pids
@@ -549,11 +575,22 @@ export class ContestEditHandler extends Handler {
             .split(',')
             .map((i) => +i)
             .filter((i) => i);
+        // 校验时间
         const beginAtMoment = moment.tz(`${beginAtDate} ${beginAtTime}`, this.user.timeZone);
         if (!beginAtMoment.isValid()) throw new ValidationError('beginAtDate', 'beginAtTime');
+
         const endAt = beginAtMoment.clone().add(duration, 'hours').toDate();
         if (beginAtMoment.isSameOrAfter(endAt)) throw new ValidationError('duration');
+
+        const checkinBeginAtMoment = moment.tz(`${checkinBeginAtDate} ${checkinBeginAtTime}`, this.user.timeZone);
+        if (!checkinBeginAtMoment.isValid()) throw new ValidationError('checkinBeginAtDate', 'checkinBeginAtTime');
+
+        const checkinEndAtMoment = moment.tz(`${checkinEndAtDate} ${checkinEndAtTime}`, this.user.timeZone);
+        if (!checkinEndAtMoment.isValid()) throw new ValidationError('checkinEndAtDate', 'checkinEndAtTime');
+
         const beginAt = beginAtMoment.toDate();
+        const checkinBeginAt = checkinBeginAtMoment.toDate();
+        const checkinEndAt = checkinEndAtMoment.toDate();
         const lockAt = lock ? moment(endAt).add(-lock, 'minutes').toDate() : null;
         if (lockAt && contestDuration) throw new ValidationError('lockAt', 'duration');
         await problem.getList(domainId, pids, this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id, true);
@@ -567,6 +604,11 @@ export class ContestEditHandler extends Handler {
                 pids,
                 rated,
                 duration: contestDuration,
+                tag,
+                checkinBeginAt,
+                checkinEndAt,
+                imageURL,
+                needRealName,
             });
             if (
                 this.tdoc.beginAt !== beginAt ||
@@ -578,7 +620,14 @@ export class ContestEditHandler extends Handler {
                 await contest.recalcStatus(domainId, this.tdoc.docId);
             }
         } else {
-            tid = await contest.add(domainId, title, content, this.user._id, rule, beginAt, endAt, pids, rated, { duration: contestDuration });
+            tid = await contest.add(domainId, title, content, this.user._id, rule, beginAt, endAt, pids, rated, {
+                duration: contestDuration,
+                tag,
+                checkinBeginAt,
+                checkinEndAt,
+                imageURL,
+                needRealName,
+            });
         }
         const task = {
             type: 'schedule',
