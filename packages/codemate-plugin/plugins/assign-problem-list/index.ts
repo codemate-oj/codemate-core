@@ -156,6 +156,7 @@ export class SystemProblemListEditHandler extends Handler {
     @param('rated', Types.Boolean)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
+    @param('tag', Types.CommaSeperatedArray, true)
     async postUpdate(
         domainId: string,
         tid: ObjectId,
@@ -171,6 +172,7 @@ export class SystemProblemListEditHandler extends Handler {
         rated = false,
         maintainer: number[] = [],
         assign: string[] = [],
+        tag: string[] = [],
     ) {
         const pids = _pids
             .replace(/，/g, ',')
@@ -199,12 +201,14 @@ export class SystemProblemListEditHandler extends Handler {
                 rated,
                 maintainer,
                 assign,
+                tag,
             });
         }
         await Promise.all(
             Object.values(pdocs).map((pdoc) =>
                 problem.edit(domainId, pdoc.docId, {
                     assign: Array.from(new Set([...(pdoc.assign ?? []), ...assign])),
+                    tag: Array.from(new Set([...(pdoc.tag ?? []), ...tag])),
                 }),
             ),
         );

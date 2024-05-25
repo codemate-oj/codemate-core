@@ -13,6 +13,15 @@
               value:tdoc['title']|default(''),
               autofocus:true
           }) }}
+          {{ form.form_text({
+            row:false,
+            columns:12,
+            label:'Tags',
+            help_text:'Split by \', \'.',
+            name:'tag',
+            value:tdoc['tag']|default([])|join(', '),
+            row:true
+          }) }}
           <div style="display: none" class="row">
             {{ form.form_text({
                 columns:3,
