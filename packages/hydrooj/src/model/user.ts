@@ -475,6 +475,12 @@ class UserModel {
         deleteUserCache(domainId);
         return collGroup.updateOne({ domainId, name }, { $set: { uids } }, { upsert: true });
     }
+
+    static async isRealnameAuthorized(domainId: string, uid: number) {
+        const user = await UserModel.getById(domainId, uid);
+        if (user.hasPriv(PRIV.PRIV_UNLIMITED_ACCESS)) return true; // 对管理员无视实名要求
+        return user.verifyInfo?.verifyPassed ?? false;
+    }
 }
 
 bus.on('ready', () =>

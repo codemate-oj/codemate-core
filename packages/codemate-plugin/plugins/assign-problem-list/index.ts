@@ -11,11 +11,9 @@ import {
     ProblemNotFoundError,
     query,
     route,
-    Time,
     Types,
     yaml,
 } from 'hydrooj';
-import { GroupModel } from '../privilege-group/model';
 import { ProblemNoNextError, ProblemNoPreviousError, ProblemNotFoundInListError } from './lib';
 import * as plist from './model';
 
@@ -39,6 +37,7 @@ export class SystemProblemListMainHandler extends Handler {
 
         const roots = tdocs.filter((item) => !item.parent).map(extractChildren);
         this.response.body = { roots };
+        this.response.template = 'system_plist_main.html';
     }
 }
 
@@ -78,12 +77,7 @@ export class SystemProblemListDetailHandler extends Handler {
     async checkProblemPerm(pid: string | number) {
         const pdoc = await problem.get(this.domain._id, pid);
         if (!pdoc) throw new ProblemNotFoundError(pid);
-        return (
-            // 检查基础权限
-            problem.canViewBy(pdoc, this.user)
-            // 检查是否激活小组
-            // problem.canViewByGroup(pdoc, this.user, this.user.group)
-        );
+        return problem.canViewBy(pdoc, this.user);
     }
 
     async getProblemInListBy(anchorPid: string | number, offset: number) {
@@ -127,7 +121,7 @@ export class SystemProblemListEditHandler extends Handler {
     @param('tid', Types.ObjectId, true)
     async get(domainId: string, tid: ObjectId) {
         const tdoc = tid ? await plist.get(domainId, tid) : null;
-        const extensionDays = tid ? Math.round((tdoc.endAt.getTime() - tdoc.penaltySince.getTime()) / (Time.day / 100)) / 100 : 1;
+        const extensionDays = 1;
         const beginAt = tid
             ? moment(tdoc.beginAt).tz(this.user.timeZone)
             : moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
@@ -161,6 +155,8 @@ export class SystemProblemListEditHandler extends Handler {
     @param('rated', Types.Boolean)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
+    @param('tag', Types.CommaSeperatedArray, true)
+    @param('parent', Types.ObjectId, true)
     async postUpdate(
         domainId: string,
         tid: ObjectId,
@@ -176,6 +172,8 @@ export class SystemProblemListEditHandler extends Handler {
         rated = false,
         maintainer: number[] = [],
         assign: string[] = [],
+        tag: string[] = [],
+        parent: ObjectId = null,
     ) {
         const pids = _pids
             .replace(/，/g, ',')
@@ -204,12 +202,17 @@ export class SystemProblemListEditHandler extends Handler {
                 rated,
                 maintainer,
                 assign,
+                tag,
+                parent: parent || null,
             });
         }
+        // 同步更新所有内部题目
+        const allPdocs = await plist.getWithChildren(domainId, tid);
         await Promise.all(
-            Object.values(pdocs).map((pdoc) =>
+            Object.values(allPdocs).map((pdoc) =>
                 problem.edit(domainId, pdoc.docId, {
                     assign: Array.from(new Set([...(pdoc.assign ?? []), ...assign])),
+                    tag: Array.from(new Set([...(pdoc.tag ?? []), ...tag])),
                 }),
             ),
         );

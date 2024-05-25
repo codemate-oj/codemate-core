@@ -27,6 +27,14 @@
               row:false
             }) }}
           </div>
+          {{ form.form_text({
+              columns:12,
+              label:'Image URL',
+              name:'imageURL',
+              placeholder:'https://...',
+              value:tdoc.imageURL|default(''),
+              row:true
+            }) }}
           <div class="row">
             {{ form.form_text({
               columns:3,
@@ -63,6 +71,53 @@
               row:false
             }) }}
           </div>
+          <div class="row">
+            {{ form.form_text({
+              columns:3,
+              label:'Checkin Begin Date',
+              name:'checkinBeginAtDate',
+              placeholder:'YYYY-mm-dd',
+              value:checkinBeginAt.format('YYYY-M-D'),
+              date:true,
+              row:false
+            }) }}
+            {{ form.form_text({
+              columns:3,
+              label:'Checkin Begin Time',
+              name:'checkinBeginAtTime',
+              placeholder:'HH:MM',
+              value:checkinBeginAt.format('H:mm'),
+              time:true,
+              row:false
+            }) }}
+            {{ form.form_text({
+            columns:3,
+            label:'Checkin End Date',
+            name:'checkinEndAtDate',
+            placeholder:'YYYY-mm-dd',
+            value:checkinEndAt.format('YYYY-M-D'),
+            date:true,
+            row:false
+            }) }}
+            {{ form.form_text({
+              columns:3,
+              label:'Checkin End Time',
+              name:'checkinEndAtTime',
+              placeholder:'HH:MM',
+              value:checkinEndAt.format('H:mm'),
+              time:true,
+              row:false
+            }) }}
+          </div>
+          {{ form.form_text({
+            row:false,
+            columns:12,
+            label:'Tags',
+            help_text:'Split by \', \'.',
+            name:'tag',
+            value:tdoc['tag']|default([])|join(', '),
+            row:true
+          }) }}
           {{ form.form_text({
             columns:12,
             label:'Problems',
@@ -89,6 +144,14 @@
             name:'maintainer',
             help_text:_('Allow to maintain this {0}').format(_('contest')),
             value:tdoc.maintainer|default('')
+          }) }}
+          {{ form.form_checkbox({
+              columns:12,
+              label:'Need Real Name Verification',
+              name:'needRealName',
+              placeholder:_('Need real name verification to participant the contest.'),
+              value:tdoc.needRealName|default(false),
+              row:true
           }) }}
           <div class="row">
             {{ form.form_select({
