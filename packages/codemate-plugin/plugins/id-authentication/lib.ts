@@ -37,7 +37,19 @@ export const validateIDNumber = (idNumber: string) => {
         return false;
     }
     const factors = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
-    const checkCodeDict = { 0: '1', 1: '0', 2: 'X', 3: '9', 4: '8', 5: '7', 6: '6', 7: '5', 8: '4', 9: '3', 10: '2' };
+    const checkCodeDict = {
+        0: '1',
+        1: '0',
+        2: 'X',
+        3: '9',
+        4: '8',
+        5: '7',
+        6: '6',
+        7: '5',
+        8: '4',
+        9: '3',
+        10: '2',
+    };
     let total = 0;
     for (let i = 0; i < 17; i++) {
         total += parseInt(idNumber[i], 10) * factors[i];
@@ -48,7 +60,9 @@ export const validateIDNumber = (idNumber: string) => {
 
 declare module 'hydrooj' {
     interface Lib {
+        /** @deprecated */
         idVerify: (name: string, idCard: string) => Promise<RealnameVerifyResult>;
+        idVerifyV2: (name: string, idCard: string) => Promise<RealnameVerifyResult>;
     }
 
     interface Udoc {
