@@ -50,7 +50,16 @@ function findOverrideContent(dir: string) {
 export class ProblemModel {
     static PROJECTION_CONTEST_LIST: Field[] = ['_id', 'domainId', 'docType', 'docId', 'pid', 'owner', 'title'];
 
-    static PROJECTION_LIST: Field[] = [...ProblemModel.PROJECTION_CONTEST_LIST, 'nSubmit', 'nAccept', 'difficulty', 'tag', 'hidden', 'stats'];
+    static PROJECTION_LIST: Field[] = [
+        ...ProblemModel.PROJECTION_CONTEST_LIST,
+        'nSubmit',
+        'nAccept',
+        'difficulty',
+        'tag',
+        'hidden',
+        'stats',
+        'config',
+    ];
 
     static PROJECTION_CONTEST_DETAIL: Field[] = [
         ...ProblemModel.PROJECTION_CONTEST_LIST,
@@ -181,32 +190,43 @@ export class ProblemModel {
         pageSize: number,
         projection = ProblemModel.PROJECTION_LIST,
         uid?: number,
+        filter?: (pdoc: ProblemDoc) => boolean,
     ): Promise<[ProblemDoc[], number, number]> {
         const union = await DomainModel.get(domainId);
         const domainIds = [domainId, ...(union.union || [])];
         let count = 0;
         const pdocs = [];
         for (const id of domainIds) {
-            // TODO enhance performance
             if (typeof uid === 'number') {
                 // eslint-disable-next-line no-await-in-loop
                 const udoc = await user.getById(id, uid);
                 if (!udoc.hasPerm(PERM.PERM_VIEW_PROBLEM)) continue;
             }
-            // eslint-disable-next-line no-await-in-loop
-            const ccount = await document.count(id, document.TYPE_PROBLEM, query);
-            if (pdocs.length < pageSize && (page - 1) * pageSize - count <= ccount) {
+            if (filter) {
+                // 当filter存在时做全文查询
+                let docs = await document.getMulti(id, document.TYPE_PROBLEM, query, projection).sort({ sort: 1, docId: 1 }).toArray();
+                docs = docs.filter(filter);
+                count += docs.length; // 查询到所有文档的数量
+                if (pdocs.length >= pageSize) continue;
+                for (let i = (page - 1) * pageSize; i < docs.length && i < page * pageSize; i++) {
+                    pdocs.push(docs[i]);
+                }
+            } else {
                 // eslint-disable-next-line no-await-in-loop
-                pdocs.push(
-                    ...(await document
-                        .getMulti(id, document.TYPE_PROBLEM, query, projection)
-                        .sort({ sort: 1, docId: 1 })
-                        .skip(Math.max((page - 1) * pageSize - count, 0))
-                        .limit(pageSize - pdocs.length)
-                        .toArray()),
-                );
+                const ccount = await document.count(id, document.TYPE_PROBLEM, query);
+                if (pdocs.length < pageSize && (page - 1) * pageSize - count <= ccount) {
+                    // eslint-disable-next-line no-await-in-loop
+                    pdocs.push(
+                        ...(await document
+                            .getMulti(id, document.TYPE_PROBLEM, query, projection)
+                            .sort({ sort: 1, docId: 1 })
+                            .skip(Math.max((page - 1) * pageSize - count, 0))
+                            .limit(pageSize - pdocs.length)
+                            .toArray()),
+                    );
+                }
+                count += ccount;
             }
-            count += ccount;
         }
         return [pdocs, Math.ceil(count / pageSize), count];
     }
