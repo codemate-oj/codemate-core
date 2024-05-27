@@ -392,15 +392,18 @@ export interface Tdoc extends Document {
     files?: FileInfo[];
     allowViewCode?: boolean;
 
-    // TODO: 在编辑页面添加tag输入框
-    tag?: string[]; // codemate新增：用于筛选比赛
-
     // For contest
     lockAt?: Date;
     unlocked?: boolean;
     autoHide?: boolean;
     balloon?: Record<number, string>;
     score?: Record<number, number>;
+    // 以下为codemate新增
+    checkinBeginAt?: Date; // 报名开始时间
+    checkinEndAt?: Date; // 报名结束时间
+    tag?: string[]; // 用于筛选比赛
+    imageURL?: string; // 比赛封面图
+    needRealName?: boolean; // 是否需要实名
 
     /**
      * In hours

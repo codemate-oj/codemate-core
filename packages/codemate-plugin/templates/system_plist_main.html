@@ -1,0 +1,22 @@
+{% set page_name = '系统题单管理' %}
+{% import "components/tree-renderer.html" as tree %}
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">系统题单管理</h1>
+        <a class="primary rounded button" target="_blank" href="{{ url('domain_problem_list_create') }}">添加题单</a>
+      </div>
+      <div class="section__body">
+      {% if not roots.length %}
+        {{ nothing.render('There is no homework so far ╰(*°▽°*)╯') }}
+      {% else %}
+        {{ tree.render(roots) }}
+      {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
