@@ -1,23 +1,9 @@
 import * as TencentCloudSDK from 'tencentcloud-sdk-nodejs-captcha';
-import { Context, Handler, param, SettingModel, SystemModel, Types } from 'hydrooj';
+import { Context, SettingModel, SystemModel } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface Lib {
         verifyCaptchaToken(appId: number, appSecret: string, userIp: string, randStr: string, type: number, ticket: string): Promise<boolean>;
-    }
-}
-
-export class CaptchaTestHandler extends Handler {
-    @param('ticket', Types.String)
-    @param('randStr', Types.String)
-    async get(domainId: string, ticket: string, randStr: string) {
-        const appId: string = SystemModel.get('captcha.testCaptchaAppId');
-        const appSecret: string = SystemModel.get('captcha.testCaptchaAppSecretKey');
-        const type = 9;
-        const res = await global.Hydro.lib.verifyCaptchaToken(Number(appId), appSecret, this.request.ip, randStr, type, ticket);
-        this.response.body = {
-            success: res,
-        };
     }
 }
 
@@ -48,5 +34,4 @@ export function apply(ctx: Context) {
         });
         return res.CaptchaCode === 1;
     };
-    if (process.env.DEV) ctx.Route('captcha_test', '/captcha/test', CaptchaTestHandler);
 }
