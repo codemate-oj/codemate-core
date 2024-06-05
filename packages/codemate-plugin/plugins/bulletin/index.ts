@@ -109,10 +109,10 @@ class BulletinTagsHandler extends BulletinBaseHandler {
 }
 
 export function apply(ctx: Context) {
-    ctx.Route('bulletin_detail', '/bulletin/:bid', BulletinDetailHandler);
-    ctx.Route('bulletin_edit', '/bulletin/:bid/edit', BulletinEditHandler, PERM.PERM_EDIT_DOMAIN);
     ctx.Route('bulletin_tags_list', '/bulletin/tags', BulletinTagsHandler);
     ctx.Route('bulletin_create', '/bulletin/create', BulletinEditHandler, PERM.PERM_EDIT_DOMAIN);
+    ctx.Route('bulletin_detail', '/bulletin/:bid', BulletinDetailHandler);
+    ctx.Route('bulletin_edit', '/bulletin/:bid/edit', BulletinEditHandler, PERM.PERM_EDIT_DOMAIN);
     ctx.Route('bulletin_main', '/bulletin', BulletinListHandler);
 
     ctx.inject(['setting'], (c) => {
