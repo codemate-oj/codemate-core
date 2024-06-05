@@ -285,7 +285,7 @@ export class ContestDetailHandler extends Handler {
         if (contest.isDone(this.tdoc)) throw new ContestNotLiveError(tid);
         if (this.tdoc._code && code !== this.tdoc._code) throw new InvalidTokenError('Contest Invitation', code);
         // 比赛实名检测逻辑（Tag是为了兼容老逻辑）
-        if (this.tdoc.needRealName && !this.tdoc.tag.includes('NoAuthorizedNeeded') && !user.isRealnameAuthorized(domainId, this.user._id)) {
+        if (this.tdoc.needRealName && !this.tdoc.tag.includes('NoAuthorizedNeeded') && !(await user.isRealnameAuthorized(domainId, this.user._id))) {
             // 有实名要求且未实名
             throw new UserNotAuthorizedError();
         }
