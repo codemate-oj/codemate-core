@@ -1,0 +1,33 @@
+{% extends "layout/basic.html" %}
+{% import "components/nothing.html" as nothing with context %}
+{% import "components/user.html" as user with context %}
+{% import "components/paginator.html" as paginator with context %}
+
+{% block content %}
+<div class="row">
+  <div class="section">
+    <div class="section__header">
+      <h1 class="section__title">公告管理</h1>
+      <a class="primary rounded button" target="_blank" href="{{ url('bulletin_create') }}">添加公告</a>
+    </div>
+  {% if not bdocs.length %}
+    {{ nothing.render('No discussion yet...') }}
+  {% else %}
+    <ol class="section__list discussion__list">
+    {%- for bdoc in bdocs -%}
+      <li class="section__list__item discussion__item{% if bdoc.highlight %} highlight{% endif %}">
+        <div class="media">
+          <div class="media__body top">
+            <h1 class="discussion__title"><a href="{{ url('bulletin_edit', bid=bdoc._id) }}" data-emoji-enabled>{{ bdoc['title'] }}</a></h1>
+          </div>
+        </div>
+      </li>
+    {%- endfor -%}
+    </ol>
+    {% if page != undefined and bdocsPage != undefined %}
+    {{ paginator.render(page, bdocsPage) }}
+    {% endif %}
+  {% endif %}
+  </div>
+</div>
+{% endblock %}

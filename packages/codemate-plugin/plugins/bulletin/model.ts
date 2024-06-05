@@ -30,4 +30,8 @@ export class BulletinModel {
     static async del(domainId: string, docId: ObjectId) {
         return await DocumentModel.deleteOne(domainId, DocumentModel.TYPE_BULLETIN, docId);
     }
+
+    static async edit(domainId: string, docId: ObjectId, $set: Partial<BulletinDoc>) {
+        return await DocumentModel.set(domainId, DocumentModel.TYPE_BULLETIN, docId, $set);
+    }
 }

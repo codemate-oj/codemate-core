@@ -16,57 +16,26 @@ class BulletinAdminBaseHandler extends BulletinBaseHandler {
     }
 }
 
-class BulletinCreateHandler extends BulletinAdminBaseHandler {
-    @param('title', Types.String)
-    @param('content', Types.String)
-    @param('tags', Types.CommaSeperatedArray)
-    async post(domainId: string, title: string, content: string, _tags: string) {
-        const tags = _tags.split(',');
-        const docId = await BulletinModel.add(domainId, this.user._id, title, content, tags);
-        this.response.body = {
-            docId,
-        };
-    }
-}
-
 class BulletinListHandler extends BulletinBaseHandler {
     @param('page', Types.Int, true)
     @param('limit', Types.Int, true)
     @param('tags', Types.CommaSeperatedArray, true)
-    async get(domainId: string, page = 1, limit: number, _tags: string = '') {
-        if (limit < 1 || limit > SystemModel.get('pagination.bulletin')) limit = SystemModel.get('pagination.bulletin');
-        const tags = _tags.split(',');
+    async get(domainId: string, page = 1, limit: number, tags?: string[]) {
+        if (!limit || limit < 1 || limit > SystemModel.get('pagination.bulletin')) limit = SystemModel.get('pagination.bulletin');
         let cursor: FindCursor<BulletinDoc>;
-        if (_tags === '') {
+        if (!tags) {
             cursor = BulletinModel.getMulti(domainId);
         } else {
             cursor = BulletinModel.getMulti(domainId, {
                 tags: { $elemMatch: { $in: tags } },
             });
         }
-        const [bdocs, bdocsPage] = await paginate(cursor, page, limit);
+        const [bdocs, bdocsPage, bdocsCount] = await paginate(cursor, page, limit);
+        this.response.template = 'bulletin_main.html';
         this.response.body = {
             bdocs,
             bdocsPage,
-        };
-    }
-}
-
-class BulletinTagsListHandler extends BulletinBaseHandler {
-    async get() {
-        this.response.body = {
-            bulletinTags: this.bulletinTags.value,
-        };
-    }
-}
-
-class BulletinTagsEditHandler extends BulletinAdminBaseHandler {
-    @param('tags', Types.String)
-    async post(domainId: string, _tags: string) {
-        this.bulletinTags.value = _tags.split(',');
-        this.response.body = {
-            success: true,
-            bulletinTags: this.bulletinTags.value,
+            bdocsCount,
         };
     }
 }
@@ -81,25 +50,74 @@ class BulletinDetailHandler extends BulletinBaseHandler {
     }
 }
 
-class BulletinDeleteHandler extends BulletinAdminBaseHandler {
-    @route('bid', Types.ObjectId)
-    async post(domainId: string, bid: ObjectId) {
+class BulletinEditHandler extends BulletinAdminBaseHandler {
+    @param('bid', Types.ObjectId, true)
+    async get(domainId: string, bid: ObjectId) {
+        const bdoc = bid ? await BulletinModel.get(domainId, bid) : null;
+        this.response.template = 'bulletin_edit.html';
+        this.response.body = {
+            bdoc,
+        };
+    }
+
+    @param('bid', Types.ObjectId, true)
+    @param('title', Types.String)
+    @param('tags', Types.CommaSeperatedArray)
+    @param('content', Types.String)
+    async postUpdate(domainId: string, bid: ObjectId, title: string, tags: string[], content: string) {
+        const normalizedTags = tags.map((t) => t.trim().toLowerCase());
+        if (!bid) {
+            // 如果没有 bid 则是新建
+            const docId = await BulletinModel.add(domainId, this.user._id, title, content, normalizedTags);
+            this.response.body = {
+                susccess: true,
+                docId,
+            };
+            this.response.redirect = this.url('bulletin_edit', { bid: docId });
+        } else {
+            await BulletinModel.edit(domainId, bid, {
+                title,
+                content,
+                tags: normalizedTags,
+            });
+            this.response.body = {
+                success: true,
+            };
+            this.response.redirect = this.url('bulletin_edit', { bid });
+        }
+        // 更新成功后更新kv中的bulletinTags
+        const newBulletinTags = new Set(normalizedTags.concat(this.bulletinTags.value || []));
+        this.bulletinTags.value = Array.from(newBulletinTags);
+    }
+
+    @param('bid', Types.ObjectId)
+    async postDelete(domainId: string, bid: ObjectId) {
         const result = await BulletinModel.del(domainId, bid);
         this.response.body = {
             success: result[0].deletedCount > 0,
+        };
+        this.response.redirect = this.url('bulletin_main');
+    }
+}
+
+class BulletinTagsHandler extends BulletinBaseHandler {
+    async get() {
+        this.response.body = {
+            bulletinTags: this.bulletinTags.value,
         };
     }
 }
 
 export function apply(ctx: Context) {
-    ctx.Route('bulletin_create', '/bulletin/create', BulletinCreateHandler);
-    ctx.Route('bulletin_list', '/bulletin/list', BulletinListHandler);
-    ctx.Route('bulletin_tags_list', '/bulletin/tags', BulletinTagsListHandler);
-    ctx.Route('bulletin_tags_edit', '/bulletin/tags/edit', BulletinTagsEditHandler);
-    ctx.Route('bulletin_detail', '/bulletin/detail/:bid', BulletinDetailHandler);
-    ctx.Route('bulletin_delete', '/bulletin/delete/:bid', BulletinDeleteHandler);
+    ctx.Route('bulletin_detail', '/bulletin/:bid', BulletinDetailHandler);
+    ctx.Route('bulletin_edit', '/bulletin/:bid/edit', BulletinEditHandler, PERM.PERM_EDIT_DOMAIN);
+    ctx.Route('bulletin_tags_list', '/bulletin/tags', BulletinTagsHandler);
+    ctx.Route('bulletin_create', '/bulletin/create', BulletinEditHandler, PERM.PERM_EDIT_DOMAIN);
+    ctx.Route('bulletin_main', '/bulletin', BulletinListHandler);
 
     ctx.inject(['setting'], (c) => {
-        c.setting.SystemSetting(SettingModel.Setting('setting_basic', 'pagination.bulletin', 10, 'number', 'Bulletin page size'));
+        c.setting.SystemSetting(
+            SettingModel.Setting('setting_basic', 'pagination.bulletin', 10, 'number', 'pagination.bulletin', 'How many bulletin to show per page'),
+        );
     });
 }

@@ -61,6 +61,9 @@ inject('Nav', 'training_main', { prefix: 'training' }, PERM.PERM_VIEW_TRAINING);
 inject('Nav', 'contest_main', { prefix: 'contest' }, PERM.PERM_VIEW_CONTEST);
 inject('Nav', 'homework_main', { prefix: 'homework' }, PERM.PERM_VIEW_HOMEWORK);
 inject('Nav', 'discussion_main', { prefix: 'discussion' }, PERM.PERM_VIEW_DISCUSSION);
+inject('Nav', 'bulletin_main', { prefix: 'bulletin' }); // codemate新增：告示牌功能
+inject('Nav', 'domain_problem_list_all', { prefix: 'system_plist' }, PERM.PERM_EDIT_DOMAIN); // codemate新增：系统题单功能
+
 inject('Nav', 'record_main', {
     prefix: 'record',
     query: (handler) => (handler.user.hasPriv(PRIV.PRIV_USER_PROFILE) ? { uidOrName: handler.user._id } : {}),
