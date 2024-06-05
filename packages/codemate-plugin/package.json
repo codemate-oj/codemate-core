@@ -5,6 +5,7 @@
         "crypto-js": "^4.2.0",
         "fs-extra": "^11.2.0",
         "hydrooj": "workspace:^",
+        "tencentcloud-sdk-nodejs-captcha": "^4.0.850",
         "lodash": "^4.17.21",
         "lru-cache": "^10.2.0",
         "nanoid": "^5.0.6"

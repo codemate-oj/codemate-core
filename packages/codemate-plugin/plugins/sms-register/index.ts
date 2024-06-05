@@ -205,8 +205,8 @@ export class TOTPLoginHandler extends Handler {
 export function apply(ctx: Context) {
     ctx.inject(['setting'], (c) => {
         c.setting.SystemSetting(
-            SettingModel.Setting('setting_sms', 'sms.username', '', 'text', 'SMS Username'),
-            SettingModel.Setting('setting_sms', 'sms.password', '', 'text', 'SMS Password'),
+            SettingModel.Setting('setting_secrets', 'sms.username', '', 'text', 'SMS Username'),
+            SettingModel.Setting('setting_secrets', 'sms.password', '', 'text', 'SMS Password'),
         );
     });
     ctx.Route('register_request_sms_code', '/register/sms-code', SendSMSCodeHandler, PRIV.PRIV_REGISTER_USER);
