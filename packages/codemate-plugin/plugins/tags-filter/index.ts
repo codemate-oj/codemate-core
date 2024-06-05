@@ -58,7 +58,7 @@ export async function apply(ctx: Context) {
                             return new RegExp(filter).test(tag);
                         }),
                 ),
-            (tags) => tags.join(','),
+            (tags) => (tags ? tags.join(',') : ''),
         );
         global.Hydro.lib.problemTagsFilter = (pdoc: ProblemDoc) => ({
             ...pdoc,
