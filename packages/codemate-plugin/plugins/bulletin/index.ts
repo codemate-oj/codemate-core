@@ -6,7 +6,7 @@ class BulletinBaseHandler extends Handler {
     bulletinTags: { value: string[] };
 
     async _prepare({ domainId }) {
-        this.bulletinTags = await this.ctx.kv.use<string[]>(`bulletinTags_${domainId}`);
+        this.bulletinTags = await this.ctx.kv.use(`bulletinTags_${domainId}`);
     }
 }
 
