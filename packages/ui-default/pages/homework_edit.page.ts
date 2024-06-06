@@ -3,7 +3,7 @@ import { ConfirmDialog } from 'vj/components/dialog';
 import { NamedPage } from 'vj/misc/Page';
 import { i18n, request, tpl } from 'vj/utils';
 
-export default new NamedPage('homework_edit', () => {
+export default new NamedPage(['homework_edit', 'plist_edit'], () => {
   let confirmed = false;
   $(document).on('click', '[value="delete"]', (ev) => {
     ev.preventDefault();

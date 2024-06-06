@@ -16,67 +16,12 @@
           {{ form.form_text({
             row:false,
             columns:12,
-            label:'Tags',
-            help_text:'Split by \', \'.',
-            name:'tag',
-            value:tdoc['tag']|default([])|join(', '),
-            row:true
-          }) }}
-          {{ form.form_text({
-            row:false,
-            columns:12,
             label:'Parent',
             help_text:'Parent plist docId',
             name:'parent',
             value:tdoc['parent']|default(''),
             row:true
           }) }}
-          <div style="display: none" class="row">
-            {{ form.form_text({
-                columns:3,
-                label:'Begin Date',
-                name:'beginAtDate',
-                placeholder:'YYYY-mm-dd',
-                value:dateBeginText,
-                date:true,
-                row:false
-            }) }}
-            {{ form.form_text({
-                columns:2,
-                label:'Begin Time',
-                name:'beginAtTime',
-                placeholder:'HH:MM',
-                value:timeBeginText,
-                time:true,
-                row:false
-            }) }}
-            {{ form.form_text({
-                columns:3,
-                label:'End Date',
-                name:'penaltySinceDate',
-                placeholder:'YYYY-mm-dd',
-                value:datePenaltyText,
-                date:true,
-                row:false
-            }) }}
-            {{ form.form_text({
-                columns:2,
-                label:'End Time',
-                name:'penaltySinceTime',
-                placeholder:'HH:MM',
-                value:timePenaltyText,
-                time:true,
-                row:false
-            }) }}
-            {{ form.form_text({
-                row:false,
-                last_column:true,
-                columns:2,
-                label:'Extension (days)',
-                name:'extensionDays',
-                value:extensionDays
-            }) }}
-          </div>
           <div class="row">
             {{ form.form_text({
                 row:false,
@@ -86,23 +31,6 @@
                 placeholder:_('Group / UID'),
                 value:tdoc.assign|default('')
             }) }}
-            {{ form.form_text({
-                row:false,
-                last_column:true,
-                columns:6,
-                label:'Homework Maintainer',
-                name:'maintainer',
-                help_text:_('Allow to maintain this {0}').format(_('homework')),
-                value:tdoc.maintainer|default('')
-            }) }}
-          </div>
-          <div style="display: none;" class="row">
-            <div class="columns">
-              <label>
-                {{ _('Extension Score Penalty') }}
-                <textarea name="penaltyRules" class="monospace textbox" data-yaml>{% if tdoc %}{{ penaltyRules }}{% else %}{% include 'partials/homework_default_penalty_rules.yaml' %}{% endif %}</textarea>
-              </label>
-            </div>
           </div>
           {{ form.form_text({
               columns:null,
@@ -118,23 +46,14 @@
               markdown:true
           }) }}
           <div class="row"><div class="columns">
-          {% if page_name == 'homework_edit' %}
             <button name="operation" value="update" type="submit" class="rounded primary button">
-              {{ _('Update') }}
+              保存
             </button>
-            <button name="operation" value="update" type="submit" formaction="{{ url('homework_create') }}" class="rounded button">
-              {{ _('Clone') }}
-            </button>
-            {% if handler.user.own(tdoc) or handler.user.hasPerm(perm.PERM_EDIT_HOMEWORK) %}
+            {% if tdoc and (handler.user.own(tdoc) or handler.user.hasPerm(perm.PERM_EDIT_DOMAIN)) %}
               <button name="operation" value="delete" type="submit" class="rounded button">
                 {{ _('Delete') }}
               </button>
             {% endif %}
-          {% else %}
-            <button name="operation" value="update" type="submit" class="rounded primary button">
-              {{ _('Create') }}
-            </button>
-          {% endif %}
             <button type="button" class="rounded button" onclick="window.history.go(-1)">
               {{ _('Cancel') }}
             </button>

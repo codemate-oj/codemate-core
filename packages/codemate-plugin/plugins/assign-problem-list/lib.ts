@@ -1,4 +1,12 @@
-import { Err, NotFoundError, PermissionError } from 'hydrooj';
+import { Err, ForbiddenError, NotFoundError, PermissionError } from 'hydrooj';
+
+export const ProblemListNotFountError = Err('ProblemListNotFountError', NotFoundError, 'Problem list {0} not found.');
+
+export const NotAllowedToVisitPrivateListError = Err(
+    'NotAllowedToVisitPrivateListError',
+    ForbiddenError,
+    'You are not allowed to visit private list {0}.',
+);
 
 export const ProblemNotFoundInListError = Err('ProblemNotFoundInListError', NotFoundError, 'Problem {0} not found in list {1}.');
 
