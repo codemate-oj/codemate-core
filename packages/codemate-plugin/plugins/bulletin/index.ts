@@ -21,7 +21,7 @@ class BulletinListHandler extends BulletinBaseHandler {
     @param('limit', Types.Int, true)
     @param('tags', Types.CommaSeperatedArray, true)
     async get(domainId: string, page = 1, limit: number, tags?: string[]) {
-        if (!limit || limit < 1 || limit > SystemModel.get('pagination.bulletin')) limit = SystemModel.get('pagination.bulletin');
+        if (!limit || limit < 1 || limit > SystemModel.get('pagination.bulletin')) limit = SystemModel.get('pagination.bulletin') ?? 10;
         let cursor: FindCursor<BulletinDoc>;
         if (!tags) {
             cursor = BulletinModel.getMulti(domainId);

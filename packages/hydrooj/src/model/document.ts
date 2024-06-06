@@ -23,6 +23,7 @@ export const TYPE_DISCUSSION: 21 = 21;
 export const TYPE_DISCUSSION_REPLY: 22 = 22;
 export const TYPE_CONTEST: 30 = 30;
 export const TYPE_CONTEST_CLARIFICATION: 31 = 31;
+/** @deprecated use `TYPE_PROBLEM_LIST` with permission instead */
 export const TYPE_SYSTEM_PLIST: 32 = 32;
 export const TYPE_TRAINING: 40 = 40;
 /** @deprecated use `TYPE_CONTEST` with rule `homework` instead. */
@@ -32,14 +33,14 @@ export const TYPE_BULLETIN: 80 = 80;
 export interface DocType {
     [TYPE_PROBLEM]: ProblemDoc;
     [TYPE_PROBLEM_SOLUTION]: any;
-    [TYPE_PROBLEM_LIST]: Tdoc;
+    [TYPE_PROBLEM_LIST]: plist.ProblemList;
     [TYPE_DISCUSSION_NODE]: any;
     [TYPE_DISCUSSION]: DiscussionDoc;
     [TYPE_DISCUSSION_REPLY]: DiscussionReplyDoc;
     [TYPE_CONTEST]: Tdoc;
     [TYPE_CONTEST_CLARIFICATION]: ContestClarificationDoc;
     [TYPE_TRAINING]: TrainingDoc;
-    [TYPE_SYSTEM_PLIST]: plist.SystemPList;
+    [TYPE_SYSTEM_PLIST]: plist.ProblemList;
     [TYPE_BULLETIN]: bulletin.BulletinDoc;
 }
 

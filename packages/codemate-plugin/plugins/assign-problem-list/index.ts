@@ -1,5 +1,4 @@
 import {
-    ContestNotFoundError,
     type Context,
     Handler,
     moment,
@@ -7,6 +6,7 @@ import {
     param,
     PenaltyRules,
     PERM,
+    PRIV,
     ProblemModel as problem,
     ProblemNotFoundError,
     query,
@@ -14,14 +14,21 @@ import {
     Types,
     yaml,
 } from 'hydrooj';
-import { ProblemNoNextError, ProblemNoPreviousError, ProblemNotFoundInListError } from './lib';
+import {
+    NotAllowedToVisitPrivateListError,
+    ProblemListNotFountError,
+    ProblemNoNextError,
+    ProblemNoPreviousError,
+    ProblemNotFoundInListError,
+} from './lib';
 import * as plist from './model';
 
+// 只获取系统题单
 export class SystemProblemListMainHandler extends Handler {
     async get() {
-        const tdocs = await plist.getMulti(this.domain._id, {}, ['docId', 'title', 'content', 'parent', 'children']).toArray();
+        const tdocs = await plist.getMulti(this.domain._id, { visibility: 'system' }, ['docId', 'title', 'content', 'parent', 'children']).toArray();
 
-        const extractChildren = (tdoc: plist.SystemPList) => {
+        const extractChildren = (tdoc: plist.ProblemList) => {
             if (!tdoc) throw new Error();
             if (tdoc.children?.length) {
                 return {
@@ -41,8 +48,8 @@ export class SystemProblemListMainHandler extends Handler {
     }
 }
 
-export class SystemProblemListDetailHandler extends Handler {
-    tdoc: plist.SystemPList;
+export class ProblemListDetailHandler extends Handler {
+    tdoc: plist.ProblemList;
     allPids: number[] = [];
     pageCount = 0;
 
@@ -51,11 +58,16 @@ export class SystemProblemListDetailHandler extends Handler {
     @param('pageSize', Types.PositiveInt, true)
     async prepare(domainId: string, tid: ObjectId, page = 1, pageSize = 15) {
         const tdoc = await plist.getWithChildren(domainId, tid);
+
+        // 检查权限（bypass超管）
+        if (!this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) && tdoc.visibility === 'private' && !this.user.own(tdoc)) {
+            throw new NotAllowedToVisitPrivateListError(tid);
+        }
+
         this.allPids = tdoc.pids;
         this.pageCount = Math.floor((tdoc.pids.length + pageSize - 1) / pageSize);
         tdoc.pids = tdoc.pids.filter((_, index) => index > (page - 1) * pageSize && index < page * pageSize);
-        if (!tdoc) throw new ContestNotFoundError(tid, 'not found');
-        if (tdoc.rule !== 'homework') throw new ContestNotFoundError(tid, 'not homework');
+        if (!tdoc) throw new ProblemListNotFountError(tid);
         this.tdoc = tdoc;
     }
 
@@ -121,58 +133,29 @@ export class SystemProblemListEditHandler extends Handler {
     @param('tid', Types.ObjectId, true)
     async get(domainId: string, tid: ObjectId) {
         const tdoc = tid ? await plist.get(domainId, tid) : null;
-        const extensionDays = 1;
-        const beginAt = tid
-            ? moment(tdoc.beginAt).tz(this.user.timeZone)
-            : moment().subtract(1, 'day').tz(this.user.timeZone).hour(0).minute(0).millisecond(0);
-        const penaltySince = tid
-            ? moment(tdoc.penaltySince).tz(this.user.timeZone)
-            : beginAt.clone().add(7, 'days').tz(this.user.timeZone).hour(23).minute(59).millisecond(0);
         this.response.template = 'system_plist_edit.html';
         this.response.body = {
             tdoc,
-            dateBeginText: beginAt.format('YYYY-M-D'),
-            timeBeginText: beginAt.format('H:mm'),
-            datePenaltyText: penaltySince.format('YYYY-M-D'),
-            timePenaltyText: penaltySince.format('H:mm'),
-            extensionDays,
-            penaltyRules: tid ? yaml.dump(tdoc.penaltyRules) : null,
             pids: tid ? tdoc.pids.join(',') : '',
             page_name: tid ? 'homework_edit' : 'homework_create',
         };
     }
 
-    @param('tid', Types.ObjectId, true)
-    @param('beginAtDate', Types.Date)
-    @param('beginAtTime', Types.Time)
-    @param('penaltySinceDate', Types.Date)
-    @param('penaltySinceTime', Types.Time)
-    @param('extensionDays', Types.Float)
-    @param('penaltyRules', Types.Content)
     @param('title', Types.Title)
     @param('content', Types.Content)
     @param('pids', Types.Content)
-    @param('rated', Types.Boolean)
+    @param('tid', Types.ObjectId, true)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
-    @param('tag', Types.CommaSeperatedArray, true)
     @param('parent', Types.ObjectId, true)
     async postUpdate(
         domainId: string,
-        tid: ObjectId,
-        beginAtDate: string,
-        beginAtTime: string,
-        penaltySinceDate: string,
-        penaltySinceTime: string,
-        extensionDays: number,
-        penaltyRules: PenaltyRules,
         title: string,
         content: string,
         _pids: string,
-        rated = false,
+        _tid: ObjectId = null,
         maintainer: number[] = [],
         assign: string[] = [],
-        tag: string[] = [],
         parent: ObjectId = null,
     ) {
         const pids = _pids
@@ -180,41 +163,39 @@ export class SystemProblemListEditHandler extends Handler {
             .split(',')
             .map((i) => +i)
             .filter((i) => i);
-        const beginAt = moment.tz(`${beginAtDate} ${beginAtTime}`, this.user.timeZone);
-        const penaltySince = moment.tz(`${penaltySinceDate} ${penaltySinceTime}`, this.user.timeZone);
-        const endAt = penaltySince.clone().add(extensionDays, 'days');
-        const pdocs = await problem.getList(domainId, pids, this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id, true);
+        let tid = _tid;
+        // 有则编辑, 没有则创建
         if (!tid) {
-            tid = await plist.add(domainId, title, content, this.user._id, 'homework', beginAt.toDate(), endAt.toDate(), pids, rated, {
-                penaltySince: penaltySince.toDate(),
-                penaltyRules,
-                assign,
-            });
+            tid = await plist.add(
+                domainId,
+                title,
+                content,
+                this.user._id,
+                'system',
+                pids,
+                {
+                    maintainer,
+                    assign,
+                },
+                parent,
+            );
         } else {
             await plist.edit(domainId, tid, {
                 title,
                 content,
-                beginAt: beginAt.toDate(),
-                endAt: endAt.toDate(),
                 pids,
-                penaltySince: penaltySince.toDate(),
-                penaltyRules,
-                rated,
                 maintainer,
                 assign,
-                tag,
-                parent: parent || null,
+                parent,
             });
         }
-        // 同步更新所有内部题目
-        const allPdocs = await plist.getWithChildren(domainId, tid);
+        // 同步更新assign所有内部题目（只增不减）
+        const allPids = (await plist.getWithChildren(domainId, tid)).pids;
         await Promise.all(
-            Object.values(allPdocs).map((pdoc) =>
-                problem.edit(domainId, pdoc.docId, {
-                    assign: Array.from(new Set([...(pdoc.assign ?? []), ...assign])),
-                    tag: Array.from(new Set([...(pdoc.tag ?? []), ...tag])),
-                }),
-            ),
+            allPids.map(async (pid) => {
+                const pdoc = await problem.get(domainId, pid);
+                problem.edit(domainId, pid, { assign: Array.from(new Set([...(pdoc.assign ?? []), ...assign])) });
+            }),
         );
         this.response.body = { tid };
         this.response.redirect = this.url('system_problem_list_edit', { tid });
@@ -225,16 +206,13 @@ export class SystemProblemListEditHandler extends Handler {
         const tdoc = await plist.get(domainId, tid);
         if (!this.user.own(tdoc)) this.checkPerm(PERM.PERM_EDIT_HOMEWORK);
         await plist.del(domainId, tid);
-        this.response.redirect = this.url('/');
+        this.response.redirect = this.url('system_problem_list_main');
     }
 }
 
 export async function apply(ctx: Context) {
-    /**
-     * 以下的“系统题单”定义为指定域的管理员创建的题单，因此与域相关
-     */
-    ctx.Route('domain_problem_list_all', '/p-list', SystemProblemListMainHandler);
-    ctx.Route('domain_problem_list_create', '/p-list/create', SystemProblemListEditHandler);
-    ctx.Route('domain_problem_list_detail', '/p-list/:tid', SystemProblemListDetailHandler, PERM.PERM_VIEW_PROBLEM);
-    ctx.Route('domain_problem_list_edit', '/p-list/:tid/edit', SystemProblemListEditHandler);
+    ctx.Route('system_problem_list_main', '/p-list', SystemProblemListMainHandler);
+    ctx.Route('system_problem_list_create', '/p-list/create', SystemProblemListEditHandler, PRIV.PRIV_EDIT_SYSTEM);
+    ctx.Route('problem_list_detail', '/p-list/:tid', ProblemListDetailHandler, PERM.PERM_VIEW_PROBLEM);
+    ctx.Route('system_problem_list_edit', '/p-list/:tid/edit', SystemProblemListEditHandler, PRIV.PRIV_EDIT_SYSTEM);
 }

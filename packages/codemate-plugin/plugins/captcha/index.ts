@@ -10,10 +10,24 @@ declare module 'hydrooj' {
 export function apply(ctx: Context) {
     ctx.inject(['setting'], (c) => {
         c.setting.SystemSetting(
-            SettingModel.Setting('setting_secrets', 'captcha.captchaSecretId', '', 'text', 'Captcha SecretId'),
-            SettingModel.Setting('setting_secrets', 'captcha.captchaSecretKey', '', 'text', 'Captcha SecretKey'),
-            SettingModel.Setting('setting_secrets', 'captcha.testCaptchaAppId', '', 'text', 'Captcha Test AppId'), // For test purpose
-            SettingModel.Setting('setting_secrets', 'captcha.testCaptchaAppSecretKey', '', 'text', 'Captcha Test AppSecretKey'), // For test purpose
+            SettingModel.Setting('setting_secrets', 'captcha.captchaSecretId', '', 'text', 'Captcha SecretId', '腾讯云Captcha Secrect ID'),
+            SettingModel.Setting('setting_secrets', 'captcha.captchaSecretKey', '', 'text', 'Captcha SecretKey', '腾讯云Captcha Secrect Key'),
+            SettingModel.Setting(
+                'setting_secrets',
+                'captcha.testCaptchaAppId',
+                '',
+                'text',
+                'Captcha Test AppId',
+                'Captcha测试用的AppId（仅可用于开发模式）',
+            ), // For test purpose
+            SettingModel.Setting(
+                'setting_secrets',
+                'captcha.testCaptchaAppSecretKey',
+                '',
+                'text',
+                'Captcha Test AppSecretKey',
+                'Captcha测试用的AppSecretKey（仅可用于开发模式）',
+            ), // For test purpose
         );
     });
     global.Hydro.lib.verifyCaptchaToken = async (appId: number, appSecret: string, userIp: string, randStr: string, type: number, ticket: string) => {

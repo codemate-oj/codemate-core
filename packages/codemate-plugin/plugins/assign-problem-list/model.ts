@@ -1,25 +1,34 @@
-import { ContestNotFoundError, DocumentModel as document, Filter, ObjectId, PERM, Projection, Tdoc, UserModel } from 'hydrooj';
+import { ContestNotFoundError, Document, DocumentModel as document, Filter, ObjectId, PERM, Projection, UserModel } from 'hydrooj';
 import { GroupModel } from '../privilege-group/model';
+import { ProblemListNotFountError } from './lib';
 
-const TYPE_SYSTEM_PLIST = document.TYPE_SYSTEM_PLIST;
+const TYPE_PROBLEM_LIST = document.TYPE_PROBLEM_LIST;
 
-export interface SystemPList extends Omit<Tdoc, 'docType'> {
-    docType: typeof TYPE_SYSTEM_PLIST;
-    parent: ObjectId;
+export interface ProblemList extends Document {
+    docId: ObjectId;
+    docType: typeof TYPE_PROBLEM_LIST;
+    title: string;
+    content: string;
+    // 题单功能
+    pids: number[];
+    assign?: string[];
+    visibility: 'private' | 'public' | 'system'; // 控制题单可见性：该doc用于个人题单和系统题单
+    // 树状题单功能
+    parent: ObjectId | null;
     children?: ObjectId[];
 }
 
-export async function get(domainId: string, tid: ObjectId, projection?: Projection<SystemPList>): Promise<SystemPList> {
-    const tdoc = await document.get(domainId, TYPE_SYSTEM_PLIST, tid, projection);
+export async function get(domainId: string, tid: ObjectId, projection?: Projection<ProblemList>): Promise<ProblemList> {
+    const tdoc = await document.get(domainId, TYPE_PROBLEM_LIST, tid, projection);
     if (!tdoc) throw new ContestNotFoundError(tid);
     return tdoc;
 }
 
-export function getMulti(domainId: string, query: Filter<document.DocType['32']> = {}, projection?: Projection<SystemPList>) {
-    return document.getMulti(domainId, TYPE_SYSTEM_PLIST, query, projection).sort({ beginAt: -1 });
+export function getMulti(domainId: string, query: Filter<ProblemList> = {}, projection?: Projection<ProblemList>) {
+    return document.getMulti(domainId, TYPE_PROBLEM_LIST, query, projection);
 }
 
-export async function getWithChildren(domainId: string, tid: ObjectId, projection?: Projection<SystemPList>): Promise<SystemPList> {
+export async function getWithChildren(domainId: string, tid: ObjectId, projection?: Projection<ProblemList>): Promise<ProblemList> {
     const root = await get(domainId, tid, projection);
     if (root.children?.length) {
         const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c)).pids));
@@ -33,57 +42,49 @@ export async function add(
     title: string,
     content: string,
     owner: number,
-    rule = 'homework',
-    beginAt = new Date(),
-    endAt = new Date(),
-    pids: number[] = [],
-    rated = false,
-    data: Partial<SystemPList> = {},
+    visibility: 'private' | 'public' | 'system',
+    pids: number[],
+    data: Partial<ProblemList> = {},
     parent: ObjectId = null,
 ) {
-    Object.assign(data, {
-        content,
-        owner,
-        title,
-        rule,
-        beginAt,
-        endAt,
-        pids,
-        attend: 0,
-    });
-    // await app.parallel('contest/before-add', data);
-    const res = await document.add(domainId, content, owner, TYPE_SYSTEM_PLIST, null, null, null, {
+    const res = await document.add(domainId, content, owner, TYPE_PROBLEM_LIST, null, null, null, {
         ...data,
         title,
-        rule,
-        beginAt,
-        endAt,
+        visibility,
         pids,
-        attend: 0,
-        rated,
         parent,
     });
     if (parent) {
-        // @ts-ignore
-        await document.set(domainId, TYPE_SYSTEM_PLIST, parent, undefined, undefined, { children: res });
+        // 若有parent则更新parent.children
+        await document.set(domainId, TYPE_PROBLEM_LIST, parent, undefined, undefined, { children: res });
     }
-    // await app.parallel('contest/add', data, res);
     return res;
 }
 
-export async function edit(domainId: string, tid: ObjectId, $set: Partial<SystemPList>) {
-    const tdoc = await document.get(domainId, TYPE_SYSTEM_PLIST, tid);
-    if (!tdoc) throw new ContestNotFoundError(domainId, tid);
-    return await document.set(domainId, TYPE_SYSTEM_PLIST, tid, $set);
+export async function edit(domainId: string, tid: ObjectId, $set: Partial<ProblemList>) {
+    const tdoc = await document.get(domainId, TYPE_PROBLEM_LIST, tid);
+    if (!tdoc) throw new ProblemListNotFountError(tid);
+    const res = await document.set(domainId, TYPE_PROBLEM_LIST, tid, $set);
+    if ($set.parent) {
+        // 若有parent则更新parent.children
+        await document.set(domainId, TYPE_PROBLEM_LIST, $set.parent, undefined, undefined, { children: res._id });
+    }
+    return res;
 }
 
 export async function del(domainId: string, tid: ObjectId) {
-    await Promise.all([
-        document.deleteOne(domainId, TYPE_SYSTEM_PLIST, tid),
-        document.deleteMultiStatus(domainId, TYPE_SYSTEM_PLIST, { docId: tid }),
-    ]);
+    const tdoc = await get(domainId, tid);
+    if (!tdoc) throw new ProblemListNotFountError(tid);
+    if (tdoc.parent) {
+        const ptdoc = await get(domainId, tdoc.parent);
+        await document.set(domainId, TYPE_PROBLEM_LIST, ptdoc._id, {
+            children: ptdoc.children.filter((id) => !tdoc.docId.equals(id)),
+        });
+    }
+    await document.deleteOne(domainId, TYPE_PROBLEM_LIST, tid);
 }
 
+// 检查用户是否具有题单权限
 export async function checkPerm(domainId: string, tid: ObjectId, uid: number) {
     const tdoc = await get(domainId, tid);
     const user = await UserModel.getById(domainId, uid);
