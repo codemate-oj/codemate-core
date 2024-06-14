@@ -113,17 +113,19 @@ export class RegisterBaseHandler extends Handler {
 
     @param('uname', Types.Username)
     @param('password', Types.Password)
+    @param('nickname', Types.String, true)
     @param('nationality', Types.String, true) // 国籍地区代码
     @param('regionCode', Types.String, true) // 国内行政区划代码（国外用000000代替）
-    @param('userRole', Types.String, true) // 用户角色（如机构老师、学生等）
+    @param('userRole', Types.PositiveInt, true) // 用户角色（如机构老师、学生等）
     @param('age', Types.PositiveInt, true) // 年龄
-    async post(_, uname: string, password: string, nationality: string, regionCode: string, userRole: string, age: number) {
+    async post(_, uname: string, password: string, nickname: string, nationality: string, regionCode: string, userRole: number, age: number) {
         const uid = await UserModel.create(this.email, uname, password, undefined, this.request.ip);
         await UserModel.setById(uid, {
             nationality,
             regionCode,
             userRole,
             age,
+            nickname,
             ...(this.token.phoneNumber ? { phone: this.token.phoneNumber } : {}),
         });
         await TokenModel.del(this.token._id, TokenModel.TYPE_REGISTRATION);

@@ -25,7 +25,6 @@ export function apply(ctx: Context) {
     });
     global.Hydro.lib.verifyCaptchaToken = async (userIp: string, randStr: string, ticket: string) => {
         const secretId = SystemModel.get('captcha.captchaSecretId');
-        console.log(secretId);
         const secretKey = SystemModel.get('captcha.captchaSecretKey');
         const appId = SystemModel.get('captcha.CaptchaAppId');
         const appSecretKey = SystemModel.get('captcha.CaptchaAppSecretKey');
