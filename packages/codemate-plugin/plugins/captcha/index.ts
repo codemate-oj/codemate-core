@@ -3,7 +3,7 @@ import { Context, SettingModel, SystemModel } from 'hydrooj';
 
 declare module 'hydrooj' {
     interface Lib {
-        verifyCaptchaToken(appId: number, appSecret: string, userIp: string, randStr: string, type: number, ticket: string): Promise<boolean>;
+        verifyCaptchaToken(userIp: string, randStr: string, ticket: string): Promise<boolean>;
     }
 }
 
@@ -12,39 +12,41 @@ export function apply(ctx: Context) {
         c.setting.SystemSetting(
             SettingModel.Setting('setting_secrets', 'captcha.captchaSecretId', '', 'text', 'Captcha SecretId', '腾讯云Captcha Secrect ID'),
             SettingModel.Setting('setting_secrets', 'captcha.captchaSecretKey', '', 'text', 'Captcha SecretKey', '腾讯云Captcha Secrect Key'),
+            SettingModel.Setting('setting_secrets', 'captcha.CaptchaAppId', '', 'text', 'Captcha AppId', 'Captcha前端应用的AppID'),
             SettingModel.Setting(
                 'setting_secrets',
-                'captcha.testCaptchaAppId',
+                'captcha.CaptchaAppSecretKey',
                 '',
                 'text',
-                'Captcha Test AppId',
-                'Captcha测试用的AppId（仅可用于开发模式）',
-            ), // For test purpose
-            SettingModel.Setting(
-                'setting_secrets',
-                'captcha.testCaptchaAppSecretKey',
-                '',
-                'text',
-                'Captcha Test AppSecretKey',
-                'Captcha测试用的AppSecretKey（仅可用于开发模式）',
-            ), // For test purpose
+                'Captcha AppSecretKey',
+                'Captcha前端应用的AppSecretKey',
+            ),
         );
     });
-    global.Hydro.lib.verifyCaptchaToken = async (appId: number, appSecret: string, userIp: string, randStr: string, type: number, ticket: string) => {
+    global.Hydro.lib.verifyCaptchaToken = async (userIp: string, randStr: string, ticket: string) => {
+        const secretId = SystemModel.get('captcha.captchaSecretId');
+        const secretKey = SystemModel.get('captcha.captchaSecretKey');
+        const appId = SystemModel.get('captcha.CaptchaAppId');
+        const appSecretKey = SystemModel.get('captcha.CaptchaAppSecretKey');
+
+        if (!secretId || !secretKey || !appId || !appSecretKey) {
+            throw new Error('Captcha service is not configured');
+        }
+
         const captchaClient = new TencentCloudSDK.captcha.v20190722.Client({
             credential: {
-                secretId: SystemModel.get('captcha.captchaSecretId'),
-                secretKey: SystemModel.get('captcha.captchaSecretKey'),
+                secretId,
+                secretKey,
             },
         });
         const res = await captchaClient.DescribeCaptchaResult({
-            CaptchaAppId: appId,
+            CaptchaAppId: Number(appId),
+            AppSecretKey: appSecretKey,
             UserIp: userIp,
-            CaptchaType: type,
+            CaptchaType: 9, // 固定值 9
             Randstr: randStr,
             Ticket: ticket,
             NeedGetCaptchaTime: 1,
-            AppSecretKey: appSecret,
         });
         return res.CaptchaCode === 1;
     };
