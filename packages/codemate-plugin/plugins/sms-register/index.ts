@@ -20,17 +20,12 @@ import {
     UserNotFoundError,
     ValidationError,
 } from 'hydrooj';
-import { logger, SendSMSFailedError, UserNotBindPhoneError, VerifyCodeError, VerifyTokenCheckNotPassedError } from './lib';
+import { logger, SendSMSFailedError, VerifyCodeError, VerifyTokenCheckNotPassedError } from './lib';
 
 declare module 'hydrooj' {
     interface Lib {
         sms: (msg: string, targetPhoneNumber: string) => Promise<boolean>;
     }
-}
-
-export async function doVerifyToken(verifyToken: string): Promise<boolean> {
-    // 检查一个 token 是否合法（防止机器人注册）
-    return true; // TODO implement this
 }
 
 export class SendTokenBaseHandler extends Handler {
@@ -46,9 +41,10 @@ export class SendTokenBaseHandler extends Handler {
         return id;
     };
 
-    @param('verifyToken', Types.String, true)
-    async _prepare(_, verifyToken: string = '') {
-        if (!(await doVerifyToken(verifyToken))) throw new VerifyTokenCheckNotPassedError();
+    @param('randStr', Types.String)
+    @param('ticket', Types.String)
+    async _prepare(_, randStr: string, ticket: string) {
+        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new VerifyTokenCheckNotPassedError();
     }
 }
 
