@@ -385,6 +385,35 @@ export class ProblemRandomHandler extends Handler {
     }
 }
 
+export class ProblemStarredHandler extends Handler {
+    async getStarredProblems(domainId: string, skip = 0, limit = 15) {
+        if (!this.user.hasPerm(PERM.PERM_VIEW_PROBLEM)) return [[], {}];
+        const psdocs = await problem.getMultiStatus(domainId, { uid: this.user._id, star: true }).sort('_id', 1).skip(skip).limit(limit).toArray();
+        const psdict = {};
+        for (const psdoc of psdocs) psdict[psdoc.docId] = psdoc;
+        const pdict = await problem.getList(
+            domainId,
+            psdocs.map((pdoc) => pdoc.docId),
+            this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id,
+            false,
+        );
+        const pdocs = Object.keys(pdict)
+            .filter((i) => +i)
+            .map((i) => pdict[i]);
+        return [pdocs, psdict];
+    }
+
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, page = 1, pageSize = 15) {
+        const [pdocs, psdict] = await this.getStarredProblems(domainId, (page - 1) * pageSize, pageSize);
+        this.response.body = {
+            pdocs,
+            psdict,
+        };
+    }
+}
+
 export class ProblemDetailHandler extends ContestDetailBaseHandler {
     pdoc: ProblemDoc;
     udoc: User;
@@ -1164,6 +1193,7 @@ export class ProblemPrefixListHandler extends Handler {
 export async function apply(ctx) {
     ctx.Route('problem_main', '/p', ProblemMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_random', '/problem/random', ProblemRandomHandler, PERM.PERM_VIEW_PROBLEM);
+    ctx.Route('problem_starred', '/problem/starred', ProblemStarredHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_detail', '/p/:pid', ProblemDetailHandler);
     ctx.Route('problem_submit', '/p/:pid/submit', ProblemSubmitHandler, PERM.PERM_SUBMIT_PROBLEM);
     ctx.Route('problem_hack', '/p/:pid/hack/:rid', ProblemHackHandler, PERM.PERM_SUBMIT_PROBLEM);
