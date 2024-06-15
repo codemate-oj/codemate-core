@@ -61,8 +61,6 @@ export default (router, logger) => async (ctx: KoaContext, next) => {
             res = router.url(name, args, { query }).toString();
             if (anchor) res = `${res}#${anchor}`;
             if (withDomainId) res = `/d/${withDomainId}${res}`;
-            const urlPrefix = system.get('server.url');
-            if (urlPrefix && urlPrefix !== '/') res = urlPrefix + res;
         } catch (e) {
             logger.warn(e.message);
             logger.info('%s %o', name, args);
