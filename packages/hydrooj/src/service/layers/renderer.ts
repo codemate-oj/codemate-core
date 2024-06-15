@@ -62,7 +62,7 @@ export default (router, logger) => async (ctx: KoaContext, next) => {
             if (anchor) res = `${res}#${anchor}`;
             if (withDomainId) res = `/d/${withDomainId}${res}`;
             const urlPrefix = system.get('server.url');
-            if (urlPrefix) res = urlPrefix + res;
+            if (urlPrefix && urlPrefix !== '/') res = urlPrefix + res;
         } catch (e) {
             logger.warn(e.message);
             logger.info('%s %o', name, args);
