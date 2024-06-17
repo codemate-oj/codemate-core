@@ -71,7 +71,8 @@ export class ContestListHandler extends Handler {
     @param('page', Types.PositiveInt, true)
     @param('tags', Types.CommaSeperatedArray, true)
     @param('category', Types.Range(contest.FilterCategory), true)
-    async get(domainId: string, rule = '', group = '', page = 1, tags: string[] = [], category = '') {
+    @param('attend', Types.Boolean)
+    async get(domainId: string, rule = '', group = '', page = 1, tags: string[] = [], category = '', attend?: boolean) {
         if (rule && contest.RULES[rule].hidden) throw new BadRequestError();
         const groups = (await user.listGroup(domainId, this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST) ? undefined : this.user._id)).map(
             (i) => i.name,
@@ -110,6 +111,19 @@ export class ContestListHandler extends Handler {
                 break;
         }
 
+        let _attendQ = {};
+        if (attend) {
+            const tids = (
+                await contest
+                    .getMultiStatus(domainId, {
+                        uid: this.user._id,
+                        attend: 1,
+                    })
+                    .toArray()
+            ).map((item) => item.docId);
+            _attendQ = { docId: { $in: tids } };
+        }
+
         const q = {
             ...(this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST) && !group
                 ? {}
@@ -120,6 +134,7 @@ export class ContestListHandler extends Handler {
             ...(group ? { assign: { $in: [group] } } : {}),
             ...(tags.length ? { tag: { $in: tags } } : {}),
             ..._tq,
+            ..._attendQ,
         };
         await this.ctx.parallel('contest/list', q, this);
         const cursor = contest.getMulti(domainId, q).sort({ endAt: -1, beginAt: -1, _id: -1 });
