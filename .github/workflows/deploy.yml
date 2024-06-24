@@ -1,4 +1,4 @@
-name: deploy
+name: Deploy To Test Environment
 on:
   push:
     branches: [ master ]

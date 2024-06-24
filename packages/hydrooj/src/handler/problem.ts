@@ -217,24 +217,24 @@ export class ProblemMainHandler extends Handler {
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
             ? [[], 0, 0]
-            : await problem.list(domainId, query, sort?.length ? 1 : page, limit, [...problem.PROJECTION_LIST, 'config'], this.user._id);
-
-        const prevPdocCount = pdocs.length;
-        pdocs = pdocs.filter((doc) => {
-            const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
-            let pass = true;
-            if (lang) {
-                // 判断题目配置语言
-                const langs = _conf.langs ?? [];
-                pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
-            }
-            if (objective) {
-                // 判断题目是否为客观题
-                pass = _conf.type === 'objective';
-            }
-            return pass;
-        });
-        pcount = pcount - prevPdocCount + pdocs.length;
+            : await problem.list(domainId, query, sort?.length ? 1 : page, limit, [...problem.PROJECTION_LIST, 'config'], this.user._id, (doc) => {
+                  try {
+                      const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
+                      let pass = true;
+                      if (lang) {
+                          // 判断题目配置语言
+                          const langs = _conf.langs ?? [];
+                          pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
+                      }
+                      if (objective) {
+                          // 判断题目是否为客观题
+                          pass = _conf.type === 'objective';
+                      }
+                      return pass;
+                  } catch (e) {
+                      return false;
+                  }
+              });
 
         if (total) {
             pcount = total;
@@ -1161,6 +1161,39 @@ export class ProblemPrefixListHandler extends Handler {
     }
 }
 
+export class ProlemStarredListHandler extends Handler {
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, page = 1, pageSize = 15) {
+        const cursor = await problem.getMultiStatus(domainId, { uid: this.user._id, star: true });
+        const psdocCount = await cursor.count();
+        const psdocs = await cursor
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .toArray();
+
+        const psdict = {};
+        for (const psdoc of psdocs) psdict[psdoc.docId] = psdoc;
+        const pdict = await problem.getList(
+            domainId,
+            psdocs.map((pdoc) => pdoc.docId),
+            this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id,
+            false,
+            undefined,
+            true,
+        );
+        this.response.body = {
+            pids: psdocs.map((pdoc) => pdoc.docId),
+            psdict,
+            pdict,
+            page,
+            pageSize,
+            psdocCount,
+            pageCount: Math.ceil(psdocCount / pageSize),
+        };
+    }
+}
+
 export async function apply(ctx) {
     ctx.Route('problem_main', '/p', ProblemMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_random', '/problem/random', ProblemRandomHandler, PERM.PERM_VIEW_PROBLEM);
@@ -1177,4 +1210,5 @@ export async function apply(ctx) {
     ctx.Route('problem_solution_reply_raw', '/p/:pid/solution/:psid/:psrid/raw', ProblemSolutionRawHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_create', '/problem/create', ProblemCreateHandler, PERM.PERM_CREATE_PROBLEM);
     ctx.Route('problem_prefix_list', '/problem/list', ProblemPrefixListHandler, PERM.PERM_VIEW_PROBLEM);
+    ctx.Route('problem_starred_list', '/problem/starred', ProlemStarredListHandler, PERM.PERM_VIEW_PROBLEM);
 }
