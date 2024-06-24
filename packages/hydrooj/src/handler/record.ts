@@ -380,6 +380,7 @@ class RecordMainConnectionHandler extends ConnectionHandler {
         if (this.pretest) this.queueSend(rdoc._id.toHexString(), async () => ({ rdoc: omit(rdoc, ['code', 'input']) }));
         else {
             this.queueSend(rdoc._id.toHexString(), async () => ({
+                data: { rdoc, udoc, pdoc, tdoc, allDomain: this.allDomain },
                 html: await this.renderHTML('record_main_tr.html', {
                     rdoc,
                     udoc,
@@ -448,6 +449,8 @@ class RecordDetailConnectionHandler extends ConnectionHandler {
     async sendUpdate(rdoc: RecordDoc) {
         this.send({
             status: rdoc.status,
+            rdoc,
+            pdoc: this.pdoc,
             status_html: await this.renderHTML('record_detail_status.html', { rdoc, pdoc: this.pdoc }),
             summary_html: await this.renderHTML('record_detail_summary.html', { rdoc, pdoc: this.pdoc }),
         });
