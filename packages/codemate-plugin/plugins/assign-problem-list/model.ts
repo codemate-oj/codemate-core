@@ -90,5 +90,5 @@ export async function checkPerm(domainId: string, tid: ObjectId, uid: number) {
     const user = await UserModel.getById(domainId, uid);
     const isAssigned = (await Promise.all(tdoc.assign?.map?.((group) => GroupModel.has(domainId, user._id, group)) ?? [])).some(Boolean);
 
-    return user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || user.own(tdoc) || isAssigned;
+    return user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || user.own(tdoc) || tdoc.assign?.length ? isAssigned : true;
 }
