@@ -88,7 +88,8 @@ export async function del(domainId: string, tid: ObjectId) {
 export async function checkPerm(domainId: string, tid: ObjectId, uid: number) {
     const tdoc = await get(domainId, tid);
     const user = await UserModel.getById(domainId, uid);
-    const isAssigned = (await Promise.all(tdoc.assign?.map?.((group) => GroupModel.has(domainId, user._id, group)) ?? [])).some(Boolean);
+    const isAssigned =
+        tdoc.assign?.length > 0 ? (await Promise.all(tdoc.assign?.map?.((group) => GroupModel.has(domainId, user._id, group)))).some(Boolean) : true;
 
     return user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || user.own(tdoc) || tdoc.assign?.length ? isAssigned : true;
 }
