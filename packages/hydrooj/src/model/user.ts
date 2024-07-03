@@ -172,7 +172,7 @@ export class User {
 
     serialize(options) {
         if (!this._isPrivate) {
-            const fields = ['_id', 'uname', 'mail', 'perm', 'role', 'priv', 'regat', 'loginat', 'tfa', 'authn'];
+            const fields = ['_id', 'uname', 'perm', 'role', 'priv', 'regat', 'loginat', 'tfa', 'authn'];
             if (options.showDisplayName) fields.push('displayName');
             return pick(this, fields);
         }
