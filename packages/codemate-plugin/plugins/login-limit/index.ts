@@ -1,34 +1,26 @@
 // 需求：一个账号只允许在一处登录，若多台设备登陆，则踢掉之前登录的设备
 
-import { Context, Handler, PRIV, TokenModel, UserModel } from 'hydrooj';
+import { Context, Handler, PRIV, SettingModel, SystemModel, TokenModel, UserModel } from 'hydrooj';
 
-declare module '../kv-service' {
-    interface KVTypes {
-        ipWhiteList: string[];
-    }
-}
-
-export async function apply(ctx: Context) {
-    ctx.inject(['kv'], async (c) => {
-        const callback = async (that: Handler & Record<string, any>) => {
-            if (that.session.uid <= 1) return; // user login failed
-            const udoc = await UserModel.getById(that.args['domainId'], that.session.uid);
-            const userIp = that.request.ip;
-            const ipWhiteList = await c.kv.get('ipWhiteList');
-            if (ipWhiteList.includes(userIp)) return;
-            if (udoc.hasPriv(PRIV.PRIV_UNLIMITED_ACCESS)) return;
-            const tdocs = await TokenModel.getMulti(TokenModel.TYPE_SESSION, { uid: udoc._id }).toArray();
-            await Promise.all(tdocs.map(async (tdoc) => TokenModel.del(tdoc._id, TokenModel.TYPE_SESSION)));
-        };
-        c.on('handler/after/TOTPLogin', callback);
-        c.on('handler/after/UserLogin', callback);
-
-        // add local ips to whitelist
-        await (async () => {
-            const ipWhiteList = (await c.kv.get('ipWhiteList')) || [];
-            if (ipWhiteList.length === 0) {
-                await c.kv.set('ipWhiteList', ['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-            }
-        })();
+export function apply(ctx: Context) {
+    ctx.inject(['setting'], async (c) => {
+        c.setting.SystemSetting(
+            SettingModel.Setting('setting_basic', 'loginlimit.whitelist', '127.0.0.1,::1,::ffff:127.0.0.1', 'text', 'loginLimit.whitelist'),
+        );
     });
+    const loginLimit = async (that: Handler & Record<string, any>) => {
+        if (that.session.uid <= 1) return; // user login failed
+        const udoc = await UserModel.getById(that.args['domainId'], that.session.uid);
+        if (udoc.hasPriv(PRIV.PRIV_UNLIMITED_ACCESS)) return; // bypass admin
+        const userIp = that.request.ip;
+        // 处理IP白名单逻辑，以适应SSR
+        const whiteListSetting: string = SystemModel.get('loginlimit.whitelist') ?? '';
+        const ipWhiteList = whiteListSetting.split(',');
+        if (ipWhiteList.includes(userIp)) return; // bypass server
+        // 踢掉所有其他IP
+        const tdocs = await TokenModel.getMulti(TokenModel.TYPE_SESSION, { uid: udoc._id }).toArray();
+        await Promise.all(tdocs.map(async (tdoc) => TokenModel.del(tdoc._id, TokenModel.TYPE_SESSION)));
+    };
+    ctx.on('handler/after/TOTPLogin', loginLimit);
+    ctx.on('handler/after/UserLogin', loginLimit);
 }
