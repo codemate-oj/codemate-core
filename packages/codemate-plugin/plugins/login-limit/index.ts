@@ -26,6 +26,6 @@ export function apply(ctx: Context) {
             logger.info(`User ${udoc._id} login at ${userIp}. ${tdocs.length} sessions expired.`);
         }
     };
-    ctx.on('handler/after/TOTPLogin', loginLimit);
-    ctx.on('handler/after/UserLogin', loginLimit);
+    ctx.on('handler/after/TOTPLogin#post', loginLimit);
+    ctx.on('handler/after/UserLogin#post', loginLimit);
 }
