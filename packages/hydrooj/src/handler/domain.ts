@@ -63,29 +63,6 @@ registerResolver(
     async (args, ctx) => !!(await GroupModel.del(ctx.parent._id, args.name)).deletedCount,
 );
 
-class DomainRankHandler extends Handler {
-    @query('page', Types.PositiveInt, true)
-    async get(domainId: string, page = 1) {
-        const [dudocs, upcount, ucount] = await paginate(
-            domain.getMultiUserInDomain(domainId, { uid: { $gt: 1 }, rp: { $gt: 0 } }).sort({ rp: -1 }),
-            page,
-            100,
-        );
-        const udict = await user.getList(
-            domainId,
-            dudocs.map((dudoc) => dudoc.uid),
-        );
-        const udocs = dudocs.map((i) => udict[i.uid]);
-        this.response.template = 'ranking.html';
-        this.response.body = {
-            udocs,
-            upcount,
-            ucount,
-            page,
-        };
-    }
-}
-
 class ManageHandler extends Handler {
     async prepare({ domainId }) {
         this.checkPerm(PERM.PERM_EDIT_DOMAIN);
@@ -356,7 +333,6 @@ class DomainSearchHandler extends Handler {
 }
 
 export async function apply(ctx: Context) {
-    ctx.Route('ranking', '/ranking', DomainRankHandler, PERM.PERM_VIEW_RANKING);
     ctx.Route('domain_dashboard', '/domain/dashboard', DomainDashboardHandler);
     ctx.Route('domain_edit', '/domain/edit', DomainEditHandler);
     ctx.Route('domain_user', '/domain/user', DomainUserHandler);

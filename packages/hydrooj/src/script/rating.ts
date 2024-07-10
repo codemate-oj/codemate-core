@@ -237,7 +237,14 @@ async function runInDomain(domainId: string, report: Function) {
     for (const uid in udict) {
         bulk.find({ domainId, uid: +uid })
             .upsert()
-            .update({ $set: { rp: Math.max(0, udict[uid]) } });
+            .update({
+                $set: {
+                    rp: Math.max(0, udict[uid]),
+                    rpCpp: Math.max(0, results['problemCpp'][uid]),
+                    rpPy: Math.max(0, results['problemPy'][uid]),
+                    rpScratch: Math.max(0, results['problemScratch'][uid]),
+                },
+            });
     }
     if (bulk.batches.length) await bulk.execute();
     await calcLevel(domainId, report);
