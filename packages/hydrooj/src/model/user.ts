@@ -261,8 +261,12 @@ class UserModel {
         return initAndCache(udoc, dudoc);
     }
 
-    static getByPhone(domainId: string, phoneNumber: string) {
-        return this.getByEmail(domainId, `mob-${phoneNumber}@hydro.local`);
+    static async getByPhone(domainId: string, phoneNumber: string) {
+        if (cache.has(`phone/${phoneNumber}/${domainId}`)) return cache.get(`phone/${phoneNumber}/${domainId}`);
+        const udoc = await coll.findOne({ phoneNumber });
+        if (!udoc) return null;
+        const dudoc = domain.getDomainUser(domainId, udoc);
+        return initAndCache(udoc, dudoc);
     }
 
     @ArgMethod

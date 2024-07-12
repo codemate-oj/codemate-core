@@ -13,7 +13,6 @@ import {
     UserFacingError,
     UserNotFoundError,
     ValidationError,
-    VerifyPasswordError,
 } from '../error';
 import { Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
@@ -295,61 +294,6 @@ export class UserRegisterHandler extends Handler {
     }
 }
 
-class UserLostPassHandler extends Handler {
-    noCheckPermView = true;
-
-    async get() {
-        this.response.template = 'user_lostpass.html';
-    }
-
-    @param('mail', Types.Email)
-    async post(domainId: string, mail: string) {
-        if (!system.get('smtp.user')) throw new SystemError('Cannot send mail');
-        const udoc = await user.getByEmail('system', mail);
-        if (!udoc) throw new UserNotFoundError(mail);
-        await Promise.all([
-            this.limitRate('send_mail', 3600, 30, false),
-            this.limitRate(`user_lostpass_${mail}`, 60, 3, false),
-            oplog.log(this, 'user.lostpass', {}),
-        ]);
-        const [tid] = await token.add(token.TYPE_LOSTPASS, system.get('session.unsaved_expire_seconds'), {
-            uid: udoc._id,
-        });
-        const prefix = this.domain.host ? `${this.domain.host instanceof Array ? this.domain.host[0] : this.domain.host}` : system.get('server.url');
-        const m = await this.renderHTML('user_lostpass_mail.html', {
-            url: `/lostpass/${tid}`,
-            url_prefix: prefix.endsWith('/') ? prefix.slice(0, -1) : prefix,
-            uname: udoc.uname,
-        });
-        await sendMail(mail, 'Lost Password', 'user_lostpass_mail', m);
-        this.response.template = 'user_lostpass_mail_sent.html';
-    }
-}
-
-class UserLostPassWithCodeHandler extends Handler {
-    noCheckPermView = true;
-
-    async get({ domainId, code }) {
-        const tdoc = await token.get(code, token.TYPE_LOSTPASS);
-        if (!tdoc) throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_LOSTPASS], code);
-        const udoc = await user.getById(domainId, tdoc.uid);
-        this.response.body = { uname: udoc.uname };
-        this.response.template = 'user_lostpass_with_code.html';
-    }
-
-    @param('code', Types.String)
-    @param('password', Types.Password)
-    @param('verifyPassword', Types.Password)
-    async post(domainId: string, code: string, password: string, verifyPassword: string) {
-        const tdoc = await token.get(code, token.TYPE_LOSTPASS);
-        if (!tdoc) throw new InvalidTokenError(token.TYPE_TEXTS[token.TYPE_LOSTPASS], code);
-        if (password !== verifyPassword) throw new VerifyPasswordError();
-        await user.setPassword(tdoc.uid, password);
-        await token.del(code, token.TYPE_LOSTPASS);
-        this.response.redirect = this.url('homepage');
-    }
-}
-
 class UserDetailHandler extends Handler {
     @param('uid', Types.Int)
     async get(domainId: string, uid: number) {
@@ -531,8 +475,6 @@ export async function apply(ctx) {
     // ctx.Route('user_register', '/register', UserRegisterHandler, PRIV.PRIV_REGISTER_USER);
     // ctx.Route('user_register_with_code', '/register/:code', UserRegisterWithCodeHandler, PRIV.PRIV_REGISTER_USER);
     ctx.Route('user_logout', '/logout', UserLogoutHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('user_lostpass', '/lostpass', UserLostPassHandler);
-    ctx.Route('user_lostpass_with_code', '/lostpass/:code', UserLostPassWithCodeHandler);
     ctx.Route('user_delete', '/user/delete', UserDeleteHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_detail', '/user/:uid(-?\\d+)', UserDetailHandler);
     if (system.get('server.contestmode')) {
