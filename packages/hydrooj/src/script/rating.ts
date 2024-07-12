@@ -4,13 +4,14 @@ import { NumericDictionary, unionWith } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
 import Schema from 'schemastery';
 import { Counter } from '@hydrooj/utils';
-import { Tdoc, Udoc } from '../interface';
+import { RecordDoc, Tdoc, Udoc } from '../interface';
 import difficultyAlgorithm from '../lib/difficulty';
 import rating from '../lib/rating';
 import { PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import domain from '../model/domain';
 import problem from '../model/problem';
+import record from '../model/record';
 import UserModel from '../model/user';
 import db from '../service/db';
 
@@ -22,33 +23,116 @@ interface RpDef {
     run(domainIds: string[], udict: ND, report: Function): Promise<void>;
     hidden: boolean;
     base: number;
+    notAccumulate?: boolean; // 是否统计到最终的 rp 总和中
 }
 
 const { log, max, min } = Math;
 
+const calculateLanguage = async (domainIds: string[], langs: string[]) => {
+    const udict: Record<string, number> = {};
+    const problems = await problem
+        .getMulti('', {
+            domainId: { $in: domainIds },
+            nAccept: { $gt: 0 },
+            hidden: false,
+        })
+        .toArray();
+    const counted = new Set<number>();
+    for (const pdoc of problems) {
+        const cursor = record.getMulti(pdoc.domainId, {
+            pid: pdoc.docId,
+            status: STATUS.STATUS_ACCEPTED,
+        });
+        const difficulty = +pdoc.difficulty || difficultyAlgorithm(pdoc.nSubmit, pdoc.nAccept) || 5;
+        let rdoc: RecordDoc;
+        while ((rdoc = await cursor.next())) {
+            if (counted.has(rdoc.uid)) continue;
+            if (rdoc.uid === pdoc.owner) continue;
+            const lang = rdoc.lang.endsWith('o2') ? rdoc.lang.slice(0, -2) : rdoc.lang;
+            if (!langs.includes(lang)) continue;
+            udict[rdoc.uid] = (udict[rdoc.uid] || 0) + difficulty;
+        }
+        counted.clear();
+    }
+    for (const key in udict) udict[key] = max(0, min(udict[key], log(udict[key]) / log(1.03)));
+    return udict;
+};
+
 export const RpTypes: Record<string, RpDef> = {
     problem: {
         async run(domainIds, udict, report) {
-            const problems = await problem.getMulti('', { domainId: { $in: domainIds }, nAccept: { $gt: 0 }, hidden: false }).toArray();
-            if (problems.length) await report({ message: `Found ${problems.length} problems in ${domainIds[0]}` });
-            for (const pdoc of problems) {
-                const cursor = problem.getMultiStatus(pdoc.domainId, {
-                    docId: pdoc.docId,
-                    rid: { $ne: null },
-                    uid: { $ne: pdoc.owner },
-                    score: { $gt: 0 },
-                });
-                const difficulty = +pdoc.difficulty || difficultyAlgorithm(pdoc.nSubmit, pdoc.nAccept) || 5;
-                const p = difficulty / 100;
-                let psdoc;
-                while ((psdoc = await cursor.next())) {
-                    udict[psdoc.uid] += min(psdoc.score, 100) * p;
-                }
-            }
-            for (const key in udict) udict[key] = max(0, min(udict[key], log(udict[key]) / log(1.03)));
+            const langs = ['c', 'cc', 'cc.cc98', 'cc.cc11', 'cc.cc14', 'cc.cc17', 'py.py', 'py.py2', 'py.py3', 'py.pypy3', 'scratch'];
+            const calculated = await calculateLanguage(domainIds, langs);
+            for (const key in calculated) udict[key] = calculated[key];
+            await report({
+                case: {
+                    status: STATUS.STATUS_ACCEPTED,
+                    message: `Problems Finished.`,
+                    time: 0,
+                    memory: 0,
+                    score: 0,
+                },
+            });
         },
         hidden: false,
         base: 0,
+    },
+    problemCpp: {
+        async run(domainIds, udict, report) {
+            const langs = ['c', 'cc', 'cc.cc98', 'cc.cc11', 'cc.cc14', 'cc.cc17'];
+            const calculated = await calculateLanguage(domainIds, langs);
+            for (const key in calculated) udict[key] = calculated[key];
+            await report({
+                case: {
+                    status: STATUS.STATUS_ACCEPTED,
+                    message: `C++ Problems Finished.`,
+                    time: 0,
+                    memory: 0,
+                    score: 0,
+                },
+            });
+        },
+        hidden: true,
+        base: 0,
+        notAccumulate: true,
+    },
+    problemPy: {
+        async run(domainIds, udict, report) {
+            const langs = ['py.py', 'py.py2', 'py.py3', 'py.pypy3'];
+            const calculated = await calculateLanguage(domainIds, langs);
+            for (const key in calculated) udict[key] = calculated[key];
+            await report({
+                case: {
+                    status: STATUS.STATUS_ACCEPTED,
+                    message: `Python Problems Finished.`,
+                    time: 0,
+                    memory: 0,
+                    score: 0,
+                },
+            });
+        },
+        hidden: true,
+        base: 0,
+        notAccumulate: true,
+    },
+    problemScratch: {
+        async run(domainIds, udict, report) {
+            const langs = ['scratch'];
+            const calculated = await calculateLanguage(domainIds, langs);
+            for (const key in calculated) udict[key] = calculated[key];
+            await report({
+                case: {
+                    status: STATUS.STATUS_ACCEPTED,
+                    message: `Scratch Problems Finished.`,
+                    time: 0,
+                    memory: 0,
+                    score: 0,
+                },
+            });
+        },
+        hidden: true,
+        base: 0,
+        notAccumulate: true,
     },
     contest: {
         async run(domainIds, udict, report) {
@@ -144,7 +228,7 @@ async function runInDomain(domainId: string, report: Function) {
             const udoc = await UserModel.getById(domainId, +uid);
             if (!udoc?.hasPriv(PRIV.PRIV_USER_PROFILE)) continue;
             bulk.find({ domainId, uid: +uid }).updateOne({ $set: { [`rpInfo.${type}`]: results[type][uid] } });
-            udict[+uid] += results[type][uid];
+            if (RpTypes[type].notAccumulate !== true) udict[+uid] += results[type][uid];
         }
         if (bulk.batches.length) await bulk.execute();
     }
@@ -153,7 +237,14 @@ async function runInDomain(domainId: string, report: Function) {
     for (const uid in udict) {
         bulk.find({ domainId, uid: +uid })
             .upsert()
-            .update({ $set: { rp: Math.max(0, udict[uid]) } });
+            .update({
+                $set: {
+                    rp: Math.max(0, udict[uid]),
+                    rpCpp: Math.max(0, results['problemCpp'][uid]),
+                    rpPy: Math.max(0, results['problemPy'][uid]),
+                    rpScratch: Math.max(0, results['problemScratch'][uid]),
+                },
+            });
     }
     if (bulk.batches.length) await bulk.execute();
     await calcLevel(domainId, report);
