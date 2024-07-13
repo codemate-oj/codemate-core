@@ -14,10 +14,10 @@ class LostpassHandler extends Handler {
             .toString()
             .padStart(6, '0');
         if (isEmail) {
-            const html = await this.renderHTML('user_register_mail.html', {
+            const html = await this.renderHTML('user_lostpass_mail.html', {
                 verifyCode: code,
             });
-            await global.Hydro.lib.mail.sendMail(emailOrPhone, 'Codemate 注册验证码', 'Codemate 注册验证码', html);
+            await global.Hydro.lib.mail.sendMail(emailOrPhone, 'Codemate 找回密码', 'Codemate 找回密码', html);
         } else {
             await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${code}，600s内有效`, emailOrPhone);
         }

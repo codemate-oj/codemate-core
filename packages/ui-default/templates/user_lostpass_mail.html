@@ -1,6 +1,6 @@
 {% extends "layout/mail.html" %}
-{% block title %}{{ _('Lost Password') }}{% endblock %}
+{% block title %}Codemate 忘记密码验证码{% endblock %}
 {% block content %}
-<p>{{ _('Hello, {0}! You can click following link to reset the password of your {1} account:').format(uname, handler.domain.ui.name|default(model.system.get('server.name'))) }}</p>
-<p><a href="{{ url_prefix }}{{ url }}">{{ url_prefix }}{{ url }}</a></p>
+<p>同学，您好！您已请求重置密码，您的验证码是：{{ verifyCode }}，600 秒内有效。</p>
+<p>如果您没有请求重置 Codemate 密码，请忽略这封邮件。</p>
 {% endblock %}
