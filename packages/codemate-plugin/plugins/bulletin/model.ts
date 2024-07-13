@@ -1,4 +1,4 @@
-import { DocumentModel, Filter, ObjectId } from 'hydrooj';
+import { Document, DocumentModel, Filter, ObjectId } from 'hydrooj';
 
 export interface BulletinDoc extends Document {
     docId: ObjectId;

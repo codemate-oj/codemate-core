@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import sanitize from 'sanitize-filename';
 import parser from '@hydrooj/utils/lib/search';
 import { sortFiles, streamToBuffer, yaml } from '@hydrooj/utils/lib/utils';
+import { Context } from '../context';
 import {
     BadRequestError,
     ContestNotAttendedError,
@@ -24,6 +25,7 @@ import {
     ProblemIsReferencedError,
     ProblemNotAllowLanguageError,
     ProblemNotAllowPretestError,
+    ProblemNotApprovedError,
     ProblemNotFoundError,
     RecordNotFoundError,
     SolutionNotFoundError,
@@ -213,6 +215,8 @@ export class ProblemMainHandler extends Handler {
         }
         await this.ctx.parallel('problem/list', query, this);
 
+        const canViewUnapprovedProblem = this.user.hasPerm(PERM.PERM_REVIEW_PROBLEM);
+
         // console.debug(query);
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
@@ -221,6 +225,7 @@ export class ProblemMainHandler extends Handler {
                   try {
                       const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
                       let pass = true;
+                      if (!canViewUnapprovedProblem && !doc.approved) pass = false;
                       if (lang) {
                           // 判断题目配置语言
                           const langs = _conf.langs ?? [];
@@ -395,6 +400,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     async _prepare(domainId: string, pid: number | string, tid?: ObjectId) {
         this.pdoc = await problem.get(domainId, pid);
         if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);
+        if (!this.user.hasPerm(PERM.PERM_REVIEW_PROBLEM) && !this.pdoc.approved) throw new ProblemNotApprovedError(pid);
         if (tid) {
             if (!this.tdoc?.pids?.includes(this.pdoc.docId)) throw new ContestNotFoundError(domainId, tid);
             if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(tid);
@@ -1194,7 +1200,26 @@ export class ProlemStarredListHandler extends Handler {
     }
 }
 
-export async function apply(ctx) {
+export class ProblemSetApproveHandler extends Handler {
+    @route('pid')
+    async get(domainId: string, pid: string) {
+        // this is completely useless
+        const pdoc = await problem.get(domainId, pid);
+        if (!pdoc) throw new ProblemNotFoundError(pid);
+        this.response.body = { pdoc };
+    }
+
+    @route('pid', Types.ProblemId)
+    @param('approved', Types.Boolean)
+    async post(domainId: string, pid: string, approved: boolean) {
+        const pdoc = await problem.get(domainId, pid);
+        if (!pdoc) throw new ProblemNotFoundError(pid);
+        await problem.edit(domainId, pdoc.docId, { approved });
+        this.response.body = { success: true };
+    }
+}
+
+export async function apply(ctx: Context) {
     ctx.Route('problem_main', '/p', ProblemMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_random', '/problem/random', ProblemRandomHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_detail', '/p/:pid', ProblemDetailHandler);
@@ -1211,4 +1236,5 @@ export async function apply(ctx) {
     ctx.Route('problem_create', '/problem/create', ProblemCreateHandler, PERM.PERM_CREATE_PROBLEM);
     ctx.Route('problem_prefix_list', '/problem/list', ProblemPrefixListHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_starred_list', '/problem/starred', ProlemStarredListHandler, PERM.PERM_VIEW_PROBLEM);
+    ctx.Route('problem_approve', '/problem/:pid/approve', ProblemSetApproveHandler, PERM.PERM_REVIEW_PROBLEM);
 }
