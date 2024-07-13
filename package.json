@@ -70,5 +70,8 @@
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json}": "prettier --write"
+    },
+    "dependencies": {
+        "alipay-sdk": "^4.11.0"
     }
 }

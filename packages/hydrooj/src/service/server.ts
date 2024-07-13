@@ -359,7 +359,7 @@ async function handle(ctx: KoaContext, HandlerClass, checker) {
 const Checker = (permPrivChecker) => {
     let perm: bigint;
     let priv: number;
-    let checker = () => {};
+    let checker = () => { };
     for (const item of permPrivChecker) {
         if (typeof item === 'object') {
             if (typeof item.call !== 'undefined') {
@@ -507,7 +507,7 @@ class NotFoundHandler extends Handler {
         throw new NotFoundError(this.request.path);
     }
 
-    all() {}
+    all() { }
 }
 
 export class RouteService extends Service {
@@ -640,7 +640,14 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
     });
     const jsonCheckLayer = async (ctx: KoaContext, next: Next) => {
         const { user, request } = ctx.HydroContext;
-        const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/];
+        const allowPaths = [
+            /^\/login/,
+            /^\/logout/,
+            /^\/constant\/\w*/,
+            /^\/lazy\/\w*\/\w*/,
+            /^\/resource\/\w*\/\w*/,
+            /^\/mei_value\/notifier\/alipay/,
+        ];
         if (allowPaths.some((p) => p.test(request.path)) || request.json || user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
             await next();
             return;
@@ -660,11 +667,11 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
             logger.warn('Websocket Error: %s', err.message);
             try {
                 socket.close(1003, 'Websocket Error');
-            } catch (e) {}
+            } catch (e) { }
         });
         socket.pause();
         const ctx: any = app.createContext(request, {} as any);
-        await domainLayer(ctx, () => baseLayer(ctx, () => layers[1](ctx, () => userLayer(ctx, () => {}))));
+        await domainLayer(ctx, () => baseLayer(ctx, () => layers[1](ctx, () => userLayer(ctx, () => { }))));
         for (const manager of router.wsStack) {
             if (manager.accept(socket, request, ctx)) return;
         }
