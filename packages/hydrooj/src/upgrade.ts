@@ -682,6 +682,15 @@ const scripts: UpgradeScript[] = [
             await domain.setRoles(ddoc._id, ddoc.roles);
         });
     },
+    async function _88_89() {
+        const udocs = user.getMulti({ mail: { $regex: /^mob-\d+@hydro\.local$/ } });
+        while (await udocs.hasNext()) {
+            const udoc = await udocs.next();
+            const phoneNumber = udoc.mail.match(/^mob-(\d+)@hydro\.local$/)[1];
+            await user.setById(udoc._id, { phoneNumber });
+        }
+        return true;
+    },
 ];
 
 export default scripts;
