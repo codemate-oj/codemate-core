@@ -691,6 +691,17 @@ const scripts: UpgradeScript[] = [
         }
         return true;
     },
+    async function _90_91() {
+        return await iterateAllProblem(['title', 'pid', 'config'], async (pdoc) => {
+            if (typeof pdoc.config === 'string') return;
+            if (pdoc.config.langs?.length > 0) return;
+            pdoc.config.langs ||= [];
+            if (pdoc.pid.endsWith('C')) pdoc.config.langs.push('cc.cc14o2');
+            if (pdoc.pid.endsWith('P')) pdoc.config.langs.push('py.py3');
+            if (pdoc.pid.endsWith('S')) pdoc.config.langs.push('scratch');
+            await problem.addTestdata(pdoc.domainId, pdoc.docId, 'config.yaml', JSON.stringify(pdoc.config));
+        });
+    },
 ];
 
 export default scripts;
