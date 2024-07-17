@@ -22,9 +22,11 @@ import storage from './storage';
 import user from './user';
 
 export interface ProblemDoc extends Document {}
+
 export type Field = keyof ProblemDoc;
 
 const logger = new Logger('problem');
+
 function sortable(source: string) {
     return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
 }
@@ -86,6 +88,7 @@ export class ProblemModel {
         nSubmit: 0,
         nAccept: 0,
         tag: [],
+        tags: [],
         data: [],
         additional_file: [],
         stats: {},
