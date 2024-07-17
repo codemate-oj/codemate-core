@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/naming-convention */
+import TagModel from 'codemate-plugin/plugins/tags-entity/model';
 import yaml from 'js-yaml';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
@@ -226,6 +227,7 @@ const scripts: UpgradeScript[] = [
     async function _51_52() {
         const mapping: Record<string, number> = {};
         const isStringPid = (i: string) => i.toString().includes(':');
+
         async function getProblem(domainId: string, target: string) {
             if (!target.toString().includes(':')) return await problem.get(domainId, target);
             const l = `${domainId}/${target}`;
@@ -235,6 +237,7 @@ const scripts: UpgradeScript[] = [
             mapping[l] = docId;
             return await problem.get(domainId, docId);
         }
+
         const cursor = db.collection('document').find({ docType: document.TYPE_CONTEST });
         for await (const doc of cursor) {
             const pids = [];
@@ -297,9 +300,11 @@ const scripts: UpgradeScript[] = [
     },
     async function _54_55() {
         const bulk = db.collection('document').initializeUnorderedBulkOp();
+
         function sortable(source: string) {
             return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
         }
+
         await iterateAllProblem(['pid', '_id'], async (pdoc) => {
             bulk.find({ _id: pdoc._id }).updateOne({ $set: { sort: sortable(pdoc.pid || `P${pdoc.docId}`) } });
         });
@@ -690,6 +695,21 @@ const scripts: UpgradeScript[] = [
             await user.setById(udoc._id, { phoneNumber });
         }
         return true;
+    },
+    async function _91_92() {
+        // iterate all tags, and add a tag document according to it.
+        const tagMap = new Map<string, ObjectId>();
+        return await iterateAllProblem(['tag'], async (pdoc) => {
+            const _tags = [];
+            for (const tag of pdoc.tag) {
+                if (!tagMap.has(tag)) {
+                    const docId = await TagModel.add(pdoc.domainId, { 'zh-cn': tag }, [], { 'zh-cn': tag });
+                    tagMap.set(tag, docId);
+                }
+                _tags.push(tagMap.get(tag));
+            }
+            await problem.edit(pdoc.domainId, pdoc.docId, { tags: _tags });
+        });
     },
 ];
 
