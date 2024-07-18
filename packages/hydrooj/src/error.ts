@@ -155,6 +155,8 @@ export const InvalidOperationError = Err('InvalidOperationError', MethodNotAllow
 export const NotLaunchedByPM2Error = Err('NotLaunchedByPM2Error', BadRequestError, 'Not launched by PM2.');
 export const FileTooLargeError = Err('FileTooLargeError', ValidationError, 'The uploaded file is too long.');
 
+export const ProblemNotApprovedError = Err('ProblemNotApprovedError', ForbiddenError, 'Problem {0} is not approved.');
+
 global.Hydro.error = module.exports;
 
 /*

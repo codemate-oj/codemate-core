@@ -31,6 +31,7 @@ export const PERM = {
     PERM_VIEW_PROBLEM_HIDDEN: 1n << 8n,
     PERM_SUBMIT_PROBLEM: 1n << 9n,
     PERM_READ_PROBLEM_DATA: 1n << 10n,
+    PERM_REVIEW_PROBLEM: 1n << 71n,
 
     // Record
     PERM_VIEW_RECORD: 1n << 70n,
