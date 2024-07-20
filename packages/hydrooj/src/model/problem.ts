@@ -22,9 +22,11 @@ import storage from './storage';
 import user from './user';
 
 export interface ProblemDoc extends Document {}
+
 export type Field = keyof ProblemDoc;
 
 const logger = new Logger('problem');
+
 function sortable(source: string) {
     return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
 }
@@ -48,7 +50,7 @@ function findOverrideContent(dir: string) {
 }
 
 export class ProblemModel {
-    static PROJECTION_CONTEST_LIST: Field[] = ['_id', 'domainId', 'docType', 'docId', 'pid', 'owner', 'title'];
+    static PROJECTION_CONTEST_LIST: Field[] = ['_id', 'approved', 'domainId', 'docType', 'docId', 'pid', 'owner', 'title'];
 
     static PROJECTION_LIST: Field[] = [
         ...ProblemModel.PROJECTION_CONTEST_LIST,
