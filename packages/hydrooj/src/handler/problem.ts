@@ -221,33 +221,25 @@ export class ProblemMainHandler extends Handler {
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
             ? [[], 0, 0]
-            : await problem.list(
-                  domainId,
-                  query,
-                  sort?.length ? 1 : page,
-                  limit,
-                  [...problem.PROJECTION_LIST, 'config', 'approved'],
-                  this.user._id,
-                  (doc) => {
-                      try {
-                          const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
-                          let pass = true;
-                          if (!canViewUnapprovedProblem && !doc.approved) pass = false;
-                          if (lang) {
-                              // 判断题目配置语言
-                              const langs = _conf.langs ?? [];
-                              pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
-                          }
-                          if (objective) {
-                              // 判断题目是否为客观题
-                              pass = _conf.type === 'objective';
-                          }
-                          return pass;
-                      } catch (e) {
-                          return false;
+            : await problem.list(domainId, query, sort?.length ? 1 : page, limit, [...problem.PROJECTION_LIST, 'config'], this.user._id, (doc) => {
+                  try {
+                      const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
+                      let pass = true;
+                      if (!canViewUnapprovedProblem && !doc.approved) pass = false;
+                      if (lang) {
+                          // 判断题目配置语言
+                          const langs = _conf.langs ?? [];
+                          pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
                       }
-                  },
-              );
+                      if (objective) {
+                          // 判断题目是否为客观题
+                          pass = _conf.type === 'objective';
+                      }
+                      return pass;
+                  } catch (e) {
+                      return false;
+                  }
+              });
 
         if (total) {
             pcount = total;
