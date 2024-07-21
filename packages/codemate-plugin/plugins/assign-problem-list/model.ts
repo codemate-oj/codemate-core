@@ -1,4 +1,4 @@
-import { ContestNotFoundError, Document, DocumentModel as document, Filter, ObjectId, PERM, Projection, UserModel } from 'hydrooj';
+import { ContestNotFoundError, Document, DocumentModel as document, Filter, ObjectId, PERM, PRIV, Projection, UserModel } from 'hydrooj';
 import { GroupModel } from '../privilege-group/model';
 import { ProblemListNotFountError } from './lib';
 
@@ -88,7 +88,14 @@ export async function del(domainId: string, tid: ObjectId) {
 export async function checkPerm(domainId: string, tid: ObjectId, uid: number) {
     const tdoc = await get(domainId, tid);
     const user = await UserModel.getById(domainId, uid);
-    const isAssigned = (await Promise.all(tdoc.assign?.map?.((group) => GroupModel.has(domainId, user._id, group)) ?? [])).some(Boolean);
 
-    return user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || user.own(tdoc) || tdoc.assign?.length ? isAssigned : true;
+    // 若用户有超管权限或拥有题单，直接返回true
+    if (user.hasPriv(PRIV.PRIV_ALL) || user.own(tdoc)) return true;
+
+    // 题单没有assign直接返回true
+    const assign = tdoc.assign;
+    if (!assign || assign.length === 0) return true;
+
+    // 检查assign中任何小组是否与用户小组有交集，若有则返回true
+    return (await Promise.all(tdoc.assign.map((g) => GroupModel.has(domainId, user._id, g)))).some(Boolean);
 }

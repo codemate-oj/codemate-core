@@ -14,7 +14,7 @@ import * as discussion from './model/discussion';
 import * as document from './model/document';
 import domain from './model/domain';
 import MessageModel from './model/message';
-import problem from './model/problem';
+import problem, { ProblemDoc } from './model/problem';
 import RecordModel from './model/record';
 import ScheduleModel from './model/schedule';
 import StorageModel from './model/storage';
@@ -690,6 +690,12 @@ const scripts: UpgradeScript[] = [
             await user.setById(udoc._id, { phoneNumber });
         }
         return true;
+    },
+    async function _89_90() {
+        // this make all the problems we have already had approved.
+        return await iterateAllProblem([], async (pdoc: ProblemDoc) => {
+            await problem.edit(pdoc.domainId, pdoc.docId, { approved: true });
+        });
     },
     async function _90_91() {
         return await iterateAllProblem(['title', 'pid', 'config'], async (pdoc) => {

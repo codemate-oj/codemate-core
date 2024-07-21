@@ -267,6 +267,7 @@ export interface Document {
     domainId: string;
     owner: number;
     maintainer?: number[];
+    approved?: boolean;
 }
 
 declare module './model/problem' {
