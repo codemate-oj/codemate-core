@@ -226,6 +226,7 @@ const scripts: UpgradeScript[] = [
     async function _51_52() {
         const mapping: Record<string, number> = {};
         const isStringPid = (i: string) => i.toString().includes(':');
+
         async function getProblem(domainId: string, target: string) {
             if (!target.toString().includes(':')) return await problem.get(domainId, target);
             const l = `${domainId}/${target}`;
@@ -235,6 +236,7 @@ const scripts: UpgradeScript[] = [
             mapping[l] = docId;
             return await problem.get(domainId, docId);
         }
+
         const cursor = db.collection('document').find({ docType: document.TYPE_CONTEST });
         for await (const doc of cursor) {
             const pids = [];
@@ -297,9 +299,11 @@ const scripts: UpgradeScript[] = [
     },
     async function _54_55() {
         const bulk = db.collection('document').initializeUnorderedBulkOp();
+
         function sortable(source: string) {
             return source.replace(/(\d+)/g, (str) => (str.length >= 6 ? str : '0'.repeat(6 - str.length) + str));
         }
+
         await iterateAllProblem(['pid', '_id'], async (pdoc) => {
             bulk.find({ _id: pdoc._id }).updateOne({ $set: { sort: sortable(pdoc.pid || `P${pdoc.docId}`) } });
         });
@@ -695,6 +699,11 @@ const scripts: UpgradeScript[] = [
         // this make all the problems we have already had approved.
         return await iterateAllProblem([], async (pdoc: ProblemDoc) => {
             await problem.edit(pdoc.domainId, pdoc.docId, { approved: true });
+        });
+    },
+    async function _92_93() {
+        return await iterateAllProblem(['content'], async (pdoc: ProblemDoc) => {
+            await problem.edit(pdoc.domainId, pdoc.docId, { brief: problem.extractBrief(pdoc.content) });
         });
     },
 ];
