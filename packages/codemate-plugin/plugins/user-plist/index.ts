@@ -4,13 +4,15 @@ import * as ProblemListModel from '../assign-problem-list/model';
 class UserProblemListHandler extends Handler {
     @param('page', Types.Int, true)
     @param('all', Types.Boolean, true)
-    async get(domainId: string, page: number = 1, all: boolean = false) {
+    @param('pageSize', Types.Int, true)
+    async get(domainId: string, page: number = 1, all: boolean = false, pageSize = 10) {
         if (all) this.checkPriv(PRIV.PRIV_VIEW_USER_SECRET); // allow super-admin to view all the problems
+        if (pageSize > 20) pageSize = 20;
         const cursor = ProblemListModel.getMulti(domainId, {
             visibility: 'private',
             owner: this.user._id,
         });
-        const [pldocs, pldocsPage, pldocsCount] = await paginate(cursor, page, 10);
+        const [pldocs, pldocsPage, pldocsCount] = await paginate(cursor, page, pageSize);
         this.response.body = {
             pldocs,
             pldocsPage,
@@ -22,18 +24,25 @@ class UserProblemListHandler extends Handler {
 class UserProblemListDetailHandler extends Handler {
     @route('tid', Types.ObjectId)
     @param('page', Types.Int, true)
-    async get(domainId: string, tid: ObjectId, page = 1) {
+    @param('pageSize', Types.Int, true)
+    async get(domainId: string, tid: ObjectId, page = 1, pageSize = 10) {
         const pldoc = await ProblemListModel.get(domainId, tid);
         if (this.user._id !== pldoc.owner) this.checkPriv(PRIV.PRIV_VIEW_USER_SECRET);
         for (const pid of pldoc.pids) {
             // eslint-disable-next-line no-await-in-loop
             if (!ProblemModel.canViewBy(await ProblemModel.get(domainId, pid), this.user)) throw new PermissionError();
         }
-        pldoc.pids = pldoc.pids.slice((page - 1) * 10, page * 10 - 1);
+        const itemCount = pldoc.pids.length;
+        const pageCount = Math.ceil(pldoc.pids.length / 10);
+        pldoc.pids = pldoc.pids.slice((page - 1) * pageSize, page * pageSize - 1);
         const pdict = await ProblemModel.getList(domainId, pldoc.pids);
         this.response.body = {
             pldoc,
             pdict,
+            pageCount,
+            itemCount,
+            pageSize,
+            page,
         };
     }
 }
@@ -51,10 +60,10 @@ class UserProblemListEditHandler extends Handler {
             // eslint-disable-next-line no-await-in-loop
             const pdoc = await ProblemModel.get(domainId, pid);
             if (!pdoc || !ProblemModel.canViewBy(pdoc, this.user)) throw new PermissionError();
-            if (pldoc.pids.includes(pid)) throw new ValidationError(insertPids);
+            if (pldoc.pids.includes(pid)) throw new ValidationError(insertPids, null, `Duplicate problem ${pid}.`);
         }
         for (const pid of deletePids) {
-            if (!pldoc.pids.includes(pid)) throw new ValidationError(deletePids);
+            if (!pldoc.pids.includes(pid)) throw new ValidationError(deletePids, null, `Problem ${pid} does not exist.`);
         }
         const pids = pldoc.pids.concat(insertPids).filter((pid) => !deletePids.includes(pid));
         await ProblemListModel.edit(domainId, tid, {
