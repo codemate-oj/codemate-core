@@ -22,13 +22,13 @@ declare module 'hydrooj' {
 
 export type ConsumeMeiValueResult =
     | {
-        success: false;
-        msg: string;
-    }
+          success: false;
+          msg: string;
+      }
     | {
-        success: true;
-        tradeNo: ObjectID;
-    };
+          success: true;
+          tradeNo: ObjectID;
+      };
 
 export class AlipayCodemateSdk {
     alipaySdk: AlipaySdk;
