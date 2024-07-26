@@ -1,9 +1,9 @@
-import { Context, Handler, param, post, TokenModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
+import { Context, Handler, param, post, PRIV, TokenModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
 
 class UserCenterHandler extends Handler {
     @param('tabId', Types.Int, true)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async get(domainId: string, tabId: number = 1) {
+    async get(domainId: string, _tabId: number = 1) {
         const uid = this.user._id;
         if (uid === 0) throw new UserNotFoundError(0);
         const [udoc, sdoc] = await Promise.all([
@@ -31,9 +31,10 @@ class UserCenterHandler extends Handler {
             nickname,
         };
         await UserModel.setById(uid, $update);
+        this.response.body = { success: true };
     }
 }
 
 export async function apply(ctx: Context) {
-    ctx.Route('user_center', '/user/center', UserCenterHandler);
+    ctx.Route('user_center', '/user/center', UserCenterHandler, PRIV.PRIV_USER_PROFILE);
 }
