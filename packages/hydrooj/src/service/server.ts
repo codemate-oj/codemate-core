@@ -67,7 +67,6 @@ export interface HydroRequest {
     json: boolean;
     websocket: boolean;
 }
-
 export interface HydroResponse {
     body: any;
     type: string;
@@ -83,7 +82,6 @@ export interface HydroResponse {
     attachment: (name: string, stream?: any) => void;
     addHeader: (name: string, value: string) => void;
 }
-
 interface HydroContext {
     request: HydroRequest;
     response: HydroResponse;
@@ -92,7 +90,6 @@ interface HydroContext {
     args: Record<string, any>;
     UiContext: Record<string, any>;
 }
-
 export interface KoaContext extends Koa.Context {
     HydroContext: HydroContext;
     handler: any;
