@@ -204,7 +204,14 @@ export class ProblemModel {
             }
             if (filter) {
                 // 当filter存在时做全文查询
-                let docs = await document.getMulti(id, document.TYPE_PROBLEM, query, projection).sort({ sort: 1, docId: 1 }).toArray();
+                let docs = await document
+                    .getMulti(id, document.TYPE_PROBLEM, query, projection)
+                    .sort({
+                        index: -1,
+                        sort: 1,
+                        docId: 1,
+                    })
+                    .toArray();
                 docs = docs.filter(filter);
                 count += docs.length; // 查询到所有文档的数量
                 if (pdocs.length >= pageSize) continue;
@@ -219,7 +226,7 @@ export class ProblemModel {
                     pdocs.push(
                         ...(await document
                             .getMulti(id, document.TYPE_PROBLEM, query, projection)
-                            .sort({ sort: 1, docId: 1 })
+                            .sort({ index: -1, sort: 1, docId: 1 })
                             .skip(Math.max((page - 1) * pageSize - count, 0))
                             .limit(pageSize - pdocs.length)
                             .toArray()),
