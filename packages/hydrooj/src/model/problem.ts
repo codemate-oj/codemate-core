@@ -25,6 +25,12 @@ export interface ProblemDoc extends Document {}
 
 export type Field = keyof ProblemDoc;
 
+export type ProblemMeta = {
+    difficulty?: number;
+    hidden?: boolean;
+    index?: number;
+};
+
 const logger = new Logger('problem');
 
 function sortable(source: string) {
@@ -117,18 +123,9 @@ export class ProblemModel {
         difficulty: 0,
     };
 
-    static async add(
-        domainId: string,
-        pid: string = '',
-        title: string,
-        content: string,
-        owner: number,
-        tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
-    ) {
+    static async add(domainId: string, pid: string = '', title: string, content: string, owner: number, tag: string[] = [], meta: ProblemMeta = {}) {
         const [doc] = await ProblemModel.getMulti(domainId, {}).sort({ docId: -1 }).limit(1).project({ docId: 1 }).toArray();
-        const result = await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
-        return result;
+        return await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
     }
 
     static async addWithId(
@@ -139,7 +136,7 @@ export class ProblemModel {
         content: string,
         owner: number,
         tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
+        meta: ProblemMeta = {},
     ) {
         const args: Partial<ProblemDoc> = {
             title,
@@ -151,6 +148,7 @@ export class ProblemModel {
         };
         if (pid) args.pid = pid;
         if (meta.difficulty) args.difficulty = meta.difficulty;
+        if (meta.index) args.index = meta.index;
         await bus.parallel('problem/before-add', domainId, content, owner, docId, args);
         const result = await document.add(domainId, content, owner, document.TYPE_PROBLEM, docId, null, null, args);
         args.content = content;

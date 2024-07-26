@@ -753,6 +753,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('hidden', Types.Boolean)
     @post('tag', Types.Content, true, null, parseCategory)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
+    @param('index', Types.PositiveInt, true)
     async post(
         domainId: string,
         pid: string | number,
@@ -762,6 +763,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
         hidden = false,
         tag: string[] = [],
         difficulty = 0,
+        index = 0,
     ) {
         if (typeof newPid !== 'string') newPid = `P${newPid}`;
         if (newPid !== this.pdoc.pid && (await problem.get(domainId, newPid))) throw new ProblemAlreadyExistError(pid);
@@ -773,6 +775,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
             tag: tag ?? [],
             difficulty,
             html: false,
+            index,
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
@@ -1121,10 +1124,20 @@ export class ProblemCreateHandler extends Handler {
     @post('hidden', Types.Boolean)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('tag', Types.Content, true, null, parseCategory)
-    async post(domainId: string, title: string, content: string, pid: string | number = '', hidden = false, difficulty = 0, tag: string[] = []) {
+    @post('index', Types.PositiveInt, true)
+    async post(
+        domainId: string,
+        title: string,
+        content: string,
+        pid: string | number = '',
+        hidden = false,
+        difficulty = 0,
+        tag: string[] = [],
+        index = 0,
+    ) {
         if (typeof pid !== 'string') pid = `P${pid}`;
         if (pid && (await problem.get(domainId, pid))) throw new ProblemAlreadyExistError(pid);
-        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty });
+        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty, index });
         const files = new Set(Array.from(content.matchAll(/file:\/\/([a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)/g)).map((i) => i[1]));
         const tasks = [];
         for (const file of files) {
