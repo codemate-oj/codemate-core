@@ -296,6 +296,8 @@ declare module './model/problem' {
 
         /** string (errormsg) */
         config: string | ProblemConfig;
+
+        index?: number;
     }
 }
 export type { ProblemDoc } from './model/problem';

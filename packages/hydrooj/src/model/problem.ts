@@ -25,6 +25,12 @@ export interface ProblemDoc extends Document {}
 
 export type Field = keyof ProblemDoc;
 
+export type ProblemMeta = {
+    difficulty?: number;
+    hidden?: boolean;
+    index?: number;
+};
+
 const logger = new Logger('problem');
 
 function sortable(source: string) {
@@ -117,18 +123,9 @@ export class ProblemModel {
         difficulty: 0,
     };
 
-    static async add(
-        domainId: string,
-        pid: string = '',
-        title: string,
-        content: string,
-        owner: number,
-        tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
-    ) {
+    static async add(domainId: string, pid: string = '', title: string, content: string, owner: number, tag: string[] = [], meta: ProblemMeta = {}) {
         const [doc] = await ProblemModel.getMulti(domainId, {}).sort({ docId: -1 }).limit(1).project({ docId: 1 }).toArray();
-        const result = await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
-        return result;
+        return await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
     }
 
     static async addWithId(
@@ -139,7 +136,7 @@ export class ProblemModel {
         content: string,
         owner: number,
         tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
+        meta: ProblemMeta = {},
     ) {
         const args: Partial<ProblemDoc> = {
             title,
@@ -151,6 +148,7 @@ export class ProblemModel {
         };
         if (pid) args.pid = pid;
         if (meta.difficulty) args.difficulty = meta.difficulty;
+        if (meta.index) args.index = meta.index;
         await bus.parallel('problem/before-add', domainId, content, owner, docId, args);
         const result = await document.add(domainId, content, owner, document.TYPE_PROBLEM, docId, null, null, args);
         args.content = content;
@@ -182,7 +180,7 @@ export class ProblemModel {
     }
 
     static getMulti(domainId: string, query: Filter<ProblemDoc>, projection = ProblemModel.PROJECTION_LIST) {
-        return document.getMulti(domainId, document.TYPE_PROBLEM, query, projection).sort({ sort: 1 });
+        return document.getMulti(domainId, document.TYPE_PROBLEM, query, projection).sort({ index: -1, sort: 1 });
     }
 
     static async list(
@@ -206,7 +204,14 @@ export class ProblemModel {
             }
             if (filter) {
                 // 当filter存在时做全文查询
-                let docs = await document.getMulti(id, document.TYPE_PROBLEM, query, projection).sort({ sort: 1, docId: 1 }).toArray();
+                let docs = await document
+                    .getMulti(id, document.TYPE_PROBLEM, query, projection)
+                    .sort({
+                        index: -1,
+                        sort: 1,
+                        docId: 1,
+                    })
+                    .toArray();
                 docs = docs.filter(filter);
                 count += docs.length; // 查询到所有文档的数量
                 if (pdocs.length >= pageSize) continue;
@@ -221,7 +226,7 @@ export class ProblemModel {
                     pdocs.push(
                         ...(await document
                             .getMulti(id, document.TYPE_PROBLEM, query, projection)
-                            .sort({ sort: 1, docId: 1 })
+                            .sort({ index: -1, sort: 1, docId: 1 })
                             .skip(Math.max((page - 1) * pageSize - count, 0))
                             .limit(pageSize - pdocs.length)
                             .toArray()),
