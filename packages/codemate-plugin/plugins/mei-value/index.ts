@@ -20,8 +20,6 @@ class MeiValueHandler extends Handler {
     async get() {
         const udoc = await UserModel.getById(this.domain._id, this.user._id);
         if (!udoc) throw new UserNotFoundError(this.user._id);
-        const tradeInfo = await global.Hydro.lib.consumeMeiValue(this, this.user._id, this.domain._id, '测试交易', '测试交易信息', 80);
-        logger.info('trade', tradeInfo);
         this.response.body = { meiValue: udoc._udoc.meiValue ?? 0 };
     }
 }
