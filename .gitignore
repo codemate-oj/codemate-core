@@ -1,3 +1,5 @@
+.vscode/
+
 # Built Files & Log
 .build/
 dist/

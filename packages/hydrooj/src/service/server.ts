@@ -640,7 +640,14 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
     });
     const jsonCheckLayer = async (ctx: KoaContext, next: Next) => {
         const { user, request } = ctx.HydroContext;
-        const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/];
+        const allowPaths = [
+            /^\/login/,
+            /^\/logout/,
+            /^\/constant\/\w*/,
+            /^\/lazy\/\w*\/\w*/,
+            /^\/resource\/\w*\/\w*/,
+            /^\/mei_value\/notifier\/alipay/,
+        ];
         if (allowPaths.some((p) => p.test(request.path)) || request.json || user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
             await next();
             return;

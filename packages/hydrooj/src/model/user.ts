@@ -270,12 +270,13 @@ class UserModel {
     }
 
     @ArgMethod
-    static async setById(uid: number, $set?: Partial<Udoc>, $unset?: Value<Partial<Udoc>, ''>, $push?: any) {
+    static async setById(uid: number, $set?: Partial<Udoc>, $unset?: Value<Partial<Udoc>, ''>, $push?: any, $inc?: any) {
         if (uid < -999) return null;
         const op: any = {};
         if ($set && Object.keys($set).length) op.$set = $set;
         if ($unset && Object.keys($unset).length) op.$unset = $unset;
         if ($push && Object.keys($push).length) op.$push = $push;
+        if ($inc && Object.keys($inc).length) op.$inc = $inc;
         if (op.$set?.loginip) op.$addToSet = { ip: op.$set.loginip };
         const keys = new Set(Object.values(op).flatMap((i) => Object.keys(i)));
         if (keys.has('mailLower') || keys.has('unameLower')) {
