@@ -118,10 +118,13 @@ export class ProblemModel {
         difficulty: 0,
     };
 
-    static extractBrief(statement: string) {
+    static extractBrief(statementProps: string) {
+        let statement: string;
         try {
-            statement = JSON.parse(statement)['zh'];
-        } catch (e) {}
+            statement = JSON.parse(statementProps)['zh'] ?? statementProps;
+        } catch (e) {
+            statement = statementProps;
+        }
         if (statement.includes('{{ select(1) }}')) {
             return statement.slice(0, statement.indexOf('{{ select(1) }}'));
         }

@@ -26,6 +26,8 @@ import { iterateAllContest, iterateAllDomain, iterateAllProblem, iterateAllUser 
 import db from './service/db';
 import { setBuiltinConfig } from './settings';
 import welcome from './welcome';
+import { DiscussionModel } from 'hydrooj';
+import { BulletinModel } from 'codemate-plugin/plugins/bulletin/model';
 
 const logger = new Logger('upgrade');
 type UpgradeScript = void | (() => Promise<boolean | void>);
@@ -701,10 +703,20 @@ const scripts: UpgradeScript[] = [
             await problem.edit(pdoc.domainId, pdoc.docId, { approved: true });
         });
     },
-    async function _92_93() {
+    async function _91_92() {
         return await iterateAllProblem(['content'], async (pdoc: ProblemDoc) => {
             await problem.edit(pdoc.domainId, pdoc.docId, { brief: problem.extractBrief(pdoc.content) });
         });
+    },
+    async function _92_93() {
+        // 迁移discussion->bulletin
+        const bulletinDocs = await DiscussionModel.getMulti('system', { parentType: 20 }).toArray();
+        await Promise.all(
+            bulletinDocs.map(async ({ parentId, domainId, owner, title, content, docId }) => {
+                await BulletinModel.add(domainId, owner, title, content, [parentId as string]);
+                // await DiscussionModel.del(domainId, docId);
+            }),
+        );
     },
 ];
 
