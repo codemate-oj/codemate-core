@@ -1,4 +1,3 @@
-// @ts-expect-error alipay-sdk has no type declaration
 import { AlipaySdk, AlipaySdkConfig } from 'alipay-sdk';
 import { BadRequestError, Err, Handler, Logger, NotFoundError, ObjectID, SystemError } from 'hydrooj';
 
