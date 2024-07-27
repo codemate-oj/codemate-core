@@ -1,4 +1,4 @@
-import { AlipaySdk, AlipaySdkConfig } from 'alipay-sdk';
+import { AlipaySdk, AlipaySdkConfig } from 'alipay-sdk'; // 1
 import { BadRequestError, Err, Handler, Logger, NotFoundError, ObjectID, SystemError } from 'hydrooj';
 
 export const logger = new Logger('meiValue');
