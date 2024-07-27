@@ -552,4 +552,5 @@ global.Hydro.model.document = {
     TYPE_PROBLEM_SOLUTION,
     TYPE_TRAINING,
     TYPE_BULLETIN,
+    TYPE_ORDER,
 };
