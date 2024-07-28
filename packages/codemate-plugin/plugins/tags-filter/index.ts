@@ -62,7 +62,7 @@ export async function apply(ctx: Context) {
         );
         global.Hydro.lib.problemTagsFilter = (pdoc: ProblemDoc) => ({
             ...pdoc,
-            tag: global.Hydro.lib.tagsFilter(pdoc.tag),
+            tag: global.Hydro.lib.tagsFilter(pdoc.tag ?? []),
         });
 
         // a simple hook, not covered all cases
