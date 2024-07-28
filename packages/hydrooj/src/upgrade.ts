@@ -705,18 +705,26 @@ const scripts: UpgradeScript[] = [
     },
     async function _91_92() {
         return await iterateAllProblem(['content'], async (pdoc: ProblemDoc) => {
-            await problem.edit(pdoc.domainId, pdoc.docId, { brief: problem.extractBrief(pdoc.content) });
+            try {
+                await problem.edit(pdoc.domainId, pdoc.docId, { brief: problem.extractBrief(pdoc.content ?? '') });
+            } catch (e) {
+                if (e instanceof Error) logger.error(e.message);
+            }
         });
     },
     async function _92_93() {
-        // 迁移discussion->bulletin
-        const bulletinDocs = await DiscussionModel.getMulti('system', { parentType: 20 }).toArray();
-        await Promise.all(
-            bulletinDocs.map(async ({ parentId, domainId, owner, title, content, docId }) => {
-                await BulletinModel.add(domainId, owner, title, content, [parentId as string]);
-                // await DiscussionModel.del(domainId, docId);
-            }),
-        );
+        try {
+            // 迁移discussion->bulletin
+            const bulletinDocs = await DiscussionModel.getMulti('system', { parentType: 20 }).toArray();
+            await Promise.all(
+                bulletinDocs.map(async ({ parentId, domainId, owner, title, content, docId }) => {
+                    await BulletinModel.add(domainId, owner, title, content, [parentId as string]);
+                    // await DiscussionModel.del(domainId, docId);
+                }),
+            );
+        } catch (e) {
+            if (e instanceof Error) logger.error(e.message);
+        }
     },
 ];
 
