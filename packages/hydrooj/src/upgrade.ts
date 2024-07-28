@@ -703,7 +703,7 @@ const scripts: UpgradeScript[] = [
             await problem.edit(pdoc.domainId, pdoc.docId, { approved: true });
         });
     },
-    async function _91_92() {
+    async function _90_91() {
         return await iterateAllProblem(['content'], async (pdoc: ProblemDoc) => {
             try {
                 await problem.edit(pdoc.domainId, pdoc.docId, { brief: problem.extractBrief(pdoc.content ?? '') });
@@ -712,7 +712,7 @@ const scripts: UpgradeScript[] = [
             }
         });
     },
-    async function _92_93() {
+    async function _91_92() {
         try {
             // 迁移discussion->bulletin
             const bulletinDocs = await DiscussionModel.getMulti('system', { parentType: 20 }).toArray();
