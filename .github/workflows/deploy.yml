@@ -14,4 +14,4 @@ jobs:
         port: 22
         username: ubuntu
         password: ${{ secrets.SERVER_PASSWORD }}
-        script: sudo su -c 'cd /root/codemate-core/ && git pull && pm2 reload hydrooj'
+        script: sudo su -c 'cd /root/codemate-core/ && git pull && /root/.nix-profile/bin/pm2 reload hydrooj'
