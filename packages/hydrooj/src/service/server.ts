@@ -638,10 +638,17 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
     pluginContext.on('app/exit', () => {
         fs.emptyDirSync(uploadDir);
     });
+    // codemate新增：禁止普通用户登录后台
     const jsonCheckLayer = async (ctx: KoaContext, next: Next) => {
         const { user, request } = ctx.HydroContext;
-        const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/];
-        if (allowPaths.some((p) => p.test(request.path)) || request.json || user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
+        const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/, /^\/file\/\w*\/\w*/];
+        const allowPerms = [PERM.PERM_EDIT_PROBLEM, PERM.PERM_CREATE_PROBLEM];
+        if (
+            allowPaths.some((p) => p.test(request.path)) ||
+            request.json ||
+            user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) ||
+            allowPerms.map((perm) => user.hasPerm(perm)).some(Boolean)
+        ) {
             await next();
             return;
         }
