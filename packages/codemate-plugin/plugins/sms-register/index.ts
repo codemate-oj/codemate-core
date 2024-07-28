@@ -126,7 +126,7 @@ export class RegisterBaseHandler extends Handler {
             userRole,
             age,
             nickname,
-            ...(this.token.phoneNumber ? { phone: this.token.phoneNumber } : {}),
+            ...(this.token.phoneNumber ? { phoneNumber: this.token.phoneNumber } : {}),
         });
         await TokenModel.del(this.token._id, TokenModel.TYPE_REGISTRATION);
 
