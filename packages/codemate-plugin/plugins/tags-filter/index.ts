@@ -67,6 +67,7 @@ export async function apply(ctx: Context) {
 
         // a simple hook, not covered all cases
         c.on('handler/after', (that) => {
+            if (that.request.path.includes('edit')) return;
             that.response.body['pdoc'] &&= global.Hydro.lib.problemTagsFilter(that.response.body['pdoc']);
             that.response.body['pdocs'] = that.response.body['pdocs']?.map((pdoc: any) => global.Hydro.lib.problemTagsFilter(pdoc));
             if (that.response.body['pdict']) {

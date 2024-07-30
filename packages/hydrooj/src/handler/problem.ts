@@ -229,7 +229,13 @@ export class ProblemMainHandler extends Handler {
                       if (lang) {
                           // 判断题目配置语言
                           const langs = _conf.langs ?? [];
-                          pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
+                          const LANG_TAG_MAP = {
+                              'cc.cc14o2': 'C++',
+                              'py.py3': 'Python',
+                              scratch: '图形化',
+                          };
+                          pass =
+                              doc.tag?.includes(LANG_TAG_MAP[lang.toLowerCase()]) || langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
                       }
                       if (objective) {
                           // 判断题目是否为客观题
