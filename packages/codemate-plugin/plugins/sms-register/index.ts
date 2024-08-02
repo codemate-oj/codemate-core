@@ -155,7 +155,7 @@ export class SendTOTPCodeHandler extends SendTokenBaseHandler {
         const user = (await UserModel.getByUname(domainId, uname)) ?? (await UserModel.getByPhone(domainId, uname));
         if (!user) throw new UserNotFoundError(uname);
 
-        const phoneNumber = user.phoneNumber ?? user.mail.split('@')[0].replace(/^mob-/, '') ?? '';
+        const phoneNumber = user.phoneNumber ?? user.phone ?? user.mail.split('@')[0].replace(/^mob-/, '') ?? '';
         if (!phoneNumber) throw new ValidationError('phoneNumber');
 
         const _code = this.generateCode();
