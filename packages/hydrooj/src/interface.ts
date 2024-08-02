@@ -101,15 +101,15 @@ export interface Udoc extends Record<string, any> {
 
 /**
  * export const enum UserRole {
-  PRIMARY_SCHOOL_STUDENT = 0, // 小学生
-  JUNIOR_MIDDLE_SCHOOL_STUDENT = 1, // 初中生
-  SENIOR_MIDDLE_SCHOOL_STUDENT = 2, // 高中生
-  ADULT = 10, // 一般成人
-  COLLEGE_STUDENT = 11, // 大学生
-  SCHOOL_TEACHER = 12, // 中小学教师
-  INSTITUTE_TEACHER = 13, // 机构教师
-  STUDENT_PARENT = 14, // 学生家长
-}
+ PRIMARY_SCHOOL_STUDENT = 0, // 小学生
+ JUNIOR_MIDDLE_SCHOOL_STUDENT = 1, // 初中生
+ SENIOR_MIDDLE_SCHOOL_STUDENT = 2, // 高中生
+ ADULT = 10, // 一般成人
+ COLLEGE_STUDENT = 11, // 大学生
+ SCHOOL_TEACHER = 12, // 中小学教师
+ INSTITUTE_TEACHER = 13, // 机构教师
+ STUDENT_PARENT = 14, // 学生家长
+ }
  */
 
 export interface VUdoc {
@@ -156,6 +156,7 @@ export interface BaseUser {
     displayName?: string;
     studentId?: string;
 }
+
 export type BaseUserDict = Record<number, BaseUser>;
 
 export interface FileInfo {
@@ -244,18 +245,21 @@ export interface PlainContentNode {
     subType: 'html' | 'markdown';
     text: string;
 }
+
 export interface TextContentNode {
     type: 'Text';
     subType: 'html' | 'markdown';
     sectionTitle: string;
     text: string;
 }
+
 export interface SampleContentNode {
     type: 'Sample';
     text: string;
     sectionTitle: string;
     payload: [string, string];
 }
+
 // TODO drop contentNode support
 export type ContentNode = PlainContentNode | TextContentNode | SampleContentNode;
 export type Content = string | ContentNode[] | Record<string, ContentNode[]>;
@@ -293,6 +297,7 @@ declare module './model/problem' {
             pid: number;
         };
         assign?: string[];
+        brief?: string;
 
         /** string (errormsg) */
         config: string | ProblemConfig;
@@ -385,6 +390,7 @@ export interface ScoreboardNode {
     style?: string;
     hover?: string;
 }
+
 export type ScoreboardRow = ScoreboardNode[] & { raw?: any };
 
 export type PenaltyRules = Dictionary<number>;
@@ -542,6 +548,7 @@ export interface TokenDoc {
     createAt: Date;
     updateAt: Date;
     expireAt: Date;
+
     [key: string]: any;
 }
 
@@ -648,6 +655,7 @@ export interface Task {
     type: string;
     subType?: string;
     priority: number;
+
     [key: string]: any;
 }
 
@@ -656,6 +664,7 @@ export interface Schedule {
     type: string;
     subType?: string;
     executeAfter: Date;
+
     [key: string]: any;
 }
 
@@ -796,6 +805,7 @@ export interface ProblemSearchResponse {
     total: number;
     countRelation: 'eq' | 'gte';
 }
+
 export interface ProblemSearchOptions {
     limit?: number;
     skip?: number;
@@ -814,6 +824,7 @@ export interface Lib extends Record<string, any> {
 }
 
 export type UIInjectableFields = 'ProblemAdd' | 'Notification' | 'Nav' | 'UserDropdown' | 'DomainManage' | 'ControlPanel';
+
 export interface UI {
     template: Record<string, string>;
     nodes: Record<UIInjectableFields, any[]>;

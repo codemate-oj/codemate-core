@@ -105,8 +105,11 @@ class UserLoginHandler extends Handler {
     @param('authnChallenge', Types.String, true)
     async post(domainId: string, uname: string, password: string, rememberme = false, redirect = '', tfa = '', authnChallenge = '') {
         if (!system.get('server.login')) throw new BuiltinLoginError();
+        // 登录优先级：email > uname > phone
         let udoc = await user.getByEmail(domainId, uname);
         udoc ||= await user.getByUname(domainId, uname);
+        udoc ||= await user.getByPhone(domainId, uname);
+
         if (!udoc) throw new UserNotFoundError(uname);
         if (system.get('system.contestmode') && !udoc.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
             if (udoc._loginip && udoc._loginip !== this.request.ip) throw new ValidationError('ip');

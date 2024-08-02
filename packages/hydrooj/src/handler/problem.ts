@@ -171,9 +171,6 @@ export class ProblemMainHandler extends Handler {
             query.docId = { $in: pldoc.pids };
         }
 
-        // 查询tag
-        if (tags.length) query.$and = tags.map((tag) => ({ tag }));
-
         const psdict = {};
         const search = global.Hydro.lib.problemSearch || defaultSearch;
         let sort: string[]; // search返回的排序结果
@@ -192,7 +189,10 @@ export class ProblemMainHandler extends Handler {
         if (parsed.difficulty?.every((i) => Number.isSafeInteger(+i))) {
             query.difficulty = { $in: parsed.difficulty.map(Number) };
         }
-        if (category.length) query.$and.push(...category.map((tag) => ({ tag })));
+        if (category.length) {
+            query.$and ||= [];
+            query.$and.push(...category.map((tag) => ({ tag })));
+        }
 
         // 更新hydro页面标题
         this.UiContext.extraTitleContent = [...tags, ...category, text].join(',');
@@ -229,7 +229,13 @@ export class ProblemMainHandler extends Handler {
                       if (lang) {
                           // 判断题目配置语言
                           const langs = _conf.langs ?? [];
-                          pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
+                          const LANG_TAG_MAP = {
+                              'cc.cc14o2': 'C++',
+                              'py.py3': 'Python',
+                              scratch: '图形化',
+                          };
+                          pass =
+                              doc.tag?.includes(LANG_TAG_MAP[lang.toLowerCase()]) || langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
                       }
                       if (objective) {
                           // 判断题目是否为客观题

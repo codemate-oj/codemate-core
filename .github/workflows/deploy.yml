@@ -10,8 +10,8 @@ jobs:
     - name: executing remote ssh commands to develop
       uses: appleboy/ssh-action@master
       with:
-        host: 43.139.233.159
+        host: ${{ secrets.SERVER_HOST }}
         port: 22
         username: ubuntu
-        password: ${{ secrets.DEPLOY_SECRET }}
-        script: sudo su -c 'cd /root/codemate-core/ && git pull && /root/.nvm/versions/node/v20.13.1/bin/pm2 restart all'
+        password: ${{ secrets.SERVER_PASSWORD }}
+        script: sudo su -c 'cd /root/codemate-core/ && git pull && /root/.nix-profile/bin/pm2 reload hydrooj'
