@@ -727,7 +727,7 @@ const scripts: UpgradeScript[] = [
         }
     },
     async function _92_93() {
-      return await iterateAllProblem(['title', 'pid', 'config', 'tag'], async (pdoc) => {
+        return await iterateAllProblem(['title', 'pid', 'config', 'tag'], async (pdoc) => {
             if (typeof pdoc.config === 'string') return;
             if (pdoc.config.langs?.length > 0) return;
             pdoc.config.langs ||= [];
