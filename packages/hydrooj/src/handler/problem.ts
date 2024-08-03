@@ -594,7 +594,10 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // 这里先清空前面所有的内容
         this.response.body = { hasPerm };
         const ways = [];
-        if (this.pdoc.assign) ways.push('group');
+        if (this.pdoc.assign) {
+            ways.push('group');
+            this.response.body.assign = this.pdoc.assign;
+        }
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;
     }

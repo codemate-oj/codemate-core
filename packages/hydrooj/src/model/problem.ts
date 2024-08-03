@@ -62,6 +62,7 @@ export class ProblemModel {
         'hidden',
         'stats',
         'config',
+        'assign',
     ];
 
     static PROJECTION_CONTEST_DETAIL: Field[] = [
@@ -492,7 +493,7 @@ export class ProblemModel {
         if (pdoc.hidden) return false;
         // 检查Assign题目权限
         if (pdoc.assign && pdoc.assign.length > 0) {
-            return Set.intersection(new Set(pdoc.assign), new Set(udoc.groups)).size > 0;
+            return Set.intersection(new Set(pdoc.assign), new Set(udoc.group ?? [])).size > 0;
         }
         return true;
     }
