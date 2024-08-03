@@ -57,6 +57,7 @@ export class User {
     mail: string;
     phoneNumber?: string;
     uname: string;
+    nickname?: string;
     hashType: string;
     priv: number;
     regat: Date;
@@ -91,6 +92,7 @@ export class User {
 
         this.mail = udoc.mail;
         this.uname = udoc.uname;
+        this.nickname = udoc.nickname;
         this.hashType = udoc.hashType || 'hydro';
         this.priv = udoc.priv;
         this.regat = udoc.regat;
