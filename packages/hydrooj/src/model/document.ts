@@ -1,7 +1,7 @@
 /* eslint-disable object-curly-newline */
 import assert from 'assert';
 import { bulletin, plist } from 'codemate-plugin';
-import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter } from 'mongodb';
+import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, SetFields, UpdateFilter } from 'mongodb';
 import { Context } from '../context';
 import { Content, ContestClarificationDoc, DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc, Tdoc, TrainingDoc } from '../interface';
 import * as bus from '../service/bus';
@@ -115,13 +115,15 @@ export async function set<K extends keyof DocType>(
     $set?: Partial<DocType[K]>,
     $unset?: OnlyFieldsOfType<DocType[K], any, true | '' | 1>,
     $push?: PushOperator<DocType[K]>,
+    $addToSet?: SetFields<DocType[K]>,
 ): Promise<DocType[K]> {
     await bus.parallel('document/set', domainId, docType, docId, $set, $unset);
     const update: UpdateFilter<DocType[K]> = {};
     if ($set) update.$set = $set;
     if ($unset) update.$unset = $unset;
     if ($push) update.$push = $push;
-    const res = await coll.findOneAndUpdate({ domainId, docType, docId }, update, { returnDocument: 'after', upsert: true });
+    if ($addToSet) update.$addToSet = $addToSet;
+    const res = await coll.findOneAndUpdate({ domainId, docType, docId }, { ...update }, { returnDocument: 'after', upsert: true });
     return res.value;
 }
 

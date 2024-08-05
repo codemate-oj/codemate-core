@@ -67,7 +67,7 @@ export async function edit(domainId: string, tid: ObjectId, $set: Partial<Proble
     const res = await document.set(domainId, TYPE_PROBLEM_LIST, tid, $set);
     if ($set.parent) {
         // 若有parent则更新parent.children
-        await document.set(domainId, TYPE_PROBLEM_LIST, $set.parent, undefined, undefined, { children: res._id });
+        await document.set(domainId, TYPE_PROBLEM_LIST, $set.parent, undefined, undefined, undefined, { children: res._id });
     }
     return res;
 }

@@ -133,7 +133,7 @@ export class ContestListHandler extends Handler {
                   }),
             ...(rule ? { rule } : { rule: { $in: rules } }),
             ...(group ? { assign: { $in: [group] } } : {}),
-            ...(tags.length ? { tag: { $in: tags } } : {}),
+            ...(tags.length ? { tag: { $all: tags } } : {}),
             ..._tq,
             ...attendQuery,
         };
