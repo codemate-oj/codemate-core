@@ -18,6 +18,10 @@
 {%- if pdoc.hidden and show_invisible_flag -%}
   <span class="text-orange">({{ _('Hidden') }})</span>
 {%- endif -%}
+{%- if not pdoc.approved and show_invisible_flag -%}
+  <span class="text-blue">(未审核)</span>
+{%- endif -%}
+
 {%- if show_tags -%}{{ render_problem_tags(pdoc, inline=inline) }}{%- endif -%}
 {% endmacro %}
 

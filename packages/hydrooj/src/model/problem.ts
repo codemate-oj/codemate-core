@@ -486,6 +486,11 @@ export class ProblemModel {
         return document.setStatus(domainId, document.TYPE_PROBLEM, pid, uid, { star });
     }
 
+    static canViewUnapprovedProblem(pdoc: ProblemDoc, udoc: User) {
+        if (pdoc.approved) return true;
+        return udoc.own(pdoc) || udoc.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN, PERM.PERM_REVIEW_PROBLEM);
+    }
+
     static canViewBy(pdoc: ProblemDoc, udoc: User) {
         if (!udoc.hasPerm(PERM.PERM_VIEW_PROBLEM)) return false;
         if (udoc.own(pdoc)) return true;

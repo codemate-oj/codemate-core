@@ -48,6 +48,15 @@
                value:pdoc['difficulty']
              }) }}
           </div>
+          {% if handler.user.hasPerm(perm.PERM_REVIEW_PROBLEM) %}
+          {{ form.form_checkbox({
+              label:'题目是否通过审核',
+              name:'approved',
+              placeholder:'审核通过（只有通过审核的题目才对用户可见）',
+              value:pdoc['approved']|default(false),
+              row:true
+            }) }}
+          {% endif %}
           <div class="section__tab-container nojs--hide">
           <div class="section__tab-header-wrapper">
             <ul class="section__tab-header">
