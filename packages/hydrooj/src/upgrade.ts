@@ -726,6 +726,27 @@ const scripts: UpgradeScript[] = [
             if (e instanceof Error) logger.error(e.message);
         }
     },
+    async function _92_93() {
+        return await iterateAllProblem(['title', 'pid', 'config', 'tag'], async (pdoc) => {
+            if (typeof pdoc.config === 'string') return;
+            if (pdoc.config.langs?.length > 0) return;
+            pdoc.config.langs ||= [];
+            const tag = pdoc.tag;
+            if (pdoc.pid.endsWith('C')) {
+                pdoc.config.langs.push('cc.cc14o2');
+                await problem.edit(pdoc.domainId, pdoc.docId, { tag: [...tag, 'C++'] });
+            }
+            if (pdoc.pid.endsWith('P')) {
+                pdoc.config.langs.push('py.py3');
+                await problem.edit(pdoc.domainId, pdoc.docId, { tag: [...tag, 'Python'] });
+            }
+            if (pdoc.pid.endsWith('S')) {
+                pdoc.config.langs.push('scratch');
+                await problem.edit(pdoc.domainId, pdoc.docId, { tag: [...tag, '图形化'] });
+            }
+            await problem.addTestdata(pdoc.domainId, pdoc.docId, 'config.yaml', JSON.stringify(pdoc.config));
+        });
+    },
 ];
 
 export default scripts;
