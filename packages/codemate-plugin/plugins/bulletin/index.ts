@@ -30,6 +30,7 @@ class BulletinListHandler extends BulletinBaseHandler {
                 tags: { $elemMatch: { $in: tags } },
             });
         }
+        cursor.sort({ postAt: -1 });
         const [bdocs, bdocsPage, bdocsCount] = await paginate(cursor, page, limit);
         this.response.template = 'bulletin_main.html';
         this.response.body = {
