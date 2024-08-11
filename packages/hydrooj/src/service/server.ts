@@ -643,7 +643,9 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
         const { user, request } = ctx.HydroContext;
         const allowPaths = [/^\/login/, /^\/logout/, /^\/constant\/\w*/, /^\/lazy\/\w*\/\w*/, /^\/resource\/\w*\/\w*/, /file/];
         const allowPerms = [PERM.PERM_EDIT_PROBLEM, PERM.PERM_CREATE_PROBLEM];
+        // TODO: 独立guard layer，写更完备的校验逻辑
         if (
+            request.path.includes('file') ||
             request.querystring.includes('download') ||
             allowPaths.some((p) => p.test(request.path)) ||
             request.json ||
