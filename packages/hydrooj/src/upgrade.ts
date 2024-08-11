@@ -713,6 +713,7 @@ const scripts: UpgradeScript[] = [
         });
     },
     async function _91_92() {
+        logger.info(`Migrate discussion to bulletin 92->92`);
         try {
             // 迁移discussion->bulletin
             const bulletinDocs = await DiscussionModel.getMulti('system', { parentType: 20 }).toArray();
@@ -725,6 +726,7 @@ const scripts: UpgradeScript[] = [
         } catch (e) {
             if (e instanceof Error) logger.error(e.message);
         }
+        return true;
     },
 ];
 
