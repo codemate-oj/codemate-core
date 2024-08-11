@@ -601,6 +601,13 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;
     }
+
+    @param('approve', Types.Boolean)
+    async postApprove(domainId: string, approve: boolean) {
+        this.checkPerm(PERM.PERM_REVIEW_PROBLEM);
+        await problem.edit(domainId, this.pdoc.docId, { approved: approve });
+        this.back();
+    }
 }
 
 export class ProblemSubmitHandler extends ProblemDetailHandler {
@@ -1222,7 +1229,6 @@ export class ProblemSetApproveHandler extends Handler {
         // this is completely useless
         const pdoc = await problem.get(domainId, pid);
         if (!pdoc) throw new ProblemNotFoundError(pid);
-        this.response.body = { pdoc };
     }
 
     @route('pid', Types.ProblemId)
