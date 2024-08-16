@@ -1,8 +1,7 @@
-import { Err, Logger, PermissionError, SystemError } from 'hydrooj';
+import { Err, Logger, SystemError, ValidationError } from 'hydrooj';
 
-export const VerifyTokenCheckNotPassedError = Err('VerifyTokenCheckNotPassedError', PermissionError);
+export const InvalidCaptchaTokenError = Err('InvalidCaptchaTokenError', ValidationError, 'Invalid captcha token.');
 export const SendSMSFailedError = Err('SendSMSFailedError', SystemError);
-export const VerifyCodeError = Err('VerifyCodeError', PermissionError);
-export const UserNotBindPhoneError = Err('UserNotBindPhoneError', PermissionError);
+export const VerifyCodeError = Err('VerifyCodeError', ValidationError, 'Invalid verification code.');
 
 export const logger = new Logger('register-ex');

@@ -8,7 +8,6 @@ import {
     param,
     PERM,
     PRIV,
-    query,
     SettingModel,
     superagent,
     SystemModel,
@@ -20,7 +19,7 @@ import {
     UserNotFoundError,
     ValidationError,
 } from 'hydrooj';
-import { logger, SendSMSFailedError, VerifyCodeError, VerifyTokenCheckNotPassedError } from './lib';
+import { InvalidCaptchaTokenError, logger, SendSMSFailedError, VerifyCodeError } from './lib';
 
 declare module 'hydrooj' {
     interface Lib {
@@ -44,7 +43,7 @@ export class SendTokenBaseHandler extends Handler {
     @param('randStr', Types.String)
     @param('ticket', Types.String)
     async _prepare(_, randStr: string, ticket: string) {
-        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new VerifyTokenCheckNotPassedError();
+        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new InvalidCaptchaTokenError();
     }
 }
 
@@ -116,7 +115,7 @@ export class RegisterBaseHandler extends Handler {
     @param('nickname', Types.String, true)
     @param('nationality', Types.String, true) // 国籍地区代码
     @param('regionCode', Types.String, true) // 国内行政区划代码（国外用000000代替）
-    @param('userRole', Types.PositiveInt, true) // 用户角色（如机构老师、学生等）
+    @param('userRole', Types.Int, true) // 用户角色（如机构老师、学生等）
     @param('age', Types.PositiveInt, true) // 年龄
     async post(_, uname: string, password: string, nickname: string, nationality: string, regionCode: string, userRole: number, age: number) {
         const uid = await UserModel.create(this.email, uname, password, undefined, this.request.ip);
