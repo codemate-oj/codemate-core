@@ -19,7 +19,7 @@ import {
     UserNotFoundError,
     ValidationError,
 } from 'hydrooj';
-import { InvalidCaptchaTokenError, logger, SendSMSFailedError, VerifyCodeError } from './lib';
+import { logger, SendSMSFailedError } from './lib';
 
 declare module 'hydrooj' {
     interface Lib {
@@ -43,7 +43,7 @@ export class SendTokenBaseHandler extends Handler {
     @param('randStr', Types.String)
     @param('ticket', Types.String)
     async _prepare(_, randStr: string, ticket: string) {
-        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new InvalidCaptchaTokenError();
+        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new ValidationError('captcha');
     }
 }
 
@@ -105,7 +105,7 @@ export class RegisterBaseHandler extends Handler {
     async prepare(_, tokenId: string, verifyCode: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
         if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_REGISTRATION], tokenId);
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+        if (token.verifyCode !== verifyCode) throw new ValidationError('verifyCode');
         this.token = token;
         this.email = this.token.phoneNumber ? `mob-${this.token.phoneNumber}@hydro.local` : this.token.mail;
     }
@@ -181,7 +181,7 @@ export class TOTPLoginHandler extends Handler {
     async post(domainId: string, tokenId: string, verifyCode: string, rememberme: boolean, redirect?: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_SMSLOGIN);
         if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_SMSLOGIN], tokenId);
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+        if (token.verifyCode !== verifyCode) throw new ValidationError('verifyCode');
 
         const udoc = await UserModel.getById(domainId, token.uid);
         await UserModel.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
