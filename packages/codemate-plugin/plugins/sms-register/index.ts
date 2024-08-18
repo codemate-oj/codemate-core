@@ -146,6 +146,7 @@ export class RegisterBaseHandler extends Handler {
             // 邀请码不应阻塞注册
             try {
                 await InvitatonModel.registerCode(domainId, inviteCode, uid);
+                logger.info('inviteCode register success: ', inviteCode);
             } catch (e) {
                 console.error(e);
                 logger.error('inviteCode register fail: ', e.message);
