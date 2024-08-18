@@ -20,6 +20,7 @@ import {
     ValidationError,
 } from 'hydrooj';
 import { logger, SendSMSFailedError } from './lib';
+import { InvitatonModel } from '../invite-code/model';
 
 declare module 'hydrooj' {
     interface Lib {
@@ -119,7 +120,7 @@ export class RegisterBaseHandler extends Handler {
     @param('age', Types.PositiveInt, true) // 年龄
     @param('inviteCode', Types.String, true) // 机构邀请码
     async post(
-        _,
+        domainId: string,
         uname: string,
         password: string,
         nickname?: string,
@@ -136,10 +137,20 @@ export class RegisterBaseHandler extends Handler {
             userRole,
             age,
             nickname,
-            inviteCode,
             ...(this.token.phoneNumber ? { phoneNumber: this.token.phoneNumber } : {}),
         });
         await TokenModel.del(this.token._id, TokenModel.TYPE_REGISTRATION);
+
+        // 邀请码注册
+        if (inviteCode) {
+            // 邀请码不应阻塞注册
+            try {
+                await InvitatonModel.registerCode(domainId, inviteCode, uid);
+            } catch (e) {
+                console.error(e);
+                logger.error('inviteCode register fail: ', e.message);
+            }
+        }
 
         this.response.body = {
             success: true,
