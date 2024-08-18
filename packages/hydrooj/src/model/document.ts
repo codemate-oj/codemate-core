@@ -1,6 +1,6 @@
 /* eslint-disable object-curly-newline */
 import assert from 'assert';
-import { bulletin, plist } from 'codemate-plugin';
+import { bulletin, invitation, plist } from 'codemate-plugin';
 import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, SetFields, UpdateFilter } from 'mongodb';
 import { Context } from '../context';
 import { Content, ContestClarificationDoc, DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc, Tdoc, TrainingDoc } from '../interface';
@@ -29,6 +29,7 @@ export const TYPE_TRAINING: 40 = 40;
 /** @deprecated use `TYPE_CONTEST` with rule `homework` instead. */
 export const TYPE_HOMEWORK: 60 = 60;
 export const TYPE_BULLETIN: 80 = 80;
+export const TYPE_INVITATION: 90 = 90;
 
 export interface DocType {
     [TYPE_PROBLEM]: ProblemDoc;
@@ -42,6 +43,7 @@ export interface DocType {
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_SYSTEM_PLIST]: plist.ProblemList;
     [TYPE_BULLETIN]: bulletin.BulletinDoc;
+    [TYPE_INVITATION]: invitation.InvitationDoc;
 }
 
 export interface DocStatusType {
@@ -552,4 +554,5 @@ global.Hydro.model.document = {
     TYPE_PROBLEM_SOLUTION,
     TYPE_TRAINING,
     TYPE_BULLETIN,
+    TYPE_INVITATION,
 };
