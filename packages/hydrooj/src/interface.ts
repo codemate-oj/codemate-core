@@ -97,6 +97,7 @@ export interface Udoc extends Record<string, any> {
     regionCode?: string; // 行政区代码
     userRole?: number; // 枚举值
     age?: number;
+    inviteCode?: string;
 }
 
 /**
