@@ -32,6 +32,7 @@ pnpm-lock.yaml
 tsconfig.json
 tsconfig.*.json
 .idea/
+.vscode/*
 
 # Project Rules
 ## Core
