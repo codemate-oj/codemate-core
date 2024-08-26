@@ -219,7 +219,7 @@ class MeiValuePayHandler extends Handler {
     }
 
     @param('orderId', Types.ObjectId, false)
-    @param('paymentType', Types.String, false)
+    @param('paymentType', Types.Range(['Alipay', 'Wechat']), false)
     async post(domainId: string, orderId: ObjectId, paymentType: 'Alipay' | 'Wechat') {
         await checkAndRefreshCharge(domainId, orderId, paymentType, this);
         this.response.body = {
