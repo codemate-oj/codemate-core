@@ -1,5 +1,5 @@
-import { Context, ForbiddenError, Handler, param, post, PRIV, TokenModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
 import { omit } from 'lodash';
+import { Context, ForbiddenError, Handler, param, post, PRIV, TokenModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
 
 class UserCenterHandler extends Handler {
     async get() {

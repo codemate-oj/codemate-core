@@ -1,4 +1,4 @@
-import { Context, db, ForbiddenError, UserModel } from 'hydrooj';
+import { Context, db, ForbiddenError, UserModel, Collections } from 'hydrooj';
 
 interface IpLoginInfo {
     _id: string;
@@ -10,7 +10,7 @@ declare module 'hydrooj' {
         iplogin: IpLoginInfo;
     }
 }
-const coll = db.collection('iplogin');
+const coll = db.collection('iplogin' as keyof Collections);
 
 function normalizeIp(ip: string) {
     if (ip.startsWith('::ffff:')) return ip.slice(7);

@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/naming-convention */
+import { BulletinModel } from 'codemate-plugin/plugins/bulletin/model';
 import yaml from 'js-yaml';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
 import { ObjectId } from 'mongodb';
 import { sleep } from '@hydrooj/utils';
+import { DiscussionModel } from 'hydrooj';
 import { buildContent } from './lib/content';
 import { Logger } from './logger';
 import { PERM, PRIV, STATUS } from './model/builtin';
@@ -26,8 +28,6 @@ import { iterateAllContest, iterateAllDomain, iterateAllProblem, iterateAllUser 
 import db from './service/db';
 import { setBuiltinConfig } from './settings';
 import welcome from './welcome';
-import { DiscussionModel } from 'hydrooj';
-import { BulletinModel } from 'codemate-plugin/plugins/bulletin/model';
 
 const logger = new Logger('upgrade');
 type UpgradeScript = void | (() => Promise<boolean | void>);
