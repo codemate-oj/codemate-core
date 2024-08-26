@@ -1,4 +1,4 @@
-import { db, ObjectId } from 'hydrooj';
+import { type Collections, db, ObjectId } from 'hydrooj';
 
 export interface PaymentOrderDoc {
     _id: ObjectId;
@@ -23,13 +23,12 @@ declare module 'hydrooj' {
     interface Collections {
         order: PaymentOrderDoc;
     }
-
     interface Model {
         order: PaymentOrderModel;
     }
 }
 
-export const collOrder = db.collection('order');
+export const collOrder = db.collection('order' as keyof Collections);
 
 export class PaymentOrderModel {
     static async add(domainId: string, userOwner: number, subject: string, description: string, totalRMBAmount: number, totalMeiValue: number) {

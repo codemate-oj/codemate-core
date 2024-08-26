@@ -70,9 +70,5 @@
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json}": "prettier --write"
-    },
-    "dependencies": {
-        "alipay-sdk": "^4.11.0",
-        "wechatpay-node-v3": "2.1.8"
     }
 }

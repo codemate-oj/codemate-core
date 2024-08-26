@@ -1,6 +1,4 @@
-import fs from 'fs';
-import { AlipaySdk, AlipaySdkConfig } from 'alipay-sdk'; // 1
-import request from 'superagent';
+import { AlipaySdk, AlipaySdkConfig } from 'alipay-sdk';
 import WxPay from 'wechatpay-node-v3';
 import { BadRequestError, Err, Handler, Logger, NotFoundError, ObjectID, SystemError } from 'hydrooj';
 

@@ -14,11 +14,12 @@ import {
     STATUS,
     TaskModel,
     Time,
+    type Collections,
 } from 'hydrooj';
 import { BasicProvider, IBasicProvider, RemoteAccount } from './interface';
 import providers from './providers/index';
 
-const coll = db.collection('vjudge');
+const coll = db.collection('vjudge' as keyof Collections);
 const logger = new Logger('vjudge');
 const syncing = {};
 

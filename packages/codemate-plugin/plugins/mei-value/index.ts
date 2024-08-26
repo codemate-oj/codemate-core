@@ -15,7 +15,6 @@ import {
 import { coll as oplogColl } from 'hydrooj/src/model/oplog';
 import { AlipayCodemateSdk, ConsumeMeiValueResult, logger, OrderError, OrderNotFoundError, WxpayCodemateSdk } from './lib';
 import { PaymentOrderDoc, PaymentOrderModel } from './model';
-import { log } from 'console';
 
 declare module 'hydrooj' {
     interface Udoc {

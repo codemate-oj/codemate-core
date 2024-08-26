@@ -27,6 +27,7 @@ const compilerOptionsBase = {
     experimentalDecorators: true,
     // emitDecoratorMetadata: true,
     incremental: true,
+    lib: ['ES2022', 'ES2022.error'],
 };
 const baseOutDir = path.resolve(__dirname, '../.cache/ts-out');
 const config = {
