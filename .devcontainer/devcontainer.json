@@ -25,7 +25,11 @@
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/zsh"
             },
-            "extensions": ["ms-vscode-remote.remote-containers"]
+            "extensions": [
+                "ms-vscode-remote.remote-containers",
+                "Codeium.codeium",
+                "esbenp.prettier-vscode"
+            ]
         }
     }
 
