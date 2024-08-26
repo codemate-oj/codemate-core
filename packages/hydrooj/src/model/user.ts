@@ -57,6 +57,7 @@ export class User {
     mail: string;
     phoneNumber?: string;
     uname: string;
+    nickname?: string;
     hashType: string;
     priv: number;
     regat: Date;
@@ -91,6 +92,7 @@ export class User {
 
         this.mail = udoc.mail;
         this.uname = udoc.uname;
+        this.nickname = udoc.nickname;
         this.hashType = udoc.hashType || 'hydro';
         this.priv = udoc.priv;
         this.regat = udoc.regat;
@@ -263,7 +265,10 @@ class UserModel {
 
     static async getByPhone(domainId: string, phoneNumber: string) {
         if (cache.has(`phone/${phoneNumber}/${domainId}`)) return cache.get(`phone/${phoneNumber}/${domainId}`);
-        const udoc = await coll.findOne({ phoneNumber });
+        let udoc = await coll.findOne({ phoneNumber });
+        // 兼容旧版逻辑
+        udoc ||= await coll.findOne({ phone: phoneNumber });
+        udoc ||= await coll.findOne({ mailLower: `mob-${phoneNumber}@hydro.local` });
         if (!udoc) return null;
         const dudoc = domain.getDomainUser(domainId, udoc);
         return initAndCache(udoc, dudoc);

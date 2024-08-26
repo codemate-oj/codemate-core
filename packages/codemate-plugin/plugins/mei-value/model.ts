@@ -1,11 +1,8 @@
-import { Document, DocumentModel as document, ObjectId, Projection } from 'hydrooj';
-import { OrderNotFoundError } from './lib';
+import { db, ObjectId } from 'hydrooj';
 
-const TYPE_ORDER = document.TYPE_ORDER;
-
-export interface PaymentOrder extends Document {
-    docId: ObjectId;
-    docType: typeof TYPE_ORDER;
+export interface PaymentOrderDoc {
+    _id: ObjectId;
+    domainId: string;
     title: string; // subject
     content: string; // description
     owner: number;
@@ -22,26 +19,40 @@ export interface PaymentOrder extends Document {
     paymentInfo?: any;
 }
 
-export async function add(domainId: string, userOwner: number, subject: string, description: string, totalRMBAmount: number, totalMeiValue: number) {
-    const res = await document.add(domainId, subject, userOwner, TYPE_ORDER, null, null, null, {
-        title: subject,
-        content: description,
-        totalRMBAmount,
-        totalMeiValue,
-        orderAt: new Date(),
-        payment: 'Pending',
-        isPaied: false,
-    });
-    return res;
+declare module 'hydrooj' {
+    interface Collections {
+        order: PaymentOrderDoc;
+    }
+
+    interface Model {
+        order: PaymentOrderModel;
+    }
 }
 
-export async function get(domainId: string, orderId: ObjectId, projection?: Projection<PaymentOrder>): Promise<PaymentOrder> {
-    const tdoc = await document.get(domainId, TYPE_ORDER, orderId, projection);
-    if (!tdoc) throw new OrderNotFoundError(orderId);
-    return tdoc;
-}
+export const collOrder = db.collection('order');
 
-export async function set(domainId: string, orderId: ObjectId, $set: Partial<PaymentOrder>) {
-    const r = await document.set(domainId, TYPE_ORDER, orderId, $set);
-    return r;
+export class PaymentOrderModel {
+    static async add(domainId: string, userOwner: number, subject: string, description: string, totalRMBAmount: number, totalMeiValue: number) {
+        const odoc: PaymentOrderDoc = {
+            _id: new ObjectId(),
+            domainId,
+            title: subject,
+            content: description,
+            owner: userOwner,
+            totalRMBAmount,
+            totalMeiValue,
+            orderAt: new Date(),
+            payment: 'Pending',
+            isPaied: false,
+        };
+        return (await collOrder.insertOne(odoc)).insertedId;
+    }
+
+    static async get(domainId: string, orderId: ObjectId) {
+        return collOrder.findOne({ _id: orderId, domainId });
+    }
+
+    static async set(domainId: string, orderId: ObjectId, $set: Partial<PaymentOrderDoc>) {
+        return await collOrder.updateOne({ domainId, _id: orderId }, { $set });
+    }
 }

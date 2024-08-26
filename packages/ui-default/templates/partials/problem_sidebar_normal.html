@@ -101,6 +101,18 @@
           <span class="icon icon-copy"></span> {{ _('Copy') }}
         </a></li>
       {% endif %}
+      {% if handler.user.hasPerm(perm.PERM_REVIEW_PROBLEM) %}
+      <li class="menu__item nojs--hide">
+        <form method="post">
+          <input type="hidden" name="operation" value="approve">
+          <input type="hidden" name="approve" value="{% if pdoc.approved %}false{% else %}true{% endif %}">
+          <button type="submit" class="menu__link">
+            <span class="icon icon-{% if pdoc.approved %}close{% else %}check{% endif %}"></span>
+            {% if pdoc.approved%}取消{% else %}通过{% endif %}题目审核
+          </button>
+        </form>
+      </li>
+      {% endif %}
     {% endif %}
     </ol>
   </div>

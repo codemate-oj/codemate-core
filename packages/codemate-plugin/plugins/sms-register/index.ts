@@ -8,7 +8,6 @@ import {
     param,
     PERM,
     PRIV,
-    query,
     SettingModel,
     superagent,
     SystemModel,
@@ -20,7 +19,8 @@ import {
     UserNotFoundError,
     ValidationError,
 } from 'hydrooj';
-import { logger, SendSMSFailedError, VerifyCodeError, VerifyTokenCheckNotPassedError } from './lib';
+import { logger, SendSMSFailedError } from './lib';
+import { InvitatonModel } from '../invite-code/model';
 
 declare module 'hydrooj' {
     interface Lib {
@@ -44,7 +44,7 @@ export class SendTokenBaseHandler extends Handler {
     @param('randStr', Types.String)
     @param('ticket', Types.String)
     async _prepare(_, randStr: string, ticket: string) {
-        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new VerifyTokenCheckNotPassedError();
+        if (!(await global.Hydro.lib.verifyCaptchaToken(this.request.ip, randStr, ticket))) throw new ValidationError('captcha');
     }
 }
 
@@ -106,7 +106,7 @@ export class RegisterBaseHandler extends Handler {
     async prepare(_, tokenId: string, verifyCode: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_REGISTRATION);
         if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_REGISTRATION], tokenId);
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+        if (token.verifyCode !== verifyCode) throw new ValidationError('verifyCode');
         this.token = token;
         this.email = this.token.phoneNumber ? `mob-${this.token.phoneNumber}@hydro.local` : this.token.mail;
     }
@@ -116,9 +116,20 @@ export class RegisterBaseHandler extends Handler {
     @param('nickname', Types.String, true)
     @param('nationality', Types.String, true) // 国籍地区代码
     @param('regionCode', Types.String, true) // 国内行政区划代码（国外用000000代替）
-    @param('userRole', Types.PositiveInt, true) // 用户角色（如机构老师、学生等）
+    @param('userRole', Types.Int, true) // 用户角色（如机构老师、学生等）
     @param('age', Types.PositiveInt, true) // 年龄
-    async post(_, uname: string, password: string, nickname: string, nationality: string, regionCode: string, userRole: number, age: number) {
+    @param('inviteCode', Types.String, true) // 机构邀请码
+    async post(
+        domainId: string,
+        uname: string,
+        password: string,
+        nickname?: string,
+        nationality?: string,
+        regionCode?: string,
+        userRole?: number,
+        age?: number,
+        inviteCode?: string,
+    ) {
         const uid = await UserModel.create(this.email, uname, password, undefined, this.request.ip);
         await UserModel.setById(uid, {
             nationality,
@@ -126,9 +137,21 @@ export class RegisterBaseHandler extends Handler {
             userRole,
             age,
             nickname,
-            ...(this.token.phoneNumber ? { phone: this.token.phoneNumber } : {}),
+            ...(this.token.phoneNumber ? { phoneNumber: this.token.phoneNumber } : {}),
         });
         await TokenModel.del(this.token._id, TokenModel.TYPE_REGISTRATION);
+
+        // 邀请码注册
+        if (inviteCode) {
+            // 邀请码不应阻塞注册
+            try {
+                await InvitatonModel.registerCode(domainId, inviteCode, uid);
+                logger.info('inviteCode register success: ', inviteCode);
+            } catch (e) {
+                console.error(e);
+                logger.error('inviteCode register fail: ', e.message);
+            }
+        }
 
         this.response.body = {
             success: true,
@@ -155,7 +178,7 @@ export class SendTOTPCodeHandler extends SendTokenBaseHandler {
         const user = (await UserModel.getByUname(domainId, uname)) ?? (await UserModel.getByPhone(domainId, uname));
         if (!user) throw new UserNotFoundError(uname);
 
-        const phoneNumber = user.phoneNumber ?? user.mail.split('@')[0].replace(/^mob-/, '') ?? '';
+        const phoneNumber = user.phoneNumber ?? user.phone ?? user.mail.split('@')[0].replace(/^mob-/, '') ?? '';
         if (!phoneNumber) throw new ValidationError('phoneNumber');
 
         const _code = this.generateCode();
@@ -182,7 +205,7 @@ export class TOTPLoginHandler extends Handler {
     async post(domainId: string, tokenId: string, verifyCode: string, rememberme: boolean, redirect?: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_SMSLOGIN);
         if (!token) throw new InvalidTokenError(TokenModel.TYPE_TEXTS[TokenModel.TYPE_SMSLOGIN], tokenId);
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+        if (token.verifyCode !== verifyCode) throw new ValidationError('verifyCode');
 
         const udoc = await UserModel.getById(domainId, token.uid);
         await UserModel.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });

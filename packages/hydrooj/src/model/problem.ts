@@ -54,6 +54,7 @@ export class ProblemModel {
 
     static PROJECTION_LIST: Field[] = [
         ...ProblemModel.PROJECTION_CONTEST_LIST,
+        'brief',
         'nSubmit',
         'nAccept',
         'difficulty',
@@ -61,6 +62,7 @@ export class ProblemModel {
         'hidden',
         'stats',
         'config',
+        'assign',
     ];
 
     static PROJECTION_CONTEST_DETAIL: Field[] = [
@@ -117,6 +119,34 @@ export class ProblemModel {
         difficulty: 0,
     };
 
+    static extractBrief(statementProps: string) {
+        let statement: string;
+        try {
+            statement = JSON.parse(statementProps)['zh'] ?? statementProps;
+        } catch (e) {
+            statement = statementProps;
+        }
+        if (statement.includes('{{ select(1) }}')) {
+            return statement.slice(0, statement.indexOf('{{ select(1) }}'));
+        }
+        const startTag = '## 题目描述';
+        const endTag = '##';
+        const startIndex = statement.indexOf(startTag);
+
+        if (startIndex === -1) {
+            // 截取前 100 个字符
+            return statement.slice(0, 100);
+        }
+        const endIndex = statement.indexOf(endTag, startIndex + startTag.length);
+        if (endIndex === -1) {
+            return statement.slice(startIndex, startIndex + 100);
+        }
+        return statement
+            .substring(startIndex + startTag.length, endIndex === -1 ? statement.length : endIndex)
+            .trim()
+            .slice(0, 100);
+    }
+
     static async add(
         domainId: string,
         pid: string = '',
@@ -126,9 +156,12 @@ export class ProblemModel {
         tag: string[] = [],
         meta: { difficulty?: number; hidden?: boolean } = {},
     ) {
+        // extract brief here can be a good choice...
         const [doc] = await ProblemModel.getMulti(domainId, {}).sort({ docId: -1 }).limit(1).project({ docId: 1 }).toArray();
-        const result = await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, meta);
-        return result;
+        return await ProblemModel.addWithId(domainId, (doc?.docId || 0) + 1, pid, title, content, owner, tag, {
+            ...meta,
+            brief: ProblemModel.extractBrief(content),
+        });
     }
 
     static async addWithId(
@@ -139,7 +172,7 @@ export class ProblemModel {
         content: string,
         owner: number,
         tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
+        meta: { difficulty?: number; hidden?: boolean; brief?: string } = {},
     ) {
         const args: Partial<ProblemDoc> = {
             title,
@@ -250,6 +283,7 @@ export class ProblemModel {
             $set.sort = sortable($set.pid);
         }
         await bus.parallel('problem/before-edit', $set);
+        if ($set.content) $set.brief = ProblemModel.extractBrief($set.content);
         const result = await document.set(domainId, document.TYPE_PROBLEM, _id, $set, delpid ? { pid: '' } : undefined);
         await bus.emit('problem/edit', result);
         return result;
@@ -452,6 +486,11 @@ export class ProblemModel {
         return document.setStatus(domainId, document.TYPE_PROBLEM, pid, uid, { star });
     }
 
+    static canViewUnapprovedProblem(pdoc: ProblemDoc, udoc: User) {
+        if (pdoc.approved) return true;
+        return udoc.own(pdoc) || udoc.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN, PERM.PERM_REVIEW_PROBLEM);
+    }
+
     static canViewBy(pdoc: ProblemDoc, udoc: User) {
         if (!udoc.hasPerm(PERM.PERM_VIEW_PROBLEM)) return false;
         if (udoc.own(pdoc)) return true;
@@ -459,7 +498,7 @@ export class ProblemModel {
         if (pdoc.hidden) return false;
         // 检查Assign题目权限
         if (pdoc.assign && pdoc.assign.length > 0) {
-            return Set.intersection(new Set(pdoc.assign), new Set(udoc.groups)).size > 0;
+            return Set.intersection(new Set(pdoc.assign), new Set(udoc.group ?? [])).size > 0;
         }
         return true;
     }

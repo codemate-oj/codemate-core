@@ -1,7 +1,7 @@
 /* eslint-disable object-curly-newline */
 import assert from 'assert';
-import { bulletin, meiValue, plist } from 'codemate-plugin';
-import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter } from 'mongodb';
+import { bulletin, invitation, plist } from 'codemate-plugin';
+import { Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, SetFields, UpdateFilter } from 'mongodb';
 import { Context } from '../context';
 import { Content, ContestClarificationDoc, DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc, Tdoc, TrainingDoc } from '../interface';
 import * as bus from '../service/bus';
@@ -29,6 +29,7 @@ export const TYPE_TRAINING: 40 = 40;
 /** @deprecated use `TYPE_CONTEST` with rule `homework` instead. */
 export const TYPE_HOMEWORK: 60 = 60;
 export const TYPE_BULLETIN: 80 = 80;
+export const TYPE_INVITATION: 90 = 90;
 export const TYPE_ORDER: 100 = 100;
 
 export interface DocType {
@@ -43,7 +44,7 @@ export interface DocType {
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_SYSTEM_PLIST]: plist.ProblemList;
     [TYPE_BULLETIN]: bulletin.BulletinDoc;
-    [TYPE_ORDER]: meiValue.PaymentOrder;
+    [TYPE_INVITATION]: invitation.InvitationDoc;
 }
 
 export interface DocStatusType {
@@ -117,13 +118,15 @@ export async function set<K extends keyof DocType>(
     $set?: Partial<DocType[K]>,
     $unset?: OnlyFieldsOfType<DocType[K], any, true | '' | 1>,
     $push?: PushOperator<DocType[K]>,
+    $addToSet?: SetFields<DocType[K]>,
 ): Promise<DocType[K]> {
     await bus.parallel('document/set', domainId, docType, docId, $set, $unset);
     const update: UpdateFilter<DocType[K]> = {};
     if ($set) update.$set = $set;
     if ($unset) update.$unset = $unset;
     if ($push) update.$push = $push;
-    const res = await coll.findOneAndUpdate({ domainId, docType, docId }, update, { returnDocument: 'after', upsert: true });
+    if ($addToSet) update.$addToSet = $addToSet;
+    const res = await coll.findOneAndUpdate({ domainId, docType, docId }, { ...update }, { returnDocument: 'after', upsert: true });
     return res.value;
 }
 
@@ -553,4 +556,5 @@ global.Hydro.model.document = {
     TYPE_TRAINING,
     TYPE_BULLETIN,
     TYPE_ORDER,
+    TYPE_INVITATION,
 };

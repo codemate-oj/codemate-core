@@ -215,8 +215,6 @@ export class ProblemMainHandler extends Handler {
         }
         await this.ctx.parallel('problem/list', query, this);
 
-        const canViewUnapprovedProblem = this.user.hasPerm(PERM.PERM_REVIEW_PROBLEM);
-
         // console.debug(query);
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
@@ -225,11 +223,17 @@ export class ProblemMainHandler extends Handler {
                   try {
                       const _conf = typeof doc.config === 'string' ? (yaml.load(doc.config ?? '') as ProblemConfig) : doc.config;
                       let pass = true;
-                      if (!canViewUnapprovedProblem && !doc.approved) pass = false;
+                      if (!doc.approved && !problem.canViewUnapprovedProblem(doc, this.user)) pass = false;
                       if (lang) {
                           // 判断题目配置语言
                           const langs = _conf.langs ?? [];
-                          pass = langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
+                          const LANG_TAG_MAP = {
+                              'cc.cc14o2': 'C++',
+                              'py.py3': 'Python',
+                              scratch: '图形化',
+                          };
+                          pass =
+                              doc.tag?.includes(LANG_TAG_MAP[lang.toLowerCase()]) || langs.map((i) => i.toLowerCase()).includes(lang.toLowerCase());
                       }
                       if (objective) {
                           // 判断题目是否为客观题
@@ -400,7 +404,9 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     async _prepare(domainId: string, pid: number | string, tid?: ObjectId) {
         this.pdoc = await problem.get(domainId, pid);
         if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);
-        if (!this.user.hasPerm(PERM.PERM_REVIEW_PROBLEM) && !this.pdoc.approved) throw new ProblemNotApprovedError(pid);
+        // 题目审核逻辑
+        if (!this.pdoc.approved && !problem.canViewUnapprovedProblem(this.pdoc, this.user)) throw new ProblemNotApprovedError(pid);
+        // 有题目信息时执行
         if (tid) {
             if (!this.tdoc?.pids?.includes(this.pdoc.docId)) throw new ContestNotFoundError(domainId, tid);
             if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(tid);
@@ -588,9 +594,19 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // 这里先清空前面所有的内容
         this.response.body = { hasPerm };
         const ways = [];
-        if (this.pdoc.assign) ways.push('group');
+        if (this.pdoc.assign) {
+            ways.push('group');
+            this.response.body.assign = this.pdoc.assign;
+        }
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;
+    }
+
+    @param('approve', Types.Boolean)
+    async postApprove(domainId: string, approve: boolean) {
+        this.checkPerm(PERM.PERM_REVIEW_PROBLEM);
+        await problem.edit(domainId, this.pdoc.docId, { approved: approve });
+        this.back();
     }
 }
 
@@ -753,6 +769,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('hidden', Types.Boolean)
     @post('tag', Types.Content, true, null, parseCategory)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
+    @post('approved', Types.Boolean)
     async post(
         domainId: string,
         pid: string | number,
@@ -762,9 +779,14 @@ export class ProblemEditHandler extends ProblemManageHandler {
         hidden = false,
         tag: string[] = [],
         difficulty = 0,
+        approved?: boolean,
     ) {
         if (typeof newPid !== 'string') newPid = `P${newPid}`;
         if (newPid !== this.pdoc.pid && (await problem.get(domainId, newPid))) throw new ProblemAlreadyExistError(pid);
+        // 改动审核状态需要检查额外权限
+        if (approved !== undefined) {
+            this.checkPerm(PERM.PERM_REVIEW_PROBLEM);
+        }
         const $update: Partial<ProblemDoc> = {
             title,
             content,
@@ -773,6 +795,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
             tag: tag ?? [],
             difficulty,
             html: false,
+            approved,
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
@@ -1206,7 +1229,6 @@ export class ProblemSetApproveHandler extends Handler {
         // this is completely useless
         const pdoc = await problem.get(domainId, pid);
         if (!pdoc) throw new ProblemNotFoundError(pid);
-        this.response.body = { pdoc };
     }
 
     @route('pid', Types.ProblemId)

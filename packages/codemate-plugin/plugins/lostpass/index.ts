@@ -1,6 +1,5 @@
 import { nanoid } from 'nanoid';
-import { Context, Handler, InvalidTokenError, param, TokenModel, Types, UserModel, UserNotFoundError } from 'hydrooj';
-import { VerifyCodeError } from '../sms-register/lib';
+import { Context, Handler, InvalidTokenError, param, TokenModel, Types, UserModel, UserNotFoundError, ValidationError } from 'hydrooj';
 
 class LostpassHandler extends Handler {
     @param('emailOrPhone', Types.String)
@@ -43,7 +42,7 @@ class LostpassWithCodeHandler extends Handler {
     async post(domainId: string, tokenId: string, verifyCode: string, emailOrPhone: string) {
         const token = await TokenModel.get(tokenId, TokenModel.TYPE_LOSTPASS);
         if (!token) throw new InvalidTokenError();
-        if (token.verifyCode !== verifyCode) throw new VerifyCodeError();
+        if (token.verifyCode !== verifyCode) throw new ValidationError('verifyCode');
         if (token.emailOrPhone !== emailOrPhone) throw new InvalidTokenError();
         const isEmail = emailOrPhone.includes('@');
         const udoc = isEmail ? await UserModel.getByEmail(domainId, emailOrPhone) : await UserModel.getByPhone(domainId, emailOrPhone);

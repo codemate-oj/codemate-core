@@ -64,11 +64,18 @@ export async function add(
 export async function edit(domainId: string, tid: ObjectId, $set: Partial<ProblemList>) {
     const tdoc = await document.get(domainId, TYPE_PROBLEM_LIST, tid);
     if (!tdoc) throw new ProblemListNotFountError(tid);
-    const res = await document.set(domainId, TYPE_PROBLEM_LIST, tid, $set);
     if ($set.parent) {
+        // 先删除之前的parent.children
+        if (tdoc.parent) {
+            const ptdoc = await get(domainId, tdoc.parent);
+            await document.set(domainId, TYPE_PROBLEM_LIST, ptdoc._id, {
+                children: ptdoc.children.filter((id) => !tdoc.docId.equals(id)),
+            });
+        }
         // 若有parent则更新parent.children
-        await document.set(domainId, TYPE_PROBLEM_LIST, $set.parent, undefined, undefined, { children: res._id });
+        await document.set(domainId, TYPE_PROBLEM_LIST, $set.parent, undefined, undefined, undefined, { children: tdoc._id });
     }
+    const res = await document.set(domainId, TYPE_PROBLEM_LIST, tid, $set);
     return res;
 }
 

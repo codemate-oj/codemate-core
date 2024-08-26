@@ -638,6 +638,7 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
     pluginContext.on('app/exit', () => {
         fs.emptyDirSync(uploadDir);
     });
+    // codemate新增：禁止普通用户登录后台
     const jsonCheckLayer = async (ctx: KoaContext, next: Next) => {
         const { user, request } = ctx.HydroContext;
         const allowPaths = [
@@ -647,8 +648,19 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
             /^\/lazy\/\w*\/\w*/,
             /^\/resource\/\w*\/\w*/,
             /^\/mei_value\/notifier\/alipay/,
+            /^\/mei_value\/notifier\/wx/,
+            /file/,
         ];
-        if (allowPaths.some((p) => p.test(request.path)) || request.json || user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
+        const allowPerms = [PERM.PERM_EDIT_PROBLEM, PERM.PERM_CREATE_PROBLEM];
+        // TODO: 独立guard layer，写更完备的校验逻辑
+        if (
+            request.path.includes('file') ||
+            request.querystring.includes('download') ||
+            allowPaths.some((p) => p.test(request.path)) ||
+            request.json ||
+            user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) ||
+            allowPerms.map((perm) => user.hasPerm(perm)).some(Boolean)
+        ) {
             await next();
             return;
         }
