@@ -18,8 +18,5 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 # 更新 .zshrc 文件以启用插件
 sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
 
-# 确保 zsh 是默认shell
-chsh -s $(which zsh)
-
 # 安装 yarn 依赖
 yarn install

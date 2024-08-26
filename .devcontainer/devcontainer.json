@@ -17,6 +17,7 @@
 
     // Use 'postCreateCommand' to run commands after the container is created.
     "postCreateCommand": "bash .devcontainer/setup.sh",
+    "postStartCommand": "zsh", // 每次容器启动时自动进入 zsh
 
     // Configure tool-specific properties.
     "customizations": {
