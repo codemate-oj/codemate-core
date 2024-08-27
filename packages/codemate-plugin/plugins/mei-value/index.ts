@@ -14,7 +14,7 @@ import {
 } from 'hydrooj';
 import { coll as oplogColl } from 'hydrooj/src/model/oplog';
 import { AlipayCodemateSdk, ConsumeMeiValueResult, logger, OrderError, OrderNotFoundError, WxpayCodemateSdk } from './lib';
-import { PaymentOrderDoc, PaymentOrderModel } from './model';
+import { collOrder, PaymentOrderDoc, PaymentOrderModel } from './model';
 
 declare module 'hydrooj' {
     interface Udoc {
@@ -97,6 +97,15 @@ class MeiValueOrderHandler extends Handler {
         if (this.user._id <= 1) throw new ForbiddenError(this.user._id);
         const udoc = await UserModel.getById(this.domain._id, this.user._id);
         if (!udoc) throw new UserNotFoundError(this.user._id);
+    }
+
+    @query('orderId', Types.ObjectId, false)
+    async get(domainId: string, orderId: ObjectId) {
+        const order = await PaymentOrderModel.get(domainId, orderId);
+        if (order === null) {
+            throw new OrderNotFoundError(orderId);
+        }
+        this.response.body = { order };
     }
 
     @param('chargeCount', Types.PositiveInt)
@@ -277,12 +286,14 @@ export async function apply(ctx: Context) {
             SettingModel.Setting('setting_secrets', 'mei.alipay.privateKey', '', 'text', 'Alipay Private Key', 'Alipay Private Key'),
             SettingModel.Setting('setting_secrets', 'mei.alipay.alipayPublicKey', '', 'text', 'Alipay Public Key', 'Alipay Public Key'),
             SettingModel.Setting('setting_secrets', 'mei.alipay.endpoint', '', 'text', 'Alipay Endpoint', 'Alipay Endpoint'),
+            SettingModel.Setting('setting_secrets', 'mei.alipay.alipayNotifer', '', 'text', 'Alipay Notifier', 'Alipay Notifier'),
 
             SettingModel.Setting('setting_secrets', 'mei.wxpay.appid', '', 'text', 'Wxpay Appid', 'Wxpay Appid'),
             SettingModel.Setting('setting_secrets', 'mei.wxpay.mchid', '', 'text', 'Wxpay mchid', 'Wxpay mchid'),
             SettingModel.Setting('setting_secrets', 'mei.wxpay.private_key', '', 'text', 'Wxpay private_key', 'Wxpay private_key'),
             SettingModel.Setting('setting_secrets', 'mei.wxpay.public_key', '', 'text', 'Wxpay public_key', 'Wxpay public_key'),
             SettingModel.Setting('setting_secrets', 'mei.wxpay.key', '', 'text', 'Wxpay key', 'Wxpay key'),
+            SettingModel.Setting('setting_secrets', 'mei.wxpay.wxpayNotifer', '', 'text', 'Wxpay notifer', 'Wxpay notifier'),
         );
     });
 
@@ -304,17 +315,19 @@ export async function apply(ctx: Context) {
         const alipayPrivateKey = SystemModel.get('mei.alipay.privateKey');
         const alipayPublicKey = SystemModel.get('mei.alipay.alipayPublicKey');
         const alipayEndpoint = SystemModel.get('mei.alipay.endpoint');
+        const alipayNotifer = SystemModel.get('mei.alipay.alipayNotifer');
 
-        if (!alipayAppId || !alipayPrivateKey || !alipayPublicKey || !alipayEndpoint) {
+        if (!alipayAppId || !alipayPrivateKey || !alipayPublicKey || !alipayEndpoint || !alipayNotifer) {
             throw new Error('Alipay service is not configured');
         }
+        logger.debug(alipayNotifer);
         const alipayConfig = {
             appId: alipayAppId,
             gateway: alipayEndpoint,
             privateKey: alipayPrivateKey,
             alipayPublicKey,
         };
-        return new AlipayCodemateSdk(alipayConfig);
+        return new AlipayCodemateSdk(alipayConfig, alipayNotifer);
     };
 
     global.Hydro.lib.consumeMeiValue = async (
