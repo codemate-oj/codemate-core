@@ -28,14 +28,16 @@ class UserProblemListDetailHandler extends Handler {
     async get(domainId: string, tid: ObjectId, page = 1, pageSize = 10) {
         const pldoc = await ProblemListModel.get(domainId, tid);
         if (this.user._id !== pldoc.owner) this.checkPriv(PRIV.PRIV_VIEW_USER_SECRET);
+        const pids = [];
         for (const pid of pldoc.pids) {
             // eslint-disable-next-line no-await-in-loop
-            if (!ProblemModel.canViewBy(await ProblemModel.get(domainId, pid), this.user)) throw new PermissionError();
+            if (ProblemModel.canViewBy(await ProblemModel.get(domainId, pid), this.user)) pids.push(pid);
         }
-        const itemCount = pldoc.pids.length;
-        const pageCount = Math.ceil(pldoc.pids.length / 10);
-        pldoc.pids = pldoc.pids.slice((page - 1) * pageSize, page * pageSize - 1);
-        const pdict = await ProblemModel.getList(domainId, pldoc.pids);
+        const itemCount = pids.length;
+        const pageCount = Math.ceil(pids.length / 10);
+        const pagePids = pids.slice((page - 1) * pageSize, page * pageSize - 1);
+        const pdict = await ProblemModel.getList(domainId, pagePids, true, false);
+
         this.response.body = {
             pldoc,
             pdict,
