@@ -1,4 +1,4 @@
-import { GroupModel } from 'codemate-plugin';
+import { GroupModel, logger } from 'codemate-plugin';
 import { load } from 'js-yaml';
 import { Dictionary } from 'lodash';
 import moment from 'moment-timezone';
@@ -9,7 +9,9 @@ import {
     DomainJoinAlreadyMemberError,
     DomainJoinForbiddenError,
     ForbiddenError,
+    IncorrectJSONStringError,
     InvalidJoinInvitationCodeError,
+    InvalidTokenError,
     OnlyOwnerCanDeleteDomainError,
     PermissionError,
     RoleAlreadyExistError,
@@ -78,8 +80,16 @@ class DomainEditHandler extends ManageHandler {
 
     async post(args) {
         if (args.operation) return;
-        const $set = {};
+        const $set = { problem_tags: '[]' };
         for (const key in args) {
+            if (key === 'problem_tags') {
+                try {
+                    const parsedJSON = JSON.parse(args[key]);
+                    args[key] = JSON.stringify(parsedJSON);
+                } catch (error) {
+                    throw new IncorrectJSONStringError(args[key]);
+                }
+            }
             if (DOMAIN_SETTINGS_BY_KEY[key]) $set[key] = args[key];
         }
         await domain.edit(args.domainId, $set);

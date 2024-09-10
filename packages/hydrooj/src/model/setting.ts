@@ -229,6 +229,7 @@ DomainSetting(
     Setting('setting_domain', 'share', '', 'text', 'Share problem with domain (* for any)'),
     Setting('setting_domain', 'bulletin', '', 'markdown', 'Bulletin'),
     Setting('setting_domain', 'langs', '', 'text', 'Allowed langs', null),
+    Setting('setting_domain', 'problem_tags', '[]', 'textarea', 'Problem Tags', 'Input problem tags as JSON string.'),
     Setting('setting_storage', 'host', '', 'text', 'Custom host', null, FLAG_HIDDEN | FLAG_DISABLED),
 );
 
