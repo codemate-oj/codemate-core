@@ -156,6 +156,7 @@ export const NotLaunchedByPM2Error = Err('NotLaunchedByPM2Error', BadRequestErro
 export const FileTooLargeError = Err('FileTooLargeError', ValidationError, 'The uploaded file is too long.');
 
 export const ProblemNotApprovedError = Err('ProblemNotApprovedError', ForbiddenError, 'Problem {0} is not approved.');
+export const IncorrectJSONStringError = Err('IncorrectJSONStringError', ForbiddenError, 'String {0} is not a valid JSON string.');
 
 global.Hydro.error = module.exports;
 
