@@ -80,7 +80,7 @@ class DomainEditHandler extends ManageHandler {
 
     async post(args) {
         if (args.operation) return;
-        const $set = {};
+        const $set = { problem_tags: '[]' };
         for (const key in args) {
             if (key === 'problem_tags') {
                 try {
