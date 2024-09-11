@@ -35,9 +35,11 @@ export type ConsumeMeiValueResult =
 
 export class AlipayCodemateSdk {
     alipaySdk: AlipaySdk;
-    constructor(config: AlipaySdkConfig) {
+    notifier: string;
+    constructor(config: AlipaySdkConfig, notifier: string) {
         try {
             this.alipaySdk = new AlipaySdk(config);
+            this.notifier = notifier;
         } catch (err) {
             throw new AlipaySDKError(err);
         }
@@ -52,7 +54,7 @@ export class AlipayCodemateSdk {
                 subject,
                 product_code: 'FAST_INSTANT_TRADE_PAY',
             },
-            notify_url: 'http://pc-11-302.jinyuchata.top:18888/mei_value/notifier/alipay',
+            notify_url: this.notifier,
         });
         return result;
     }
