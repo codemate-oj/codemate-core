@@ -16,10 +16,22 @@
     "forwardPorts": [8888, 2333, 8000],
 
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "bash .devcontainer/setup.sh && yarn install"
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "postStartCommand": "zsh", // 每次容器启动时自动进入 zsh
 
     // Configure tool-specific properties.
-    // "customizations": {},
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/zsh"
+            },
+            "extensions": [
+                "ms-vscode-remote.remote-containers",
+                "Codeium.codeium",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    }
 
     // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
     // "remoteUser": "root"
