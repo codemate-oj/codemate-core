@@ -189,9 +189,14 @@ export class ProblemMainHandler extends Handler {
         if (parsed.difficulty?.every((i) => Number.isSafeInteger(+i))) {
             query.difficulty = { $in: parsed.difficulty.map(Number) };
         }
-        if (category.length) {
+        if (category.length > 0) {
             query.$and ||= [];
             query.$and.push(...category.map((tag) => ({ tag })));
+        }
+
+        if (tags.length > 0) {
+            query.$and ||= [];
+            query.$and.push(...tags.map((tag) => ({ tag })));
         }
 
         // 更新hydro页面标题
@@ -215,7 +220,6 @@ export class ProblemMainHandler extends Handler {
         }
         await this.ctx.parallel('problem/list', query, this);
 
-        // console.debug(query);
         // eslint-disable-next-line prefer-const
         let [pdocs, ppcount, pcount] = fail
             ? [[], 0, 0]
