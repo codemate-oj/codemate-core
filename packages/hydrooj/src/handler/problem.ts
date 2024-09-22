@@ -195,8 +195,8 @@ export class ProblemMainHandler extends Handler {
         }
 
         if (tags.length > 0) {
-            query.$and ||= [];
-            query.$and.push(...tags.map((tag) => ({ tag })));
+            query.$or ||= [];
+            query.$or.push(...tags.map((tag) => ({ tag })));
         }
 
         // 更新hydro页面标题
