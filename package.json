@@ -33,6 +33,9 @@
     },
     "version": "1.0.0",
     "license": "AGPL-3.0-only",
+    "resolutions": {
+        "reggol": "1.4.0"
+    },
     "devDependencies": {
         "@simplewebauthn/typescript-types": "7.4.0",
         "@types/autocannon": "^7.12.5",
