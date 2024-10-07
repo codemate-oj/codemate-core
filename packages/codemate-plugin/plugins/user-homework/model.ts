@@ -157,7 +157,7 @@ export class UserHomeworkModel {
             });
         }
 
-        for (const s of this.getPageStages(fields)) {
+        for (const s of this.getPageStages(filters)) {
             stages.push(s);
         }
 
@@ -257,7 +257,7 @@ export class UserHomeworkModel {
             $addFields: {
                 // 是否所有的题目都提交过了
                 isFinishAll: {
-                    $setIsSubset: ['$homeworkPids', '$journalPids'],
+                    $setIsSubset: ['$homeworkPids', { $ifNull: ['$journalPids', []] }],
                 },
                 // 该作业是否在生效的时间范围
                 homeworkType: {
@@ -377,7 +377,7 @@ export class UserHomeworkModel {
             $project,
         });
 
-        for (const s of this.getPageStages(fields)) {
+        for (const s of this.getPageStages(filters)) {
             stages.push(s);
         }
 
