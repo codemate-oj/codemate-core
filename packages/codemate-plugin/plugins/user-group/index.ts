@@ -1,4 +1,4 @@
-import { Context, Handler, ObjectId, paginate, param, PRIV, route, Types, UserModel } from 'hydrooj';
+import { avatar, Context, Handler, ObjectId, paginate, param, PRIV, route, Types } from 'hydrooj';
 import { GroupNotFoundError } from '../privilege-group/lib';
 import { UserGroupModel } from './model';
 
@@ -104,7 +104,10 @@ class UserGroupMembersHandler extends Handler {
         const [data, pageCount, count] = await paginate(cursor, page, pageSize);
         this.response.body = {
             data: {
-                data,
+                data: data.map((v) => {
+                    v.avatarUrl = avatar(v.avatar);
+                    return v;
+                }),
                 page,
                 pageSize,
                 pageCount,

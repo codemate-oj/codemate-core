@@ -1,4 +1,5 @@
 import {
+    avatar,
     ContestModel,
     Context,
     Handler,
@@ -133,9 +134,46 @@ class UserHomeworkOneHandler extends Handler {
         maintainer: number[] = [],
         assign: string[] = [],
     ) {
+        const currentDate = new Date();
         const homeworkDoc = await UserHomeworkModel.get(domainId, homeworkId);
         if (!homeworkDoc) throw new HomeworkNotFoundError(homeworkId);
         this.checkPerm(PERM.PERM_EDIT_HOMEWORK_SELF);
+        // 常规任务： 作业的 beginAt < currentDate
+        // 限时任务： 作业的 beginAt > currentDate
+
+        // 学生端
+        // 作业已完成： 作业中的题目已经全部提交过
+        // 作业超时完成： 指作业的题目存在 penaltySince 之后提交完成的
+        // 作业待完成： 作业中的题目存在未提交代码的题目
+
+        // 老师端
+        // 作业待发布： 作业的 isPublished 为 false
+        // 作业已发布： 作业的 isPublished 为 true
+        // 作业已发布待检查： 作业的 penaltySince > currentDate
+        // 作业待检查已检查： 手动设置状态 isReviewed 为 true
+
+        // 一般来说，检查小组的作业也可以是个人为粒度
+        // 考虑当有人在检查作业之后继续延时提交新的题目题解的场景
+        // 个人级别的 review 状态方便老师快速定位需要重新 review 的个人
+        // 如果更细一点的粒度的话，也可以设置成按题目为粒度
+        // 题目级别的 review 状态方便老师快速定义需要重新 review 的题目
+
+        // review 的一般相关字段： reviewStatus（pending，approved，rejected），reviewedBy，reviewedAt，comments
+
+        // 一般来说，已发布的作业一般不能轻易修改
+        // 已经发布的作业，在这个接口不能更改其已发布的状态
+        isPublished ||= homeworkDoc.isPublished;
+        // 定时发布的作业
+        if (!isPublished) {
+            beginAt ||= currentDate.getTime();
+            // 默认是四千小时
+            penaltySince ||= new Date(beginAt + 4000 * 60 * 60 * 1000).getTime();
+            extensionDays = 0;
+        } else {
+            beginAt ||= homeworkDoc.beginAt.getTime();
+            penaltySince ||= homeworkDoc.penaltySince.getTime();
+            extensionDays ||= 0;
+        }
         const endAt = penaltySince + extensionDays * 24 * 60 * 60 * 1000;
         await ContestModel.edit(domainId, homeworkId, {
             title,
@@ -154,6 +192,7 @@ class UserHomeworkOneHandler extends Handler {
             maintainer,
             assign,
             isPublished,
+            updatedAt: currentDate,
         });
         if (
             homeworkDoc.beginAt.getTime() !== beginAt ||
@@ -220,7 +259,97 @@ class UserHomeworkMembersHandler extends Handler {
         const [data, pageCount, count] = await paginate(cursor, page, pageSize);
         this.response.body = {
             data: {
-                data,
+                data: data.map((v) => {
+                    v.avatarUrl = avatar(v.avatar);
+                    return v;
+                }),
+                page,
+                pageSize,
+                pageCount,
+                count,
+            },
+        };
+    }
+}
+
+class UserHomeworkReviewHandler extends Handler {
+    @route('homeworkId', Types.ObjectId)
+    @param('isReviewed', Types.Boolean, true)
+    async post(domainId: string, homeworkId: ObjectId, isReviewed) {
+        await UserHomeworkModel.setReview(domainId, homeworkId, isReviewed);
+        this.response.body = {
+            data: {
+                _id: homeworkId,
+                isReviewed,
+            },
+        };
+    }
+}
+
+class UserHomeworkAttendHandler extends Handler {
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    @param('isFinishAll', Types.Boolean, true)
+    async get(domainId: string, page = 1, pageSize = 10, isFinishAll) {
+        // 常规任务： 作业的 beginAt < currentDate
+        // 限时任务： 作业的 beginAt > currentDate
+
+        // 学生端
+        // 作业已完成： 作业中的题目已经全部提交过
+        // 作业超时完成： 指作业的题目存在 penaltySince 之后提交完成的
+        // 作业待完成： 作业中的题目存在未提交代码的题目
+        if (pageSize > 20) pageSize = 20;
+        const result = await (
+            await UserHomeworkModel.listAttendHomeworksAggr(domainId, this.user._id, {
+                page,
+                pageSize,
+                isFinishAll,
+            })
+        ).toArray();
+        this.response.body = {
+            data: {
+                data:
+                    result[0]?.data.map((v) => ({
+                        ...v.homework,
+                        isTimeout: v.isTimeout,
+                        assignGroup: v.assignGroup,
+                        homeworkType: v.homeworkType,
+                        finishStatus: v.isFinishAll ? (v.isTimeout ? '超时完成' : '已完成') : '待完成',
+                    })) || [],
+                count: result[0]?.count || 0,
+                page,
+                pageSize,
+            },
+        };
+    }
+}
+
+class UserHomeworkMaintainerHandler extends Handler {
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, page = 1, pageSize = 10) {
+        // 老师端
+        // 作业待发布： 作业的 isPublished 为 false
+        // 作业已发布： 作业的 isPublished 为 true
+        // 作业已发布待检查： 作业的 penaltySince > currentDate
+        // 作业待检查已检查： 手动设置状态 isReviewed 为 true
+        if (pageSize > 20) pageSize = 20;
+        const cursor = ContestModel.getMulti(domainId, {
+            rule: 'homework',
+            $or: [{ maintainer: this.user._id }, { owner: this.user._id }],
+        }).sort({
+            penaltySince: 1,
+            endAt: 1,
+            beginAt: -1,
+            _id: -1,
+        });
+        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        this.response.body = {
+            data: {
+                data: data.map((v) => ({
+                    ...v,
+                    homeworkStatus: v.isPublished ? (v.isReviewed ? '已检查' : v.penaltySince > new Date() ? '待检查' : '已发布') : '待发布',
+                })),
                 page,
                 pageSize,
                 pageCount,
@@ -232,7 +361,10 @@ class UserHomeworkMembersHandler extends Handler {
 
 export async function apply(ctx: Context) {
     ctx.Route('user_homework', '/user-homework', UserHomeworkHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework', '/user-homework/attend', UserHomeworkAttendHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework', '/user-homework/maintain', UserHomeworkMaintainerHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_one', '/user-homework/:homeworkId', UserHomeworkOneHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_problems', '/user-homework/:homeworkId/problems', UserHomeworkProblemsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_members', '/user-homework/:homeworkId/members', UserHomeworkMembersHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_members', '/user-homework/:homeworkId/review', UserHomeworkReviewHandler, PRIV.PRIV_USER_PROFILE);
 }
