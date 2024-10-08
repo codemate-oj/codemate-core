@@ -231,6 +231,30 @@ class UserHomeworkOneHandler extends Handler {
     }
 }
 
+class UserHomeworkOnePublishHandler extends Handler {
+    @route('homeworkId', Types.ObjectId)
+    async post(domainId: string, homeworkId: ObjectId) {
+        const homeworkDoc = await UserHomeworkModel.get(domainId, homeworkId);
+        if (!homeworkDoc || homeworkDoc.owner !== this.user._id) throw new HomeworkNotFoundError(homeworkId);
+        this.checkPerm(PERM.PERM_EDIT_HOMEWORK_SELF);
+        await UserHomeworkModel.setPublish(domainId, homeworkId, true);
+        this.response.body = {
+            success: true,
+        };
+    }
+
+    @route('homeworkId', Types.ObjectId)
+    async delete(domainId: string, homeworkId: ObjectId) {
+        const homeworkDoc = await UserHomeworkModel.get(domainId, homeworkId);
+        if (!homeworkDoc || homeworkDoc.owner !== this.user._id) throw new HomeworkNotFoundError(homeworkId);
+        this.checkPerm(PERM.PERM_EDIT_HOMEWORK_SELF);
+        await UserHomeworkModel.setPublish(domainId, homeworkId, false);
+        this.response.body = {
+            success: true,
+        };
+    }
+}
+
 class UserHomeworkProblemsHandler extends Handler {
     @route('homeworkId', Types.ObjectId)
     @param('page', Types.PositiveInt, true)
@@ -314,7 +338,7 @@ class UserHomeworkAttendHandler extends Handler {
                         isTimeout: v.isTimeout,
                         assignGroup: v.assignGroup,
                         homeworkType: v.homeworkType,
-                        finishStatus: v.isFinishAll ? (v.isTimeout ? '超时完成' : '已完成') : '待完成',
+                        finishStatus: v.isFinishAll ? (v.isTimeout ? '超时完成' : '正常完成') : '待完成',
                     })) || [],
                 count: result[0]?.count || 0,
                 page,
@@ -334,26 +358,25 @@ class UserHomeworkMaintainerHandler extends Handler {
         // 作业已发布待检查： 作业的 penaltySince > currentDate
         // 作业待检查已检查： 手动设置状态 isReviewed 为 true
         if (pageSize > 20) pageSize = 20;
-        const cursor = ContestModel.getMulti(domainId, {
-            rule: 'homework',
-            $or: [{ maintainer: this.user._id }, { owner: this.user._id }],
-        }).sort({
-            penaltySince: 1,
-            endAt: 1,
-            beginAt: -1,
-            _id: -1,
-        });
-        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        const result = await (
+            await UserHomeworkModel.listMaintainHomeworksAggr(domainId, this.user._id, {
+                page,
+                pageSize,
+            })
+        ).toArray();
+        const count = result[0]?.count || 0;
+        const pageCount = Math.ceil(count / pageSize);
         this.response.body = {
             data: {
-                data: data.map((v) => ({
-                    ...v,
-                    homeworkStatus: v.isPublished ? (v.isReviewed ? '已检查' : v.penaltySince > new Date() ? '待检查' : '已发布') : '待发布',
-                })),
+                data:
+                    result[0]?.data.map((v) => ({
+                        ...v,
+                        homeworkStatus: v.isPublished ? (v.isReviewed ? '已检查' : v.penaltySince > new Date() ? '待检查' : '已发布') : '待发布',
+                    })) || [],
+                count,
                 page,
                 pageSize,
                 pageCount,
-                count,
             },
         };
     }
@@ -364,6 +387,7 @@ export async function apply(ctx: Context) {
     ctx.Route('user_homework', '/user-homework/attend', UserHomeworkAttendHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework', '/user-homework/maintain', UserHomeworkMaintainerHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_one', '/user-homework/:homeworkId', UserHomeworkOneHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_one', '/user-homework/:homeworkId/publish', UserHomeworkOnePublishHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_problems', '/user-homework/:homeworkId/problems', UserHomeworkProblemsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_members', '/user-homework/:homeworkId/members', UserHomeworkMembersHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_members', '/user-homework/:homeworkId/review', UserHomeworkReviewHandler, PRIV.PRIV_USER_PROFILE);

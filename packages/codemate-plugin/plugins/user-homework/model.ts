@@ -33,6 +33,19 @@ export class UserHomeworkModel {
     }
 
     /**
+     * 设置作业的发布状态
+     * @param domainId 默认域参数
+     * @param homeworkId 作业对应的 ObjectId
+     * @param isPublished 是否已发布作业
+     * @returns await updateOne
+     */
+    static async setPublish(domainId: string, homeworkId: ObjectId, isPublished: boolean) {
+        const homeworkDoc = await this.get(domainId, homeworkId);
+        if (!homeworkDoc) throw new HomeworkNotFoundError(homeworkId);
+        return await collDoc.updateOne({ domainId, _id: homeworkId }, { $set: { isPublished } });
+    }
+
+    /**
      * 查询作业下面挂载的题目
      * @param domainId 默认域参数
      * @param homeworkId 作业对应的 ObjectId
@@ -95,7 +108,6 @@ export class UserHomeworkModel {
         return this.getHomeworkAggr(domainId, ['assignGroup'], {
             ...filters,
             uid,
-            attend: 1,
         });
     }
 
@@ -109,7 +121,7 @@ export class UserHomeworkModel {
     static async getHomeworkAggr(domainId: string, fields: string[] = [], filters: Record<string, any> = {}) {
         const stages = [];
         const firstMatch = { domainId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework' };
-        // 作业中的指定参与人员 id
+        // 作业中的授权维护人员 id
         if (typeof filters.uid === 'number') {
             firstMatch['$or'] = [{ maintainer: filters.uid }, { owner: filters.uid }];
         }
@@ -126,8 +138,7 @@ export class UserHomeworkModel {
                 $lookup: {
                     from: 'user.group',
                     let: {
-                        curGroupNames: '$homework.assign',
-                        curUid: '$uid',
+                        curGroupNames: '$assign',
                     },
                     pipeline: [
                         {
@@ -136,9 +147,6 @@ export class UserHomeworkModel {
                                     $and: [
                                         {
                                             $in: ['$name', '$$curGroupNames'],
-                                        },
-                                        {
-                                            $in: ['$$curUid', '$uids'], // uids 必须是数组
                                         },
                                     ],
                                 },
@@ -241,6 +249,7 @@ export class UserHomeworkModel {
 
         stages.push({
             $addFields: {
+                journal: { $ifNull: ['$journal', []] },
                 // 所作业中包含的题目 id
                 homeworkPids: '$homework.pids',
                 // 已提交评测的题目，包括提交但评测不通过的题目 id
