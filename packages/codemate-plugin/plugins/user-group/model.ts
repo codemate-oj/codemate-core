@@ -90,7 +90,7 @@ export class UserGroupModel {
     }
 
     /**
-     * 获取指定用户的所有组，创建者或者是组员
+     * 获取指定用户的所有组，创建者,维护者或者是组员
      * 场景：老师查看其创建的所有小组，老师自己本身可能也是一个组员
      * @param domainId 默认域参数
      * @param uid 用户ID
@@ -98,6 +98,26 @@ export class UserGroupModel {
      */
     static list(domainId: string, uid: number) {
         return this.coll.find({ domainId, $or: [{ uids: uid }, { owner: uid }] });
+    }
+
+    /**
+     * 获取指定用户参加的所有组
+     * @param domainId 默认域参数
+     * @param uid 用户ID
+     * @returns cursor
+     */
+    static listAttend(domainId: string, uid: number) {
+        return this.coll.find({ domainId, uids: uid });
+    }
+
+    /**
+     * 获取指定用户维护的所有组
+     * @param domainId 默认域参数
+     * @param uid 用户ID
+     * @returns cursor
+     */
+    static listMaintain(domainId: string, uid: number) {
+        return this.coll.find({ domainId, owner: uid });
     }
 
     /**

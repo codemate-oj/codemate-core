@@ -39,11 +39,49 @@ class UserGroupHandler extends Handler {
     }
 }
 
+class UserGroupAttendHandler extends Handler {
+    @param('page', Types.Int, true)
+    @param('pageSize', Types.Int, true)
+    async get(domainId: string, page: number = 1, pageSize = 10) {
+        if (pageSize > 20) pageSize = 20;
+        const cursor = UserGroupModel.listAttend(domainId, this.user._id).sort({ createdAt: -1 });
+        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        this.response.body = {
+            data: {
+                data,
+                page,
+                pageSize,
+                pageCount,
+                count,
+            },
+        };
+    }
+}
+
+class UserGroupMaintainHandler extends Handler {
+    @param('page', Types.Int, true)
+    @param('pageSize', Types.Int, true)
+    async get(domainId: string, page: number = 1, pageSize = 10) {
+        if (pageSize > 20) pageSize = 20;
+        const cursor = UserGroupModel.listMaintain(domainId, this.user._id).sort({ createdAt: -1 });
+        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        this.response.body = {
+            data: {
+                data,
+                page,
+                pageSize,
+                pageCount,
+                count,
+            },
+        };
+    }
+}
+
 class UserGroupOneHandler extends Handler {
     @route('groupId', Types.ObjectId)
     async get(domainId: string, groupId: ObjectId) {
         const groupDoc = await UserGroupModel.get(domainId, groupId);
-        if (!groupDoc || groupDoc.owner !== this.user._id) throw new GroupNotFoundError();
+        if (!groupDoc || !(groupDoc.owner === this.user._id || groupDoc.uids.includes(this.user._id))) throw new GroupNotFoundError();
         this.response.body = {
             data: groupDoc,
         };
@@ -149,7 +187,9 @@ class UserGroupMembersHandler extends Handler {
 }
 
 export async function apply(ctx: Context) {
+    ctx.Route('user_group', '/user-group', UserGroupHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_group', '/user-group/attend', UserGroupAttendHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_group', '/user-group/maintain', UserGroupMaintainHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_group_members', '/user-group/:groupId/members', UserGroupMembersHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_group_one', '/user-group/:groupId', UserGroupOneHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('user_group', '/user-group', UserGroupHandler, PRIV.PRIV_USER_PROFILE);
 }
