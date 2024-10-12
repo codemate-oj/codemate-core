@@ -20,6 +20,51 @@ export class UserHomeworkModel {
     }
 
     /**
+     * 设置 document.status 中 attend 记录
+     * @param domainId 默认域参数
+     * @param homeworkId 作业对应的 ObjectId
+     * @param uids 参加当前作业的所有 uids
+     * @returns cursor findOne
+     */
+    static async setAllAttendUids(domainId: string, homeworkId: ObjectId, uids: number[]) {
+        // 设置要参加该作业的所有成员
+        await collDocStatus.bulkWrite(
+            uids.map((uid) => ({
+                updateOne: {
+                    filter: { domainId, docId: homeworkId, docType: DocumentModel.TYPE_CONTEST, uid },
+                    update: {
+                        $set: {
+                            attend: 1,
+                        },
+                        $setOnInsert: {
+                            startAt: new Date(),
+                        },
+                    },
+                    upsert: true,
+                },
+            })),
+        );
+        // 限制其他所有成员
+        await collDocStatus.updateMany(
+            { domainId, docId: homeworkId, docType: DocumentModel.TYPE_CONTEST, uid: { $nin: uids } },
+            {
+                $set: {
+                    attend: 0,
+                },
+            },
+        );
+
+        await collDoc.findOneAndUpdate(
+            { domainId, _id: homeworkId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework' },
+            {
+                $set: {
+                    attend: uids.length,
+                },
+            },
+        );
+    }
+
+    /**
      * 设置作业的审核状态
      * @param domainId 默认域参数
      * @param homeworkId 作业对应的 ObjectId
@@ -64,12 +109,12 @@ export class UserHomeworkModel {
      * 查询参加作业的成员
      * @param domainId 默认域参数
      * @param homeworkId 作业对应的 ObjectId
-     * @returns cusor find
+     * @returns cursor find
      */
     static async listMembers(domainId: string, homeworkId: ObjectId) {
         const homeworkDoc = await this.get(domainId, homeworkId);
         if (!homeworkDoc) throw new HomeworkNotFoundError(homeworkId);
-        return collDocStatus.find({ domainId, docId: homeworkId, docType: DocumentModel.TYPE_CONTEST });
+        return collDocStatus.find({ domainId, docId: homeworkId, docType: DocumentModel.TYPE_CONTEST, attend: 1 });
     }
 
     /**
@@ -105,7 +150,7 @@ export class UserHomeworkModel {
      * @returns cursor find
      */
     static listMaintainHomeworksAggr(domainId: string, uid: number, filters: Record<string, any> = {}) {
-        return this.getHomeworkAggr(domainId, ['assignGroup'], {
+        return this.getHomeworkAggr(domainId, ['assignGroup', 'attendUsers'], {
             ...filters,
             uid,
         });
@@ -161,6 +206,61 @@ export class UserHomeworkModel {
                     assignGroup: {
                         $gt: [{ $size: '$assignGroup' }, 0],
                     },
+                },
+            });
+        }
+
+        // 用户的实时参加作业信息
+        if (fields.includes('attendUsers')) {
+            stages.push({
+                $addFields: {
+                    assignGroupUids: {
+                        $reduce: {
+                            input: '$assignGroup.uids',
+                            initialValue: [],
+                            in: { $setUnion: [{ $ifNull: ['$$value', []] }, '$$this'] },
+                        },
+                    },
+                },
+            });
+
+            const $and = [
+                {
+                    $eq: ['$docId', '$$curHomeworkId'],
+                },
+                {
+                    $in: ['$uid', '$$curGroupUids'],
+                },
+            ];
+            // 参加状态 1 表示现在参加中 0 表示曾经加入过
+            if (typeof filters.attend === 'number') {
+                $and.push({
+                    $eq: ['$attend', '$$curAttend'],
+                });
+            }
+            stages.push({
+                $lookup: {
+                    from: 'document.status',
+                    let: {
+                        curHomeworkId: '$_id',
+                        curGroupUids: '$assignGroupUids',
+                        curAttend: filters.attend,
+                    },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and,
+                                },
+                            },
+                        },
+                    ],
+                    as: 'attendUsers',
+                },
+            });
+            stages.push({
+                $addFields: {
+                    attendUids: '$attendUsers.uids',
                 },
             });
         }

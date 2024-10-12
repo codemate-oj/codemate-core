@@ -43,15 +43,16 @@ class UserHomeworkHandler extends Handler {
         };
     }
 
-    @param('beginAt', Types.PositiveInt)
-    @param('penaltySince', Types.PositiveInt)
+    @param('beginAt', Types.UnsignedInt)
+    @param('penaltySince', Types.UnsignedInt)
     @param('extensionDays', Types.Float)
-    @param('penaltyRules', Types.CommaSeperatedArray)
+    @param('penaltyRules', Types.CommaSeperatedArray, true)
     @param('title', Types.Title)
     @param('content', Types.Content)
     @param('pids', Types.NumericArray)
     @param('rated', Types.Boolean)
     @param('isPublished', Types.Boolean, true)
+    @param('members', Types.NumericArray)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
     async post(
@@ -59,16 +60,26 @@ class UserHomeworkHandler extends Handler {
         beginAt: number,
         penaltySince: number,
         extensionDays: number,
-        penaltyRules: string[] = ['1|1'],
+        penaltyRules: string[],
         title: string,
         content: string,
         pids: number[],
-        rated = false,
+        rated: boolean,
         isPublished: false,
+        members: number[] = [],
         maintainer: number[] = [],
         assign: string[] = [],
     ) {
         this.checkPerm(PERM.PERM_CREATE_HOMEWORK);
+        const currentDate = new Date();
+        // 定时发布的作业
+        beginAt ||= currentDate.getTime();
+        // 默认是四千小时
+        penaltySince ||= new Date(beginAt + 4000 * 60 * 60 * 1000).getTime();
+        // 默认不推迟
+        extensionDays ||= 0;
+        // 默认超时不扣分
+        penaltyRules ||= ['1|1'];
         const endAt = penaltySince + extensionDays * 24 * 60 * 60 * 1000;
         const homeworkId = await ContestModel.add(
             domainId,
@@ -93,6 +104,7 @@ class UserHomeworkHandler extends Handler {
                 isPublished,
             },
         );
+        await UserHomeworkModel.setAllAttendUids(domainId, homeworkId, members);
         this.response.body = { data: { _id: homeworkId } };
     }
 }
@@ -108,15 +120,16 @@ class UserHomeworkOneHandler extends Handler {
     }
 
     @route('homeworkId', Types.ObjectId)
-    @param('beginAt', Types.PositiveInt)
-    @param('penaltySince', Types.PositiveInt)
+    @param('beginAt', Types.UnsignedInt)
+    @param('penaltySince', Types.UnsignedInt)
     @param('extensionDays', Types.Float)
-    @param('penaltyRules', Types.CommaSeperatedArray)
+    @param('penaltyRules', Types.CommaSeperatedArray, true)
     @param('title', Types.Title)
     @param('content', Types.Content)
     @param('pids', Types.NumericArray)
-    @param('rated', Types.Boolean)
+    @param('rated', Types.Boolean, true)
     @param('isPublished', Types.Boolean, true)
+    @param('members', Types.NumericArray)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
     async put(
@@ -125,12 +138,13 @@ class UserHomeworkOneHandler extends Handler {
         beginAt: number,
         penaltySince: number,
         extensionDays: number,
-        penaltyRules: string[] = ['1|1'],
+        penaltyRules: string[],
         title: string,
         content: string,
         pids: number[] = [],
-        rated = false,
+        rated: boolean,
         isPublished: false,
+        members: number[] = [],
         maintainer: number[] = [],
         assign: string[] = [],
     ) {
@@ -163,6 +177,7 @@ class UserHomeworkOneHandler extends Handler {
         // 一般来说，已发布的作业一般不能轻易修改
         // 已经发布的作业，在这个接口不能更改其已发布的状态
         isPublished ||= homeworkDoc.isPublished;
+        rated ||= false;
         // 定时发布的作业
         if (!isPublished) {
             beginAt ||= currentDate.getTime();
@@ -172,8 +187,10 @@ class UserHomeworkOneHandler extends Handler {
         } else {
             beginAt ||= homeworkDoc.beginAt.getTime();
             penaltySince ||= homeworkDoc.penaltySince.getTime();
-            extensionDays ||= 0;
+            extensionDays ||= homeworkDoc.penaltySince.extensionDays || 0;
         }
+        // 默认超时不扣分
+        penaltyRules ||= ['1|1'];
         const endAt = penaltySince + extensionDays * 24 * 60 * 60 * 1000;
         await ContestModel.edit(domainId, homeworkId, {
             title,
@@ -202,6 +219,7 @@ class UserHomeworkOneHandler extends Handler {
         ) {
             await ContestModel.recalcStatus(domainId, homeworkDoc.docId);
         }
+        await UserHomeworkModel.setAllAttendUids(domainId, homeworkId, members);
         this.response.body = { data: { _id: homeworkId } };
     }
 
@@ -325,6 +343,7 @@ class UserHomeworkAttendHandler extends Handler {
         if (pageSize > 20) pageSize = 20;
         const result = await (
             await UserHomeworkModel.listAttendHomeworksAggr(domainId, this.user._id, {
+                attend: 1,
                 page,
                 pageSize,
                 isFinishAll,
@@ -360,6 +379,7 @@ class UserHomeworkMaintainerHandler extends Handler {
         if (pageSize > 20) pageSize = 20;
         const result = await (
             await UserHomeworkModel.listMaintainHomeworksAggr(domainId, this.user._id, {
+                attend: 1,
                 page,
                 pageSize,
             })
