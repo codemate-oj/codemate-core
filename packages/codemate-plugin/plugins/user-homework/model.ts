@@ -149,10 +149,10 @@ export class UserHomeworkModel {
      * @param filters 筛选条件
      * @returns cursor find
      */
-    static listMaintainHomeworksAggr(domainId: string, uid: number, filters: Record<string, any> = {}) {
+    static listMaintainHomeworksAggr(domainId: string, maintainerUid: number, filters: Record<string, any> = {}) {
         return this.getHomeworkAggr(domainId, ['assignGroup', 'attendUsers'], {
             ...filters,
-            uid,
+            maintainerUid,
         });
     }
 
@@ -165,10 +165,10 @@ export class UserHomeworkModel {
      */
     static async getHomeworkAggr(domainId: string, fields: string[] = [], filters: Record<string, any> = {}) {
         const stages = [];
-        const firstMatch = { domainId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework' };
+        const firstMatch = { domainId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework', assign: { $gt: [] } };
         // 作业中的授权维护人员 id
-        if (typeof filters.uid === 'number') {
-            firstMatch['$or'] = [{ maintainer: filters.uid }, { owner: filters.uid }];
+        if (typeof filters.maintainerUid === 'number') {
+            firstMatch['$or'] = [{ maintainer: filters.maintainerUid }, { owner: filters.maintainerUid }];
         }
         // 相关的作业 id
         if (typeof filters.homeworkId === 'object') {
@@ -177,8 +177,29 @@ export class UserHomeworkModel {
         // 第一次匹配缩小集合范围
         stages.push({ $match: firstMatch });
 
-        // 作业的授权用户组
-        if (fields.includes('assignGroup')) {
+        const fieldsSet = new Set(fields);
+        // 处理中间数据依赖
+        if (['groupBy', 'groupByUser', 'groupByProblem', 'groupByHomework'].some((v) => fieldsSet.has(v))) {
+            fieldsSet.add('statAttendUserProblem');
+            fieldsSet.add('groupBy');
+        }
+        if (fieldsSet.has('statAttendUserProblem')) {
+            fieldsSet.add('attendUsers');
+            fieldsSet.add('attendProblem');
+        }
+        if (fieldsSet.has('attendProblem')) {
+            fieldsSet.add('attendProblems');
+        }
+        if (fieldsSet.has('attendUsers')) {
+            fieldsSet.add('assignGroup');
+        }
+        if (fieldsSet.has('statProblem')) {
+            fieldsSet.add('assignGroup');
+            fieldsSet.add('assignProblems');
+        }
+
+        // 关联作业的授权用户组
+        if (fieldsSet.has('assignGroup')) {
             stages.push({
                 $lookup: {
                     from: 'user.group',
@@ -193,6 +214,9 @@ export class UserHomeworkModel {
                                         {
                                             $in: ['$name', '$$curGroupNames'],
                                         },
+                                        {
+                                            $eq: ['$domainId', domainId],
+                                        },
                                     ],
                                 },
                             },
@@ -201,22 +225,80 @@ export class UserHomeworkModel {
                     as: 'assignGroup',
                 },
             });
+            // 作业没有授权指定用户组不参与统计
+            // stages.push({
+            //     $match: {
+            //         assignGroup: {
+            //             $gt: [{ $size: '$assignGroup' }, 0],
+            //         },
+            //     },
+            // });
+        }
+
+        // 关联作业的相关题目信息
+        if (fieldsSet.has('assignProblems')) {
             stages.push({
-                $match: {
-                    assignGroup: {
-                        $gt: [{ $size: '$assignGroup' }, 0],
+                $lookup: {
+                    from: 'document',
+                    let: {
+                        curPids: '$pids',
                     },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        {
+                                            $in: ['$docId', '$$curPids'],
+                                        },
+                                        {
+                                            $eq: ['$docType', DocumentModel.TYPE_PROBLEM],
+                                        },
+                                        {
+                                            $eq: ['$domainId', domainId],
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                    as: 'assignProblems',
+                },
+            });
+            // 作业没有授权题目不参与统计
+            // stages.push({
+            //     $match: {
+            //         assignProblems: {
+            //             $gt: [{ $size: '$assignProblems' }, 0],
+            //         },
+            //     },
+            // });
+        }
+
+        // 以作业分配的题目维度进行统计
+        if (fieldsSet.has('statProblem')) {
+            stages.push({
+                $addFields: {
+                    assignProblem: '$assignProblems',
+                },
+            });
+            // stages.push({ $unwind: '$assignProblem' });
+            stages.push({
+                $unwind: {
+                    path: '$assignProblem',
+                    preserveNullAndEmptyArrays: true,
                 },
             });
         }
 
         // 用户的实时参加作业信息
-        if (fields.includes('attendUsers')) {
+        if (fieldsSet.has('attendUsers')) {
             stages.push({
                 $addFields: {
+                    // 作业分配的用户组所包含的所有成员用户 uids
                     assignGroupUids: {
                         $reduce: {
-                            input: '$assignGroup.uids',
+                            input: { $ifNull: ['$assignGroup.uids', []] },
                             initialValue: [],
                             in: { $setUnion: [{ $ifNull: ['$$value', []] }, '$$this'] },
                         },
@@ -260,8 +342,210 @@ export class UserHomeworkModel {
             });
             stages.push({
                 $addFields: {
-                    attendUids: '$attendUsers.uids',
+                    // 当前实际参加作业的 uids，适配作业分配给指定用户组中部分的成员
+                    attendUids: '$attendUsers.uid',
                 },
+            });
+        }
+
+        // 以参加作业的用户维度进行统计
+        if (fieldsSet.has('statAttendUser')) {
+            stages.push({
+                $addFields: {
+                    attendUserStatus: '$attendUsers',
+                },
+            });
+            stages.push({
+                $unwind: {
+                    path: '$attendUserStatus',
+                    preserveNullAndEmptyArrays: false,
+                },
+            });
+            stages.push({
+                $addFields: {
+                    uid: '$attendUserStatus.uid',
+                    // 提交的作业题目中存在超时提交的
+                    isTimeout: {
+                        $gt: [
+                            {
+                                $size: {
+                                    $filter: {
+                                        input: { $ifNull: ['$attendUserStatus.journal', []] },
+                                        as: 'item',
+                                        limit: 1,
+                                        cond: {
+                                            $lt: [
+                                                '$penaltySince',
+                                                {
+                                                    $add: [
+                                                        '$beginAt',
+                                                        {
+                                                            $multiply: ['$$item.time', 1000],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                            },
+                            0,
+                        ],
+                    },
+                },
+            });
+            // 以参加作业的用户及题目维度进行统计
+        } else if (fieldsSet.has('statAttendUserProblem')) {
+            stages.push({
+                $addFields: {
+                    attendUserStatus: '$attendUsers',
+                    attendUserProblem: '$assignProblem',
+                },
+            });
+
+            // 增加用户维度
+            stages.push({
+                $unwind: {
+                    path: '$attendUserStatus',
+                    preserveNullAndEmptyArrays: false,
+                },
+            });
+            stages.push({
+                $addFields: {
+                    // 用户提交评测的题目状态集合 document.status
+                    journalProblems: { $ifNull: ['$attendUserStatus.journal', []] },
+                },
+            });
+            stages.push({
+                $addFields: {
+                    // 该用户已提交的评测题目 pids
+                    journalPids: {
+                        $map: {
+                            input: '$journalProblems',
+                            as: 'item',
+                            in: '$$item.pid',
+                        },
+                    },
+                },
+            });
+
+            // 增加题目维度
+            stages.push({
+                $unwind: {
+                    path: '$attendUserProblem',
+                    preserveNullAndEmptyArrays: false,
+                },
+            });
+            stages.push({
+                $addFields: {
+                    // 该题目的评测状态对象
+                    attendUserProblemStatus: {
+                        $ifNull: [
+                            {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: '$journalProblems',
+                                            as: 'item',
+                                            cond: {
+                                                $eq: ['$$item.pid', '$attendUserProblem.docId'],
+                                            },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                            null,
+                        ],
+                    },
+                },
+            });
+            stages.push({
+                $addFields: {
+                    uid: '$attendUserStatus.uid',
+                    pid: '$attendUserProblem.docId',
+                    pidAlias: '$attendUserProblem.pid',
+                    // 该用户的整体作业题目是否都提交过
+                    isFinishAll: {
+                        $setIsSubset: ['$pids', { $ifNull: ['$journalPids', []] }],
+                    },
+                    // 该题目已提交过
+                    isFinish: {
+                        $not: {
+                            $eq: ['$attendUserProblemStatus', null],
+                        },
+                    },
+                    // 该题的评测状态
+                    finishStatus: '$attendUserProblemStatus.status',
+                    // 该题是超出作业限定时间提交
+                    finishTimeout: {
+                        $lt: [
+                            '$penaltySince',
+                            {
+                                $add: [
+                                    '$beginAt',
+                                    {
+                                        $multiply: ['$attendUserProblemStatus.time', 1000],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            });
+        }
+
+        // 根据用户分组统计题目数量
+        // 适配场景： 老师查看作业下学生的刷题统计，或学生查看自己的做题统计
+        // 1.指定作业下的所有学生的完成情况统计
+        // 2.指定作业下的指定学生的完成情况统计
+        // 3.所有作业下的所有学生的完成情况统计
+        // 4.所有作业下的指定学生的完成情况统计
+
+        // 根据题目分组统计用户数量
+        // 适配场景： 老师查看作业下题目的被刷题统计，或学生查看自己的题目已提交情况
+        // 1.指定作业下的所有题目的被完成情况统计
+        // 2.指定作业下的特定题目的被完成情况统计
+        // 3.所有作业下的所有题目的被完成情况统计
+        // 4.所有作业下的指定题目的被完成情况统计
+        if (fieldsSet.has('groupBy')) {
+            const $group = {
+                _id: {
+                    domainId,
+                },
+                count: { $sum: 1 },
+                submitProblemCount: {
+                    $sum: {
+                        $cond: {
+                            if: '$isFinish',
+                            then: 1,
+                            else: 0,
+                        },
+                    },
+                },
+                acProblemCount: {
+                    $sum: {
+                        $cond: {
+                            if: {
+                                $eq: ['$finishStatus', 1],
+                            },
+                            then: 1,
+                            else: 0,
+                        },
+                    },
+                },
+            };
+            if (fieldsSet.has('groupByHomework')) {
+                $group._id['homworkId'] = '$_id';
+            }
+            if (fieldsSet.has('groupByUser')) {
+                $group._id['uid'] = '$uid';
+            }
+            if (fieldsSet.has('groupByProblem')) {
+                $group._id['pid'] = '$pid';
+            }
+            stages.push({
+                $group,
             });
         }
 
