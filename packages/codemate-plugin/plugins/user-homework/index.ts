@@ -391,7 +391,7 @@ class UserHomeworkMaintainerHandler extends Handler {
                 data:
                     result[0]?.data.map((v) => ({
                         ...v,
-                        homeworkStatus: v.isPublished ? (v.isReviewed ? '已检查' : v.penaltySince > new Date() ? '待检查' : '已发布') : '待发布',
+                        homeworkStatus: v.isPublished ? (v.isReviewed ? '已检查' : v.penaltySince < new Date() ? '待检查' : '已发布') : '待发布',
                     })) || [],
                 count,
                 page,
@@ -404,21 +404,23 @@ class UserHomeworkMaintainerHandler extends Handler {
 
 class UserHomeworkStatHandler extends Handler {
     @route('homeworkId', Types.ObjectId)
-    @param('uid', Types.PositiveInt, true)
+    @param('uid', Types.UnsignedInt, true)
     @param('isMaintainer', Types.Boolean, true)
     @param('by', Types.CommaSeperatedArray, true)
     @param('page', Types.PositiveInt, true)
     @param('pageSize', Types.PositiveInt, true)
-    async get(domainId: string, homeworkId: ObjectId, uid: number[], isMaintainer: boolean, by: string[], page = 1, pageSize = 10) {
+    async get(domainId: string, homeworkId: ObjectId, uid: number, isMaintainer: boolean, by: string[], page = 1, pageSize = 10) {
         if (pageSize > 20) pageSize = 20;
+        // 筛选作业中指定成员 uid，0 表示为当前用户
+        uid ||= this.user._id || 0;
         const result = await (
             await UserHomeworkModel.getHomeworkAggr(
                 domainId,
-                ['assignGroup', 'attendUsers', 'statProblem', ...(by || []).map((v: string) => `groupBy${v}`)],
+                ['assignGroup', 'attendUsers', 'statProblem', 'groupBy', ...(by || []).map((v: string) => `groupBy${v}`)],
                 {
                     homeworkId,
                     maintainerUid: isMaintainer && this.user._id,
-                    uid,
+                    uid: !isMaintainer && uid,
                     attend: 1,
                     page,
                     pageSize,

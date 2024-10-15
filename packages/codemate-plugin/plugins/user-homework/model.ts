@@ -320,6 +320,12 @@ export class UserHomeworkModel {
                     $eq: ['$attend', '$$curAttend'],
                 });
             }
+            // 指定 uid
+            if (typeof filters.uid === 'number' && filters.uid) {
+                $and.push({
+                    $eq: ['$uid', '$$curUid'],
+                });
+            }
             stages.push({
                 $lookup: {
                     from: 'document.status',
@@ -327,6 +333,7 @@ export class UserHomeworkModel {
                         curHomeworkId: '$_id',
                         curGroupUids: '$assignGroupUids',
                         curAttend: filters.attend,
+                        curUid: filters.uid,
                     },
                     pipeline: [
                         {
@@ -426,6 +433,10 @@ export class UserHomeworkModel {
                             in: '$$item.pid',
                         },
                     },
+                    // 该用户的整体作业题目是否都提交过
+                    isFinishAll: {
+                        $setIsSubset: ['$pids', { $ifNull: ['$journalProblems.pid', []] }],
+                    },
                 },
             });
 
@@ -465,10 +476,6 @@ export class UserHomeworkModel {
                     uid: '$attendUserStatus.uid',
                     pid: '$attendUserProblem.docId',
                     pidAlias: '$attendUserProblem.pid',
-                    // 该用户的整体作业题目是否都提交过
-                    isFinishAll: {
-                        $setIsSubset: ['$pids', { $ifNull: ['$journalPids', []] }],
-                    },
                     // 该题目已提交过
                     isFinish: {
                         $not: {
@@ -509,15 +516,43 @@ export class UserHomeworkModel {
         // 3.所有作业下的所有题目的被完成情况统计
         // 4.所有作业下的指定题目的被完成情况统计
         if (fieldsSet.has('groupBy')) {
+            // 通过上面 unwind 后，数据记录更改类似为 homeworkId,uid,pid 组成唯一索引
             const $group = {
                 _id: {
                     domainId,
                 },
                 count: { $sum: 1 },
+                pids: {
+                    $addToSet: '$pid',
+                },
+                uids: {
+                    $addToSet: '$uid',
+                },
+                homeworkId: {
+                    $addToSet: '$_id',
+                },
                 submitProblemCount: {
                     $sum: {
                         $cond: {
                             if: '$isFinish',
+                            then: 1,
+                            else: 0,
+                        },
+                    },
+                },
+                finishHomeworkCount: {
+                    $sum: {
+                        $cond: {
+                            if: '$isFinishAll',
+                            then: 1,
+                            else: 0,
+                        },
+                    },
+                },
+                finishProblemTimeout: {
+                    $sum: {
+                        $cond: {
+                            if: '$finishTimeout',
                             then: 1,
                             else: 0,
                         },
@@ -536,13 +571,21 @@ export class UserHomeworkModel {
                 },
             };
             if (fieldsSet.has('groupByHomework')) {
-                $group._id['homworkId'] = '$_id';
+                $group._id['homeworkId'] = '$_id';
             }
             if (fieldsSet.has('groupByUser')) {
                 $group._id['uid'] = '$uid';
             }
             if (fieldsSet.has('groupByProblem')) {
                 $group._id['pid'] = '$pid';
+                $group['problem'] = {
+                    $first: {
+                        pid: '$assignProblem.pid',
+                        title: '$assignProblem.title',
+                        tag: '$assignProblem.tag',
+                        difficulty: '$assignProblem.difficulty',
+                    },
+                };
             }
             stages.push({
                 $group,
