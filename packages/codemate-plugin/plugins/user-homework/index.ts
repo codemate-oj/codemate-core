@@ -14,6 +14,7 @@ import {
     StorageModel,
     Types,
 } from 'hydrooj';
+import { UserGroupModel } from '../user-group/model';
 import { HomeworkNotFoundError, UserHomeworkModel } from './model';
 
 class UserHomeworkHandler extends Handler {
@@ -292,6 +293,65 @@ class UserHomeworkProblemsHandler extends Handler {
     }
 }
 
+class UserHomeworkProblemOptionsHandler extends Handler {
+    @param('homeworkId', Types.ObjectId, true)
+    @param('pids', Types.NumericArray, true)
+    @param('pidsAlias', Types.CommaSeperatedArray, true)
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, homeworkId: ObjectId, pids: number[], pidAlias: string[], page = 1, pageSize = 20) {
+        pids ||= [];
+        pidAlias ||= [];
+        if (pageSize > 100) pageSize = 100;
+        const homeworkDoc = await UserHomeworkModel.get(domainId, homeworkId);
+        if (homeworkDoc) {
+            pids = [...new Set([...pids, ...homeworkDoc.pids])];
+        }
+        const cursor = await UserHomeworkModel.getProblemOptions(domainId, pids, pidAlias);
+        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        this.response.body = {
+            data: {
+                data,
+                page,
+                pageSize,
+                pageCount,
+                count,
+            },
+        };
+    }
+}
+
+class UserHomeworkUserOptionsHandler extends Handler {
+    @param('groupId', Types.ObjectId, true)
+    @param('uids', Types.NumericArray, true)
+    @param('unames', Types.CommaSeperatedArray, true)
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, groupId: ObjectId, uids: number[], unames: string[], page = 1, pageSize = 20) {
+        uids ||= [];
+        unames ||= [];
+        if (pageSize > 100) pageSize = 100;
+        const groupDoc = await UserGroupModel.get(domainId, groupId);
+        if (groupDoc) {
+            uids = [...new Set([...uids, ...groupDoc.uids])];
+        }
+        const cursor = await UserHomeworkModel.getUserOptions(uids, unames);
+        const [data, pageCount, count] = await paginate(cursor, page, pageSize);
+        this.response.body = {
+            data: {
+                data: data.map((v) => {
+                    v.avatarUrl = avatar(v.avatar);
+                    return v;
+                }),
+                page,
+                pageSize,
+                pageCount,
+                count,
+            },
+        };
+    }
+}
+
 class UserHomeworkMembersHandler extends Handler {
     @route('homeworkId', Types.ObjectId)
     @param('page', Types.PositiveInt, true)
@@ -443,12 +503,14 @@ class UserHomeworkStatHandler extends Handler {
 
 export async function apply(ctx: Context) {
     ctx.Route('user_homework', '/user-homework', UserHomeworkHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('user_homework', '/user-homework/attend', UserHomeworkAttendHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('user_homework', '/user-homework/maintain', UserHomeworkMaintainerHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_attend', '/user-homework/attend', UserHomeworkAttendHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_maintain', '/user-homework/maintain', UserHomeworkMaintainerHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_userOptions', '/user-homework/users', UserHomeworkUserOptionsHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_problemOptions', '/user-homework/problems', UserHomeworkProblemOptionsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_one', '/user-homework/:homeworkId', UserHomeworkOneHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_oneStat', '/user-homework/:homeworkId/stat', UserHomeworkStatHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_onePublish', '/user-homework/:homeworkId/publish', UserHomeworkOnePublishHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_problems', '/user-homework/:homeworkId/problems', UserHomeworkProblemsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_members', '/user-homework/:homeworkId/members', UserHomeworkMembersHandler, PRIV.PRIV_USER_PROFILE);
-    ctx.Route('user_homework_members', '/user-homework/:homeworkId/review', UserHomeworkReviewHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_review', '/user-homework/:homeworkId/review', UserHomeworkReviewHandler, PRIV.PRIV_USER_PROFILE);
 }

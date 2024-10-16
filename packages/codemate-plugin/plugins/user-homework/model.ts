@@ -2,6 +2,7 @@ import { ContestModel, db, DocumentModel, Err, NotFoundError, ObjectId } from 'h
 
 export const HomeworkNotFoundError = Err('HomeworkNotFoundError', NotFoundError, 'Homework {0} not found.');
 
+const collUser = db.collection('user');
 const collDoc = db.collection('document');
 const collDocStatus = db.collection('document.status');
 
@@ -17,6 +18,20 @@ export class UserHomeworkModel {
      */
     static get(domainId: string, homeworkId: ObjectId) {
         return collDoc.findOne({ domainId, _id: homeworkId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework' });
+    }
+
+    static getUserOptions(uids: number[], unames: string[]) {
+        return collUser.find(
+            { $or: [{ _id: { $in: uids } }, { uname: { $in: unames } }] },
+            { projection: { _id: 1, uname: 1, avatar: 1, nickname: 1 } },
+        );
+    }
+
+    static getProblemOptions(domainId: string, pids: number[], pidsAlias: string[]) {
+        return collDoc.find(
+            { $or: [{ docId: { $in: pids } }, { pid: { $in: pidsAlias } }], domainId, docType: DocumentModel.TYPE_PROBLEM },
+            { projection: { _id: 0, docId: 1, pid: 1, title: 1 } },
+        );
     }
 
     /**
