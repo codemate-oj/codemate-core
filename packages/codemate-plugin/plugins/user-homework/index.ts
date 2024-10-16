@@ -409,6 +409,7 @@ class UserHomeworkAttendHandler extends Handler {
                 isFinishAll,
             })
         ).toArray();
+        const count = result[0]?.count || 0;
         this.response.body = {
             data: {
                 data:
@@ -419,8 +420,9 @@ class UserHomeworkAttendHandler extends Handler {
                         homeworkType: v.homeworkType,
                         finishStatus: v.isFinishAll ? (v.isTimeout ? '超时完成' : '正常完成') : '待完成',
                     })) || [],
-                count: result[0]?.count || 0,
+                count,
                 page,
+                pageCount: Math.ceil(count / pageSize),
                 pageSize,
             },
         };
