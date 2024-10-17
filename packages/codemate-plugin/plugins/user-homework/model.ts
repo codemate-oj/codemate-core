@@ -180,7 +180,7 @@ export class UserHomeworkModel {
      */
     static async getHomeworkAggr(domainId: string, fields: string[] = [], filters: Record<string, any> = {}) {
         const stages = [];
-        const firstMatch = { domainId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework', assign: { $gt: [] } };
+        const firstMatch = { domainId, docType: DocumentModel.TYPE_CONTEST, rule: 'homework' };
         // 作业中的授权维护人员 id
         if (typeof filters.maintainerUid === 'number') {
             firstMatch['$or'] = [{ maintainer: filters.maintainerUid }, { owner: filters.maintainerUid }];
@@ -188,6 +188,12 @@ export class UserHomeworkModel {
         // 相关的作业 id
         if (typeof filters.homeworkId === 'object') {
             firstMatch['_id'] = filters.homeworkId;
+        }
+        // 相关的授权用户组
+        if (Array.isArray(filters.assign)) {
+            firstMatch['assign'] = { $in: filters.assign };
+        } else {
+            firstMatch['assign'] = { $gt: [] };
         }
         // 第一次匹配缩小集合范围
         stages.push({ $match: firstMatch });

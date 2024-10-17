@@ -503,12 +503,57 @@ class UserHomeworkStatHandler extends Handler {
     }
 }
 
+class UserHomeworkGroupStatHandler extends Handler {
+    @param('groupId', Types.ObjectId)
+    @param('uid', Types.UnsignedInt, true)
+    @param('isMaintainer', Types.Boolean, true)
+    @param('by', Types.CommaSeperatedArray, true)
+    @param('page', Types.PositiveInt, true)
+    @param('pageSize', Types.PositiveInt, true)
+    async get(domainId: string, groupId: ObjectId, uid: number, isMaintainer: boolean, by: string[], page = 1, pageSize = 10) {
+        if (pageSize > 20) pageSize = 20;
+        // 筛选作业中指定成员 uid，0 表示为当前用户
+        uid ||= this.user._id || 0;
+        const groupDoc = await UserGroupModel.get(domainId, groupId);
+        const assign = [];
+        if (groupDoc) {
+            assign.push(groupDoc.name);
+        }
+        const result = await (
+            await UserHomeworkModel.getHomeworkAggr(
+                domainId,
+                ['assignGroup', 'attendUsers', 'statProblem', 'groupBy', ...(by || []).map((v: string) => `groupBy${v}`)],
+                {
+                    assign,
+                    maintainerUid: isMaintainer && this.user._id,
+                    uid: !isMaintainer && uid,
+                    attend: 1,
+                    page,
+                    pageSize,
+                },
+            )
+        ).toArray();
+        const count = result[0]?.count || 0;
+        const pageCount = Math.ceil(count / pageSize);
+        this.response.body = {
+            data: {
+                data: result[0]?.data || [],
+                count,
+                page,
+                pageSize,
+                pageCount,
+            },
+        };
+    }
+}
+
 export async function apply(ctx: Context) {
     ctx.Route('user_homework', '/user-homework', UserHomeworkHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_attend', '/user-homework/attend', UserHomeworkAttendHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_maintain', '/user-homework/maintain', UserHomeworkMaintainerHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_userOptions', '/user-homework/users', UserHomeworkUserOptionsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_problemOptions', '/user-homework/problems', UserHomeworkProblemOptionsHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('user_homework_groupStat', '/user-homework/stat', UserHomeworkGroupStatHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_one', '/user-homework/:homeworkId', UserHomeworkOneHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_oneStat', '/user-homework/:homeworkId/stat', UserHomeworkStatHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('user_homework_onePublish', '/user-homework/:homeworkId/publish', UserHomeworkOnePublishHandler, PRIV.PRIV_USER_PROFILE);
