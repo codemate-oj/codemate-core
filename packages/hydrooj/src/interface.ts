@@ -441,6 +441,12 @@ export interface Tdoc extends Document {
     // For homework
     penaltySince?: Date;
     penaltyRules?: PenaltyRules;
+    isPublished?: boolean;
+    publishedAt?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+    isReviewed?: boolean;
+    reviewedAt?: Date;
 
     // For training
     description?: string;

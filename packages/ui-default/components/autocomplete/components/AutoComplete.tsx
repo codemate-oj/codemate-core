@@ -93,7 +93,7 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
   const itemText = props.itemText ?? ((item) => item.toString());
   const itemKey = props.itemKey ?? itemText;
   const onChange = props.onChange ?? (() => {});
-  const freeSoloConverter = freeSolo ? props.freeSoloConverter ?? ((i) => i) : (i) => i;
+  const freeSoloConverter = freeSolo ? (props.freeSoloConverter ?? ((i) => i)) : (i) => i;
 
   const [focused, setFocused] = useState(false); // is focused
   const [selected, setSelected] = useState([]); // selected items
@@ -251,7 +251,7 @@ const AutoComplete = forwardRef(function Impl<T>(props: AutoCompleteProps<T>, re
         setItemList([]);
         setCurrentItem(null);
       },
-      getValue: () => (multi ? selectedKeys.join(',') : inputRef.current.value ?? ''),
+      getValue: () => (multi ? selectedKeys.join(',') : (inputRef.current.value ?? '')),
       getValueArray: () => (multi ? selected : [inputRef.current?.value].filter((i) => !!i)),
       clear: () => {
         setSelected([]);
