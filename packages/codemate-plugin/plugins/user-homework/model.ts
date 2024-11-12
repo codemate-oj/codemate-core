@@ -470,7 +470,7 @@ export class UserHomeworkModel {
             });
             stages.push({
                 $addFields: {
-                    // 该题目的评测状态对象
+                    // 该题目的最新评测记录
                     attendUserProblemStatus: {
                         $ifNull: [
                             {
@@ -484,7 +484,7 @@ export class UserHomeworkModel {
                                             },
                                         },
                                     },
-                                    0,
+                                    -1,
                                 ],
                             },
                             null,
