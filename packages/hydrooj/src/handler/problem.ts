@@ -149,6 +149,7 @@ const defaultSearch = async (domainId: string, q: string, options?: ProblemSearc
 
 export class ProblemMainHandler extends Handler {
     @param('page', Types.PositiveInt, true) // 分页no
+    @param('tagGroup', Types.String, true) // 题目标签筛选规则
     @param('tags', Types.CommaSeperatedArray, true) // 题目标签
     @param('lang', Types.String, true) // 语言限定
     @param('objective', Types.Boolean) // 是否为客观题
@@ -156,7 +157,18 @@ export class ProblemMainHandler extends Handler {
     @param('limit', Types.PositiveInt, true) // 分页size
     @param('source', Types.ObjectId, true) // 查询范围，默认为全部题库，可指定为系统题单ID
     @param('pjax', Types.Boolean) // pjax 已废弃
-    async get(domainId: string, page = 1, tags = [], lang = '', objective = false, q = '', limit: number, source: ObjectId, pjax = false) {
+    async get(
+        domainId: string,
+        page = 1,
+        tagGroup: '',
+        tags = [],
+        lang = '',
+        objective = false,
+        q = '',
+        limit: number,
+        source: ObjectId,
+        pjax = false,
+    ) {
         this.response.template = 'problem_main.html';
         if (!limit || limit > this.ctx.setting.get('pagination.problem') || page > 1) limit = this.ctx.setting.get('pagination.problem');
         // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -197,6 +209,22 @@ export class ProblemMainHandler extends Handler {
         if (tags.length > 0) {
             query.$and ||= [];
             query.$and.push({ $or: [...tags.map((tag) => ({ tag }))] });
+        }
+
+        if (tagGroup) {
+            const group = JSON.parse(tagGroup);
+            const getTagQuery = (tag) => {
+                if (tag.type === 'group') {
+                    return {
+                        [tag.logic === 'AND' ? '$and' : '$or']: tag.items.map((t) => getTagQuery(t)),
+                    };
+                }
+                return {
+                    tag: tag.value,
+                };
+            };
+            query.$and ||= [];
+            query.$and.push(getTagQuery(group));
         }
 
         // 更新hydro页面标题
