@@ -59,6 +59,8 @@ export async function get(id: ObjectId) {
     return await coll.findOne({ _id: id });
 }
 
+bus.on('ready', () => Promise.all([db.ensureIndexes(coll, { key: { time: -1 }, name: 'time_-1' })]));
+
 global.Hydro.model.oplog = {
     coll,
     add,
