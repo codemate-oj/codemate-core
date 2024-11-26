@@ -2,6 +2,8 @@ import { ContestModel, db, DocumentModel, Err, nanoid, NotFoundError, ObjectId }
 
 export const ChannelNotFoundError = Err('ChannelNotFoundError', NotFoundError, 'Channel {0} not found.');
 
+const collSubmit = db.collection('record');
+const collOp = db.collection('oplog');
 const collUser = db.collection('user');
 const collDoc = db.collection('document');
 
@@ -253,5 +255,129 @@ export class ChannelModel {
         }
 
         return collDoc.aggregate(stages);
+    }
+
+    /**
+     * 根据 user oplog 进行聚合
+     * @param domainId 默认域参数
+     * @param fields 额外的返回字段
+     * @param filters 筛选条件
+     * @returns cursor aggregate
+     */
+    static getUserOpAggr(domainId: string, fields: string[] = [], filters: Record<string, any> = {}) {
+        const stages = [];
+        const firstMatch = {};
+        const $and = [];
+        // 统计操作时间的开始时间
+        if (typeof filters.beginAt === 'object') {
+            $and.push({
+                time: {
+                    $gte: filters.beginAt,
+                },
+            });
+        }
+        // 统计操作时间的结束时间
+        if (typeof filters.endAt === 'object') {
+            $and.push({
+                time: {
+                    $lt: filters.endAt,
+                },
+            });
+        }
+        // 筛选活跃用户
+        if (filters.isActive) {
+            $and.push({
+                operator: { $gt: 0 },
+            });
+        }
+        if ($and.length) {
+            firstMatch['$and'] = $and;
+        }
+        // 第一次匹配缩小集合范围
+        stages.push({ $match: firstMatch });
+        // 统计去重
+        if (filters.isActive) {
+            // 统计活跃度的时候，以用户的 id 去重
+            stages.push({
+                $group: {
+                    _id: {
+                        id: '$operator',
+                    },
+                },
+            });
+        } else {
+            // 统计访客量的时候，以用户 id，ip，和浏览器指纹
+            stages.push({
+                $group: {
+                    _id: {
+                        ip: '$operateIp',
+                        ua: '$ua',
+                        id: '$operator',
+                    },
+                },
+            });
+        }
+        const $group = {
+            _id: {},
+            count: { $sum: 1 },
+        };
+        if (filters.definedStatDates?.length) {
+            stages.push({
+                $addFields: {
+                    statDates: {
+                        $filter: {
+                            input: filters.definedStatDates,
+                            as: 'item',
+                            cond: {
+                                $and: [
+                                    {
+                                        $gte: ['$time', '$$item.beginAt'],
+                                    },
+                                    {
+                                        $lt: ['$time', '$$item.endAt'],
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            });
+            stages.push({
+                $addFields: {
+                    statDates: {
+                        $map: {
+                            input: '$statDates',
+                            as: 'item',
+                            in: {
+                                $concat: [{ $toString: { $toLong: '$$item.beginAt' } }, '|', { $toString: { $toLong: '$$item.endAt' } }],
+                            },
+                        },
+                    },
+                },
+            });
+            stages.push({
+                $unwind: {
+                    path: '$statDates',
+                    preserveNullAndEmptyArrays: false,
+                },
+            });
+            $group._id['statDates'] = '$statDates';
+        }
+        stages.push({
+            $group,
+        });
+        return collOp.aggregate(stages);
+    }
+
+    static getUserCount(filters: Record<string, any> = {}) {
+        return collUser.countDocuments(filters);
+    }
+
+    static getUserOpCount(filters: Record<string, any> = {}) {
+        return collOp.countDocuments(filters);
+    }
+
+    static getSubmitCount(filters: Record<string, any> = {}) {
+        return collSubmit.countDocuments(filters);
     }
 }
