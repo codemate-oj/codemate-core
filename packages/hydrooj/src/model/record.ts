@@ -266,6 +266,7 @@ export function apply(ctx: Context) {
             { key: { domainId: 1, contest: 1, pid: 1, _id: -1 }, name: 'withProblem' },
             { key: { domainId: 1, contest: 1, pid: 1, uid: 1, _id: -1 }, name: 'withUserAndProblem' },
             { key: { domainId: 1, contest: 1, status: 1, _id: -1 }, name: 'withStatus' },
+            { key: { judgeAt: -1 }, name: 'judgeAt_-1' },
         ),
     );
 }
