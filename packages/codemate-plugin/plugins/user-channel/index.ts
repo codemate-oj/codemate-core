@@ -277,18 +277,16 @@ class UserSubmitDashboardHandler extends Handler {
 class UserActiveDashboardHandler extends Handler {
     @param('beginAt', Types.UnsignedInt, true)
     @param('endAt', Types.UnsignedInt, true)
-    @param('by', Types.CommaSeperatedArray, true)
-    @param('statRules', Types.CommaSeperatedArray, true)
-    async get(domainId: string, beginAt: number, endAt: number, by: string[], statRules: string[] = []) {
-        const definedStatDates = getDefinedDates(statRules);
-        const data = await ChannelModel.getUserOpAggr(domainId, by ?? [], {
+    async get(domainId: string, beginAt: number, endAt: number) {
+        const data = await ChannelModel.getUserOpAggr(domainId, [], {
             isActive: true,
-            definedStatDates,
             beginAt: beginAt && new Date(beginAt),
             endAt: endAt && new Date(endAt),
         }).toArray();
         this.response.body = {
-            data,
+            data: {
+                count: data[0]?.count || 0,
+            },
         };
     }
 
@@ -310,17 +308,15 @@ class UserActiveDashboardHandler extends Handler {
 class UserOpDashboardHandler extends Handler {
     @param('beginAt', Types.UnsignedInt, true)
     @param('endAt', Types.UnsignedInt, true)
-    @param('by', Types.CommaSeperatedArray, true)
-    @param('statRules', Types.CommaSeperatedArray, true)
-    async get(domainId: string, beginAt: number, endAt: number, by: string[], statRules: string[] = []) {
-        const definedStatDates = getDefinedDates(statRules);
-        const data = await ChannelModel.getUserOpAggr(domainId, by ?? [], {
-            definedStatDates,
+    async get(domainId: string, beginAt: number, endAt: number) {
+        const data = await ChannelModel.getUserOpAggr(domainId, [], {
             beginAt: beginAt && new Date(beginAt),
             endAt: endAt && new Date(endAt),
         }).toArray();
         this.response.body = {
-            data,
+            data: {
+                count: data[0]?.count || 0,
+            },
         };
     }
 
