@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import _ from 'lodash';
+import CustomSelectAutoComplete from 'vj/components/autocomplete/CustomSelectAutoComplete';
 import { ConfirmDialog } from 'vj/components/dialog';
 import Dropdown from 'vj/components/dropdown/Dropdown';
 import Editor from 'vj/components/editor/index';
@@ -9,10 +10,59 @@ import download from 'vj/components/zipDownloader';
 import { NamedPage } from 'vj/misc/Page';
 import { i18n, pjax, request, slideDown, slideUp, tpl } from 'vj/utils';
 
+const originOptions = [
+  // '无',
+  '原创',
+  '拓展',
+  '官方真题',
+  '官方样题',
+  'GESP考级官方',
+  '电子学会考级官方',
+  '蓝桥杯官方',
+  'CSP-J官方',
+  'CSP-S官方',
+  '大赛官方',
+  '外部题库',
+  '一本通',
+  '其他',
+];
+
+const chapterOptions = [];
+
 const categories = {};
 const dirtyCategories = [];
 const selections = [];
 const tags = [];
+const splitReg = /\s*[,，]+\s*/;
+
+function setReactState(dom, value) {
+  const reactContainerKey = Object.keys(dom.nextSibling).find((v) => v.startsWith('__reactContainer'));
+  dom.nextSibling[reactContainerKey]?.child?.child?.child?.memoizedState?.next?.next?.queue?.dispatch(value);
+}
+
+function getFormTags() {
+  const $allInputTags = $('[name="tag"]');
+  const $selectChapterTags = $('[name="chapter"]');
+  const allInputTags = $allInputTags.val().split(splitReg);
+  const selectChapterTags = $selectChapterTags.val().split(splitReg);
+  // const inputChapterTags = allInputTags.filter((v) => chapterOptions.includes(v));
+  const othersTags = _.difference(allInputTags, chapterOptions);
+  const orderTags = [...selectChapterTags];
+
+  [...$('div[id^="defined-tag-category-"] select')].forEach((select) => {
+    orderTags.push(select.value);
+    _.pullAll(
+      othersTags,
+      [...select.options].map((v) => v.value),
+    );
+  });
+
+  _.pullAll(othersTags, originOptions);
+  orderTags.push(...$('[name=origin]').val().split(splitReg));
+
+  orderTags.push(..._.difference(othersTags, orderTags));
+  return orderTags.filter((v) => v && v !== '无');
+}
 
 function setDomSelected($dom, selected) {
   if (selected) $dom.addClass('selected');
@@ -39,7 +89,11 @@ async function updateSelection() {
   const requestTags = _.uniq(_.pullAll(selections, requestCategoryTags));
   dirtyCategories.length = 0;
   const $txt = $('[name="tag"]');
-  $txt.val([...requestTags, ...tags].join(', '));
+  const newValues = [...requestTags, ...tags];
+  const oldValues = $txt.val().split(splitReg);
+  if (!(newValues.length === oldValues.length && newValues.every((v) => oldValues.includes(v)))) {
+    $txt.val(newValues.join(', ')).trigger('change');
+  }
 }
 
 function findCategory(name) {
@@ -71,6 +125,15 @@ function parseCategorySelection() {
     }
   }
   updateSelection();
+}
+
+function addOrderTags() {
+  const $allInputTags = $('[name="tag"]');
+  const allInputTags = $allInputTags.val().split(splitReg);
+  const newValues = getFormTags();
+  if (!_.isEqual(allInputTags, newValues)) {
+    $allInputTags.val(newValues.join(', '));
+  }
 }
 
 function buildCategoryFilter() {
@@ -144,6 +207,27 @@ async function handleSection(ev, sidebar, type) {
   $section.removeClass('animating');
 }
 
+function fillFormTags() {
+  const $allInputTags = $('[name="tag"]');
+  const $selectChapterTags = $('[name="chapter"]');
+  const allInputTags = $allInputTags.val().split(splitReg);
+  const inputChapterTags = allInputTags.filter((v) => chapterOptions.includes(v));
+  $selectChapterTags.val(inputChapterTags.join(','));
+
+  [...$('div[id^="defined-tag-category-"] select')].forEach((select) => {
+    const options = [...select.options].map((v) => v.value).filter((v) => allInputTags.includes(v));
+    select.value = options.join(',') || '无';
+  });
+
+  const $selectOriginTags = $('[name="origin"]');
+  const inputOriginTags = allInputTags.filter((v) => originOptions.includes(v));
+  $selectOriginTags.val(inputOriginTags.join(','));
+
+  setReactState($selectChapterTags[0], inputChapterTags);
+  setReactState($selectOriginTags[0], inputOriginTags);
+  parseCategorySelection();
+}
+
 export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
   let confirmed = false;
   $(document).on('click', '[name="operation"]', (ev) => {
@@ -172,7 +256,7 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
         ev.target.click();
       });
   });
-  $(document).on('change', '[name="tag"]', parseCategorySelection);
+  $(document).on('change', '[name="tag"]', fillFormTags);
   buildCategoryFilter();
   parseCategorySelection();
 
@@ -239,6 +323,41 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
     const targets = [];
     for (const filename of Object.keys(links)) targets.push({ filename, url: links[filename] });
     await download(`${pdoc.docId} ${pdoc.title}.zip`, targets);
+  }
+
+  function initSelectOptions() {
+    request.get('/problem-tags').then((res) => {
+      const chapterTagsSet = new Set(res.data.data.map((v) => v.chapter));
+      chapterOptions.push(...chapterTagsSet);
+      const select = CustomSelectAutoComplete.getOrConstruct($('[name=chapter]'), {
+        multi: true,
+        data: chapterOptions,
+      });
+
+      const originSelect = CustomSelectAutoComplete.getOrConstruct($('[name=origin]'), {
+        multi: true,
+        data: originOptions,
+      });
+
+      const $allTags = $('[name="tag"]');
+      const allTags = $allTags.val().split(splitReg);
+
+      $('[name=chapter]').val(allTags.filter((v) => v && chapterTagsSet.has(v)).join(','));
+
+      $('[name=origin]').val(allTags.filter((v) => v && originOptions.includes(v)).join(','));
+
+      originSelect.onChange(() => {
+        addOrderTags();
+      });
+
+      select.onChange(() => {
+        selections.length = 0;
+        dirtyCategories.length = 0;
+        $('.widget--category-filter__tag').removeClass('selected');
+        parseCategorySelection();
+        addOrderTags();
+      });
+    });
   }
 
   setInterval(() => {
@@ -312,4 +431,7 @@ export default new NamedPage(['problem_create', 'problem_edit'], (pagename) => {
   $(document).on('click', '[name="additional_file__section__collapse"]', (ev) => handleSection(ev, 'additional_file', 'collapse'));
   $(document).on('click', '[name="tags__section__expand"]', (ev) => handleSection(ev, 'tags', 'expand'));
   $(document).on('click', '[name="tags__section__collapse"]', (ev) => handleSection(ev, 'tags', 'collapse'));
+
+  $(document).on('change', 'div[id^="defined-tag-category-"] select', () => addOrderTags());
+  initSelectOptions();
 });

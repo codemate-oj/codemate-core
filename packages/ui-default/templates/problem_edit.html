@@ -1,5 +1,14 @@
 {% extends "layout/basic.html" %}
 {% block content %}
+
+{% set answerLangOptions = ['无', '图形化', 'Python', 'C++'] %}
+{% set answerTypes = ['无', '单选题', '多选题', '程序分析题', '判断题', '图形化算法题', '图形化剧本题', '图形化创意题', '传统编程题', '交互编程题', '提答编程题', '特殊编程题'] %}
+{% set monthOptions = ['无', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'] %}
+{% set yearOptions = ['无', '2025年', '2024年', '2023年', '2022年', '2021年', '2020年', '2019年', '2018年', '2017年', '2016年'] %}
+{% set paymentOptions = ['无', '免费题', '付费题'] %}
+{% set referTypeOptions = ['无', 'GESP考级', '电子学会考级', '蓝桥杯', 'CSP-J', 'CSP-S', '赛事题库', '进阶题库'] %}
+{% set levelOptions = ['无', '第一轮', '第二轮', '市赛', '省赛', '国赛', 'GESP一级', 'GESP二级', 'GESP三级', 'GESP四级', 'GESP五级', 'GESP六级', 'GESP七级', 'GESP八级', '电子学会1级', '电子学会2级', '电子学会3级', '电子学会4级', '电子学会5级', '电子学会6级', '电子学会7级', '电子学会8级', '电子学会9级', '电子学会10级', '蓝桥杯1级', '蓝桥杯2级', '蓝桥杯3级', '蓝桥杯4级', '蓝桥杯5级', '蓝桥杯6级', '蓝桥杯7级', '蓝桥杯8级', '蓝桥杯9级', '蓝桥杯10级', '蓝桥杯11级', '蓝桥杯12级', '蓝桥杯13级', '蓝桥杯14级', '蓝桥杯15级', '蓝桥杯16级', '蓝桥杯17级', '蓝桥杯18级'] %}
+
 <div class="row">
   <div class="medium-9 columns">
     <div class="section">
@@ -30,6 +39,80 @@
               </label>
             </div>
           </div>
+          <div class="row" id="defined-tag-category-1">
+          {{ form.form_select({
+            row:false,
+            options: answerLangOptions | defaultOptions,
+            columns:2,
+            label:'所属语言',
+            name:'language',
+            value: pdoc['tag'] | default([]) | pickOption(answerLangOptions) | default('无')
+          }) }}
+          {{ form.form_text({
+            row:false,
+            columns:6,
+            label:'知识点',
+            name:'chapter',
+            value: ''
+          }) }}
+          {{ form.form_select({
+            row:false,
+            options: referTypeOptions | defaultOptions,
+            columns:2,
+            label:'所属体系',
+            name:'reference',
+            value: pdoc['tag'] | default([]) | pickOption(referTypeOptions) | default('无')
+          }) }}
+          {{ form.form_select({
+            row:false,
+            options: levelOptions | defaultOptions,
+            columns:2,
+            label:'对应层次',
+            name:'level',
+            value: pdoc['tag'] | default([]) | pickOption(levelOptions) | default('无')
+          }) }}
+          </div>
+          <div class="row"  id="defined-tag-category-2">
+          {{ form.form_select({
+            row:false,
+            options: answerTypes | defaultOptions,
+            columns:2,
+            label:'所属题型',
+            name:'answerType',
+            value: pdoc['tag'] | default([]) | pickOption(answerTypes) | default('无')
+          }) }}
+          {{ form.form_select({
+            row:false,
+            options: yearOptions | defaultOptions,
+            columns:2,
+            label:'年份',
+            name:'year',
+            value: pdoc['tag'] | default([]) | pickOption(yearOptions) | default('无')
+          }) }}
+          {{ form.form_select({
+            row:false,
+            options: monthOptions | defaultOptions,
+            columns:2,
+            label:'月份',
+            name:'month',
+            value: pdoc['tag'] | default([]) | pickOption(monthOptions) | default('无')
+          }) }}
+          {{ form.form_select({
+            row:false,
+            options: paymentOptions | defaultOptions,
+            columns:2,
+            label:'付费属性',
+            name:'payment',
+            value: pdoc['tag'] | default([]) | pickOption(paymentOptions) | default('无')
+          }) }}
+          {{ form.form_text({
+            row:false,
+            columns:4,
+            label:'来源类别',
+            name:'origin',
+            value: ''
+          }) }}
+          </div>
           <div class="row">
           {{ form.form_text({
                row:false,
@@ -41,12 +124,19 @@
              }) }}
           {{ form.form_text({
                row:false,
-               columns:3,
+               columns:1,
                label:'Difficulty',
-               help_text:'From 1-10',
+               help_text:'1-10',
                name:'difficulty',
                value:pdoc['difficulty']
              }) }}
+          {{ form.form_text({
+              row:false,
+              columns:2,
+              label:'题目定价',
+              name:'price',
+              value:pdoc['price']
+            }) }}
           </div>
           {% if handler.user.hasPerm(perm.PERM_REVIEW_PROBLEM) %}
           {{ form.form_checkbox({
