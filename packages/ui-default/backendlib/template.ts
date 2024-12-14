@@ -68,6 +68,8 @@ class Nunjucks extends nunjucks.Environment {
       },
       true,
     );
+    this.addFilter('defaultOptions', (self) => self.map((v) => [v, v]));
+    this.addFilter('pickOption', (self, arr) => self.find((v) => arr.indexOf(v) !== -1));
     this.addFilter('json', (self) => (self ? JSON.stringify(self, replacer) : ''));
     this.addFilter('parseYaml', (self) => yaml.load(self));
     this.addFilter('dumpYaml', (self) => yaml.dump(self));
