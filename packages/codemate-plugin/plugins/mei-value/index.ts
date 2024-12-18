@@ -151,7 +151,13 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
         const alipaySdk = global.Hydro.lib.alipaySdk();
         const feedback = await alipaySdk.queryFeedback(orderId.toString());
         logger.debug('alipay sync feedback', feedback);
-        if (feedback['code'] !== '10000' || feedback['msg'] !== 'Success') {
+        // https://opendocs.alipay.com/mini/05xsky?scene=common&pathHash=354e8be3
+        // 交易状态：WAIT_BUYER_PAY（交易创建，等待买家付款）、TRADE_CLOSED（未付款交易超时关闭，或支付完成后全额退款）、TRADE_SUCCESS（交易支付成功）、TRADE_FINISHED（交易结束，不可退款）
+        if (
+            feedback['code'] !== '10000' ||
+            feedback['msg'] !== 'Success' ||
+            !['TRADE_FINISHED', 'TRADE_SUCCESS'].includes(feedback['trade_status'])
+        ) {
             throw new OrderError('订单尚未完成支付');
         }
         // payment: 'Pending' | 'Alipay' | 'Wechat';
@@ -163,6 +169,8 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
     } else if (paymentType === 'Wechat') {
         const wechatSdk = global.Hydro.lib.wxpaySdk();
         const feedback = await wechatSdk.wxpaySdk.query({ out_trade_no: orderId.toString() });
+        // https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_1_2.shtml
+        // 交易状态，枚举值：SUCCESS：支付成功 REFUND：转入退款 NOTPAY：未支付 CLOSED：已关闭 REVOKED：已撤销（仅付款码支付会返回）USERPAYING：用户支付中（仅付款码支付会返回） PAYERROR：支付失败（仅付款码支付会返回）
         if (feedback['status'] !== 200 || feedback['trade_state'] !== 'SUCCESS') {
             throw new OrderError('订单尚未完成支付');
         }

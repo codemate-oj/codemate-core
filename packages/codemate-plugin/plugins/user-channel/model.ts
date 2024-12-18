@@ -192,6 +192,10 @@ export class ChannelModel {
                         userRole: '$invitedUser.userRole',
                         uname: '$invitedUser.uname',
                         realName: '$invitedUser.realName',
+                        school: '$invitedUser.school',
+                        provinceCity: '$invitedUser.provinceCity',
+                        address: '$invitedUser.address',
+                        schoolGrade: '$invitedUser.schoolGrade',
                     },
                 };
             }

@@ -449,7 +449,11 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             delete this.pdoc.nSubmit;
             delete this.pdoc.difficulty;
             delete this.pdoc.stats;
-        } else if (!problem.canViewBy(this.pdoc, this.user) && this.request.body.operation !== 'check') {
+        } else if (
+            !problem.canViewBy(this.pdoc, this.user) &&
+            this.request.body.operation !== 'check' &&
+            !/\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(this.request.path)
+        ) {
             // 在`postCehck`时不抛出错误
             throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
         }
@@ -626,7 +630,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // 这里先清空前面所有的内容
         this.response.body = { hasPerm };
         const ways = [];
-        if (this.pdoc.assign) {
+        if (this.pdoc.assign && this.pdoc.assign.length) {
             ways.push('group');
             this.response.body.assign = this.pdoc.assign;
         }
@@ -689,7 +693,7 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
         if (!code) {
             const file = this.request.files?.file;
             if (!file || file.size === 0) throw new ValidationError('code');
-            const sizeLimit = config.type === 'submit_answer' ? 128 * 1024 * 1024 : 65535;
+            const sizeLimit = config.type === 'submit_answer' ? 128 * 1024 * 1024 : 640 * 1024;
             if (file.size > sizeLimit) throw new ValidationError('file');
             if (file.size < 65535 && !file.filepath.endsWith('.zip')) {
                 // TODO auto detect & convert encoding
