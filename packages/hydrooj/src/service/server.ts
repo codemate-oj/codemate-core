@@ -649,6 +649,7 @@ ${ctx.response.status} ${endTime - startTime}ms ${ctx.response.length}`);
             /^\/resource\/\w*\/\w*/,
             /^\/mei_value\/notifier\/alipay/,
             /^\/mei_value\/notifier\/wx/,
+            /^\/user-channel\/alias\/\d*/,
             /file/,
         ];
         const allowPerms = [PERM.PERM_EDIT_PROBLEM, PERM.PERM_CREATE_PROBLEM];
