@@ -626,7 +626,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         // 这里先清空前面所有的内容
         this.response.body = { hasPerm };
         const ways = [];
-        if (this.pdoc.assign) {
+        if (this.pdoc.assign && this.pdoc.assign.length) {
             ways.push('group');
             this.response.body.assign = this.pdoc.assign;
         }
