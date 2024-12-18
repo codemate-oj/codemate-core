@@ -449,7 +449,11 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             delete this.pdoc.nSubmit;
             delete this.pdoc.difficulty;
             delete this.pdoc.stats;
-        } else if (!problem.canViewBy(this.pdoc, this.user) && this.request.body.operation !== 'check') {
+        } else if (
+            !problem.canViewBy(this.pdoc, this.user) &&
+            this.request.body.operation !== 'check' &&
+            !/\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(this.request.path)
+        ) {
             // 在`postCehck`时不抛出错误
             throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
         }
