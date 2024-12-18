@@ -156,7 +156,7 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
         if (
             feedback['code'] !== '10000' ||
             feedback['msg'] !== 'Success' ||
-            !['TRADE_FINISHED', 'TRADE_SUCCESS'].includes(feedback['trade_status'])
+            !['TRADE_FINISHED', 'TRADE_SUCCESS'].includes(feedback['tradeStatus'] || feedback['trade_status'])
         ) {
             throw new OrderError('订单尚未完成支付');
         }
@@ -171,7 +171,7 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
         const feedback = await wechatSdk.wxpaySdk.query({ out_trade_no: orderId.toString() });
         // https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_1_2.shtml
         // 交易状态，枚举值：SUCCESS：支付成功 REFUND：转入退款 NOTPAY：未支付 CLOSED：已关闭 REVOKED：已撤销（仅付款码支付会返回）USERPAYING：用户支付中（仅付款码支付会返回） PAYERROR：支付失败（仅付款码支付会返回）
-        if (feedback['status'] !== 200 || feedback['trade_state'] !== 'SUCCESS') {
+        if (feedback['status'] !== 200 || ['SUCCESS'].includes(feedback['tradeState'] || feedback['trade_state'])) {
             throw new OrderError('订单尚未完成支付');
         }
         orderPartial.payment = 'Wechat';
