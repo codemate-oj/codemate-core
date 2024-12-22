@@ -327,7 +327,14 @@ export class UserHomeworkModel {
                 },
             });
 
+            // basic index domainId,docType,docId,uid
             const $and = [
+                {
+                    $eq: ['$domainId', domainId],
+                },
+                {
+                    $eq: ['$docType', DocumentModel.TYPE_CONTEST],
+                },
                 {
                     $eq: ['$docId', '$$curHomeworkId'],
                 },
