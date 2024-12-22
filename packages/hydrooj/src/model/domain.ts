@@ -55,6 +55,7 @@ class DomainModel {
             bulletin,
             roles: {},
             avatar: '',
+            problem_tags: '',
         };
         await bus.parallel('domain/create', ddoc);
         await coll.insertOne(ddoc);
