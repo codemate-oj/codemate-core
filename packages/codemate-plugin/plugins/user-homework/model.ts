@@ -612,12 +612,31 @@ export class UserHomeworkModel {
                         title: '$assignProblem.title',
                         tag: '$assignProblem.tag',
                         difficulty: '$assignProblem.difficulty',
+                        pids: '$pids',
                     },
                 };
             }
             stages.push({
                 $group,
             });
+
+            // 分组后的 pid 是随机无序的，将其恢复成作业中 pids 一致的顺序
+            if ($group._id['pid']) {
+                stages.push({
+                    $addFields: {
+                        sortIndex: { $indexOfArray: ['$problem.pids', '$_id.pid'] },
+                    },
+                });
+                stages.push({
+                    $sort: { sortIndex: 1, 'problem.pid': 1 },
+                });
+                stages.push({
+                    $project: {
+                        sortIndex: 0,
+                        'problem.pids': 0,
+                    },
+                });
+            }
         }
 
         for (const s of this.getPageStages(filters)) {
