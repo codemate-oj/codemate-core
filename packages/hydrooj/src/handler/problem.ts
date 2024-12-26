@@ -1071,19 +1071,21 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     }
 
     @param('content', Types.Content)
-    async postSubmit(domainId: string, content: string) {
+    @param('price', Types.UnsignedInt, true)
+    async postSubmit(domainId: string, content: string, price: number = 0) {
         this.checkPerm(PERM.PERM_CREATE_PROBLEM_SOLUTION);
-        const psid = await solution.add(domainId, this.pdoc.docId, this.user._id, content);
+        const psid = await solution.add(domainId, this.pdoc.docId, this.user._id, content, price);
         this.back({ psid });
     }
 
     @param('content', Types.Content)
     @param('psid', Types.ObjectId)
-    async postEditSolution(domainId: string, content: string, psid: ObjectId) {
+    @param('price', Types.UnsignedInt, true)
+    async postEditSolution(domainId: string, content: string, psid: ObjectId, price: number = 0) {
         let psdoc = await solution.get(domainId, psid);
         if (!this.user.own(psdoc)) this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION);
         else this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_SELF);
-        psdoc = await solution.edit(domainId, psdoc.docId, content);
+        psdoc = await solution.edit(domainId, psdoc.docId, content, price);
         this.back({ psdoc });
     }
 

@@ -12,6 +12,7 @@
   comment_edit_self_perm,
   comment_delete_perm,
   comment_delete_self_perm,
+  set_price_op,
   reply_post_perm,
   reply_edit_perm,
   reply_edit_self_perm,
@@ -48,6 +49,11 @@
         <form method="post" class="dczcomments__box" name="dczcomments__box__form" data-hotkey="ctrl+enter:submit,esc:vjCommentBoxCancel">
           <div>
             <textarea name="content" class="textbox" data-markdown required></textarea>
+            <div>
+              {% if set_price_op == 'input' %}
+                <input name="price" value="{{ price }}" placeholder="题解价格" class="textbox" style="width: 200px; min-height: unset;">
+              {% endif %}
+            </div>
           </div>
           <div>
             <input type="submit" class="rounded primary button dczcomments__box__submit" value="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-reply="{{ _(reply_post_text) }} (Ctrl+Enter)" data-value-comment="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-comment-update="{{ _(comment_edit_text) }} (Ctrl+Enter)" data-value-reply-update="{{ _(reply_edit_text) }} (Ctrl+Enter)">
@@ -102,6 +108,9 @@
           {{ user.render_inline(udoc) }} @ {{ datetimeSpan(doc._id)|safe }}
         </div>
         <div class="dczcomments__operations nojs--hide">
+        {% if doc.price > 0 %}
+        <span class="badge--lv8 user-profile-badge" data-tooltip="魅值 {{ doc.price }}" data-price="{{ doc.price }}">付费题解</span>
+        {% endif %}
         <a href="javascript:;" data-tooltip="{{ _('Copy Link') }}" data-copylink="{{ url('problem_solution_detail', pid=pdoc.pid|default(pdoc.docId), sid=doc._id) }}">
           <span class="icon icon-link"></span>
         </a>
