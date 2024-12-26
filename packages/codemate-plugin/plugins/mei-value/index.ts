@@ -22,7 +22,7 @@ declare module 'hydrooj' {
     }
 }
 
-const MEI_VALUE_RATIO = 100; // 10 meiValue = 1 RMB
+const MEI_VALUE_RATIO = 1; // 1 meiValue = 1 RMB
 
 interface MeiValueOperation {
     action: 'chargeOrder' | 'chargeSuccess' | 'consume' | 'transfer';
