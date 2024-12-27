@@ -165,10 +165,12 @@ export const Types: Types = {
     NumericArray: [
         (v) => {
             if (v instanceof Array) return v.map(Number);
+            if (typeof v === 'object') return Object.values(v).map(Number);
             return v.split(',').map(Number);
         },
         (v) => {
             if (v instanceof Array) return v.map(Number).every(Number.isSafeInteger);
+            if (typeof v === 'object') return Object.values(v).map(Number).every(Number.isSafeInteger);
             return v.toString().split(',').map(Number).every(Number.isSafeInteger);
         },
     ],
