@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import { plist } from 'codemate-plugin/api';
+import { meiValue, plist } from 'codemate-plugin/api';
 import { readFile, statSync } from 'fs-extra';
 import { escapeRegExp, flattenDeep, intersection, pick, uniqBy } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
@@ -1058,6 +1058,23 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
         }
         const udict = await user.getList(domainId, uids);
         const pssdict = await solution.getListStatus(domainId, docids, this.user._id);
+        await Promise.all(
+            psdocs.map(async (s) => {
+                const hasVideo = s.content.match(/@\[video\]\((\/[^\\)]+)\)/);
+                const type = `名师${hasVideo ? '视频' : '文字'}题解`;
+                if (s.price) {
+                    if (
+                        !(
+                            this.user.own(s) ||
+                            this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION) ||
+                            (await meiValue.PaymentOrderModel.countValidOrder(domainId, this.user._id, type, s.docId))
+                        )
+                    ) {
+                        s.content = type;
+                    }
+                }
+            }),
+        );
         this.response.body = {
             psdocs,
             page,

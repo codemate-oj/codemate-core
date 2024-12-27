@@ -738,12 +738,32 @@ export interface ContestBalloonDoc {
     sentAt?: Date;
 }
 
+export interface PaymentOrderDoc {
+    _id: ObjectId;
+    domainId: string;
+    title: string; // subject
+    content: string; // description
+    owner: number;
+
+    // 下单相关
+    totalRMBAmount: number;
+    totalMeiValue: number;
+    orderAt: Date;
+
+    // 支付相关
+    payment: 'Pending' | 'Alipay' | 'Wechat' | 'MeiValue';
+    isPaied: Boolean;
+    payAt?: Date;
+    paymentInfo?: any;
+}
+
 declare module './service/db' {
     interface Collections {
         blacklist: BlacklistDoc;
         domain: DomainDoc;
         'domain.user': any;
         record: RecordDoc;
+        order: PaymentOrderDoc;
         document: any;
         'document.status': StatusDocBase &
             {

@@ -5,6 +5,7 @@ import {
     ObjectId,
     OplogModel,
     param,
+    type PaymentOrderDoc,
     PRIV,
     query,
     SettingModel,
@@ -16,7 +17,7 @@ import {
 } from 'hydrooj';
 import { coll as oplogColl } from 'hydrooj/src/model/oplog';
 import { AlipayCodemateSdk, ConsumeMeiValueResult, logger, OrderError, OrderNotFoundError, WxpayCodemateSdk } from './lib';
-import { MEI_VALUE_RATIO, PaymentOrderDoc, PaymentOrderModel } from './model';
+import { MEI_VALUE_RATIO, PaymentOrderModel } from './model';
 
 declare module 'hydrooj' {
     interface Udoc {
@@ -214,7 +215,6 @@ class MeiValueConsumeHandler extends Handler {
         if (['名师文字题解', '名师视频题解'].includes(type)) {
             const solution = await SolutionModel.get(domainId, id);
             const price = solution.price || 0;
-            this.response.body = solution;
             if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
                 throw new OrderError('已购买，请勿重复操作');
             }
@@ -224,6 +224,11 @@ class MeiValueConsumeHandler extends Handler {
                 validUntil: new Date(new Date().getTime() + 30 * 24 * 3600 * 1000),
             });
             await checkAndRefreshCharge(domainId, orderId, 'MeiValue', this);
+            this.response.body = {
+                data: {
+                    solution,
+                },
+            };
         } else {
             this.response.body = {
                 data: {

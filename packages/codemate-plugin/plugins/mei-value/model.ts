@@ -1,35 +1,14 @@
-import { type Collections, db, ObjectId } from 'hydrooj';
+import { db, ObjectId, PaymentOrderDoc } from 'hydrooj';
 
 export const MEI_VALUE_RATIO = 1; // 1 meiValue = 1 RMB
-export interface PaymentOrderDoc {
-    _id: ObjectId;
-    domainId: string;
-    title: string; // subject
-    content: string; // description
-    owner: number;
-
-    // 下单相关
-    totalRMBAmount: number;
-    totalMeiValue: number;
-    orderAt: Date;
-
-    // 支付相关
-    payment: 'Pending' | 'Alipay' | 'Wechat' | 'MeiValue';
-    isPaied: Boolean;
-    payAt?: Date;
-    paymentInfo?: any;
-}
 
 declare module 'hydrooj' {
-    interface Collections {
-        order: PaymentOrderDoc;
-    }
     interface Model {
         order: PaymentOrderModel;
     }
 }
 
-export const collOrder = db.collection('order' as keyof Collections);
+export const collOrder = db.collection('order');
 
 export class PaymentOrderModel {
     static async add(domainId: string, userOwner: number, subject: string, description: string, totalRMBAmount: number, totalMeiValue: number) {
