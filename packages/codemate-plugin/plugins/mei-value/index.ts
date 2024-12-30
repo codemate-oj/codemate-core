@@ -217,6 +217,8 @@ class MeiValueConsumeHandler extends Handler {
             const price = solution.price || 0;
             if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
                 throw new OrderError('已购买，请勿重复操作');
+            } else if (price < 0) {
+                throw new OrderError('该订单价格异常');
             }
             const orderId = await PaymentOrderModel.addMeiValueOp(domainId, this.user._id, `购买${type}`, `魅值消耗： ${price}`, -price, {
                 type,
@@ -226,12 +228,15 @@ class MeiValueConsumeHandler extends Handler {
             await checkAndRefreshCharge(domainId, orderId, 'MeiValue', this);
             this.response.body = {
                 data: {
-                    solution,
+                    success: true,
+                    message: '购买成功',
+                    data: await PaymentOrderModel.get(domainId, orderId),
                 },
             };
         } else {
             this.response.body = {
                 data: {
+                    success: false,
                     message: '未上线此增值服务',
                 },
             };
