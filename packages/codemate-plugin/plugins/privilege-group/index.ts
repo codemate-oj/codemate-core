@@ -1,3 +1,4 @@
+import { pick } from 'lodash';
 import { Context, ForbiddenError, Handler, ObjectID, OplogModel, param, PERM, PRIV, TokenModel, Types } from 'hydrooj';
 import {
     ActivationCodeExpiredError,
@@ -58,6 +59,7 @@ export class GroupOperationHandler extends Handler {
             GroupModel.coll.updateOne({ _id: group._id }, { $addToSet: { uids: uid } }),
             TokenModel.updateActCode(code, { remaining: token.remaining - 1 }),
         ]);
+        await app.parallel('user/delcache', JSON.stringify(pick(this.user, ['_id', 'uanme', 'email'])));
 
         logger.info(`User ${uid} activate group ${group.name} successfully with code ${code}`);
         await OplogModel.log(this, 'group.activate', { code, group: group.name });
