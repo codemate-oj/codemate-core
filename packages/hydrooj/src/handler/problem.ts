@@ -633,6 +633,8 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         if (this.pdoc.assign && this.pdoc.assign.length) {
             ways.push('group');
             this.response.body.assign = this.pdoc.assign;
+        } else if (this.pdoc?.price > 0) {
+            ways.push('point');
         }
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;
@@ -806,6 +808,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('tag', Types.Content, true, null, parseCategory)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('approved', Types.Boolean)
+    @post('price', Types.Float, (i) => +i >= 0, true)
     async post(
         domainId: string,
         pid: string | number,
@@ -816,6 +819,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
         tag: string[] = [],
         difficulty = 0,
         approved?: boolean,
+        price = 0,
     ) {
         if (typeof newPid !== 'string') newPid = `P${newPid}`;
         if (newPid !== this.pdoc.pid && (await problem.get(domainId, newPid))) throw new ProblemAlreadyExistError(pid);
@@ -832,6 +836,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
             difficulty,
             html: false,
             approved,
+            price,
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
@@ -1199,10 +1204,20 @@ export class ProblemCreateHandler extends Handler {
     @post('hidden', Types.Boolean)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('tag', Types.Content, true, null, parseCategory)
-    async post(domainId: string, title: string, content: string, pid: string | number = '', hidden = false, difficulty = 0, tag: string[] = []) {
+    @post('price', Types.Float, (i) => +i >= 0, true)
+    async post(
+        domainId: string,
+        title: string,
+        content: string,
+        pid: string | number = '',
+        hidden = false,
+        difficulty = 0,
+        tag: string[] = [],
+        price = 0,
+    ) {
         if (typeof pid !== 'string') pid = `P${pid}`;
         if (pid && (await problem.get(domainId, pid))) throw new ProblemAlreadyExistError(pid);
-        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty });
+        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty, price });
         const files = new Set(Array.from(content.matchAll(/file:\/\/([a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)/g)).map((i) => i[1]));
         const tasks = [];
         for (const file of files) {

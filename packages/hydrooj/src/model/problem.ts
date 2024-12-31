@@ -154,7 +154,7 @@ export class ProblemModel {
         content: string,
         owner: number,
         tag: string[] = [],
-        meta: { difficulty?: number; hidden?: boolean } = {},
+        meta: { difficulty?: number; hidden?: boolean; price?: number } = {},
     ) {
         // extract brief here can be a good choice...
         const [doc] = await ProblemModel.getMulti(domainId, {}).sort({ docId: -1 }).limit(1).project({ docId: 1 }).toArray();
