@@ -59,7 +59,7 @@ export class GroupOperationHandler extends Handler {
             GroupModel.coll.updateOne({ _id: group._id }, { $addToSet: { uids: uid } }),
             TokenModel.updateActCode(code, { remaining: token.remaining - 1 }),
         ]);
-        await app.parallel('user/delcache', JSON.stringify(pick(this.user, ['_id', 'uanme', 'email'])));
+        await app.parallel('user/delcache', JSON.stringify(pick(this.user, ['uname', 'mail', '_id'])));
 
         logger.info(`User ${uid} activate group ${group.name} successfully with code ${code}`);
         await OplogModel.log(this, 'group.activate', { code, group: group.name });
