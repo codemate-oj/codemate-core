@@ -75,7 +75,16 @@ export class ProblemModel {
         'reference',
     ];
 
-    static PROJECTION_PUBLIC: Field[] = [...ProblemModel.PROJECTION_LIST, 'content', 'html', 'data', 'config', 'additional_file', 'reference'];
+    static PROJECTION_PUBLIC: Field[] = [
+        ...ProblemModel.PROJECTION_LIST,
+        'content',
+        'html',
+        'data',
+        'config',
+        'additional_file',
+        'reference',
+        'price',
+    ];
 
     static default = {
         _id: new ObjectId(),

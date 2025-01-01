@@ -635,6 +635,8 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
             this.response.body.assign = this.pdoc.assign;
         } else if (this.pdoc?.price > 0) {
             ways.push('point');
+            this.response.body.price = this.pdoc.price;
+            this.response.body._id = this.pdoc._id;
         }
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;

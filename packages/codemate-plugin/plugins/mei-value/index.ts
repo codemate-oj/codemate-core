@@ -1,5 +1,6 @@
 import {
     Context,
+    DocumentModel,
     ForbiddenError,
     Handler,
     ObjectId,
@@ -218,6 +219,27 @@ class MeiValueConsumeHandler extends Handler {
             if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
                 throw new OrderError('已购买，请勿重复操作');
             } else if (price < 0) {
+                throw new OrderError('该订单价格异常');
+            }
+            const orderId = await PaymentOrderModel.addMeiValueOp(domainId, this.user._id, `购买${type}`, `魅值消耗： ${price}`, -price, {
+                type,
+                id,
+                validUntil: new Date(new Date().getTime() + 30 * 24 * 3600 * 1000),
+            });
+            await checkAndRefreshCharge(domainId, orderId, 'MeiValue', this);
+            this.response.body = {
+                data: {
+                    success: true,
+                    message: '购买成功',
+                    data: await PaymentOrderModel.get(domainId, orderId),
+                },
+            };
+        } else if (['名师原创题目'].includes(type)) {
+            const problem = await DocumentModel.coll.findOne({ _id: id });
+            const price = problem?.price || 0;
+            if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
+                throw new OrderError('已购买，请勿重复操作');
+            } else if (price <= 0) {
                 throw new OrderError('该订单价格异常');
             }
             const orderId = await PaymentOrderModel.addMeiValueOp(domainId, this.user._id, `购买${type}`, `魅值消耗： ${price}`, -price, {
