@@ -51,6 +51,11 @@ function onClickDummyBox(ev) {
   const opt = {
     form: JSON.parse($evTarget.attr('data-form')),
     mode: 'comment',
+    onGet: () => {
+      return {
+        price: $mediaBody.find('[name="price"]').eq(-1).val(),
+      };
+    },
     onCancel: () => {
       $mediaBody.removeClass('is-editing');
     },
@@ -120,6 +125,11 @@ async function onCommentClickEdit(mode, ev) {
     initialText: raw,
     form: JSON.parse($evTarget.attr('data-form')),
     mode,
+    onGet: () => {
+      return {
+        price: $mediaBody.find('[name="price"]').eq(-1).val(),
+      };
+    },
     onCancel: () => {
       $mediaBody.removeClass('is-editing');
     },
@@ -128,6 +138,7 @@ async function onCommentClickEdit(mode, ev) {
   $mediaBody.addClass('is-editing');
 
   CommentBox.getOrConstruct($evTarget, opt).appendTo($mediaBody.find('.commentbox-edit-target').eq(0)).focus();
+  $mediaBody.find('[name="price"]').val(`${$mediaBody.find('[data-price]').data('price') || ''}`);
 }
 
 function onCommentClickEditComment(ev) {

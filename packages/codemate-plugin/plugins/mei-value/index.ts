@@ -1,12 +1,16 @@
 import {
     Context,
+    DocumentModel,
     ForbiddenError,
     Handler,
     ObjectId,
     OplogModel,
     param,
+    type PaymentOrderDoc,
+    PRIV,
     query,
     SettingModel,
+    SolutionModel,
     SystemModel,
     Types,
     UserModel,
@@ -14,15 +18,13 @@ import {
 } from 'hydrooj';
 import { coll as oplogColl } from 'hydrooj/src/model/oplog';
 import { AlipayCodemateSdk, ConsumeMeiValueResult, logger, OrderError, OrderNotFoundError, WxpayCodemateSdk } from './lib';
-import { collOrder, PaymentOrderDoc, PaymentOrderModel } from './model';
+import { MEI_VALUE_RATIO, PaymentOrderModel } from './model';
 
 declare module 'hydrooj' {
     interface Udoc {
         meiValue?: number;
     }
 }
-
-const MEI_VALUE_RATIO = 100; // 10 meiValue = 1 RMB
 
 interface MeiValueOperation {
     action: 'chargeOrder' | 'chargeSuccess' | 'consume' | 'transfer';
@@ -133,7 +135,7 @@ class MeiValueOrderHandler extends Handler {
     }
 }
 
-async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymentType: 'Alipay' | 'Wechat', _this: any) {
+async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymentType: 'Alipay' | 'Wechat' | 'MeiValue', _this: any) {
     // validate payment
     const order = await PaymentOrderModel.get(domainId, orderId);
     if (order === null) {
@@ -177,6 +179,13 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
         orderPartial.payment = 'Wechat';
         orderPartial.paymentInfo = feedback;
         logger.debug('wechatpay feedback', feedback);
+    } else if (paymentType === 'MeiValue') {
+        const udoc = await UserModel.getById(domainId, userId);
+        if (!udoc) throw new UserNotFoundError(userId);
+        if (order.totalMeiValue < 0 && (udoc._udoc.meiValue ?? 0) < -order.totalMeiValue) {
+            throw new OrderError('魅值不足');
+        }
+        orderPartial.payment = 'MeiValue';
     } else {
         throw new OrderError('错误的支付类型');
     }
@@ -197,6 +206,64 @@ async function checkAndRefreshCharge(domainId: string, orderId: ObjectId, paymen
         comment: `支付方式: ${paymentType}`,
     });
     await PaymentOrderModel.set(domainId, orderId, orderPartial);
+}
+
+class MeiValueConsumeHandler extends Handler {
+    @param('id', Types.ObjectId)
+    @param('type', Types.Range(['名师原创题目', '名师文字题解', '名师视频题解', '名师知识点视频题解', '专家视频评卷']))
+    async post(domainId: string, id: ObjectId, type: string) {
+        // 名师原创题目 名师文字题解 名师视频题解 名师知识点视频题解 专家视频评卷
+        if (['名师文字题解', '名师视频题解'].includes(type)) {
+            const solution = await SolutionModel.get(domainId, id);
+            const price = solution.price || 0;
+            if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
+                throw new OrderError('已购买，请勿重复操作');
+            } else if (price < 0) {
+                throw new OrderError('该订单价格异常');
+            }
+            const orderId = await PaymentOrderModel.addMeiValueOp(domainId, this.user._id, `购买${type}`, `魅值消耗： ${price}`, -price, {
+                type,
+                id,
+                validUntil: new Date(new Date().getTime() + 30 * 24 * 3600 * 1000),
+            });
+            await checkAndRefreshCharge(domainId, orderId, 'MeiValue', this);
+            this.response.body = {
+                data: {
+                    success: true,
+                    message: '购买成功',
+                    data: await PaymentOrderModel.get(domainId, orderId),
+                },
+            };
+        } else if (['名师原创题目'].includes(type)) {
+            const problem = await DocumentModel.coll.findOne({ _id: id });
+            const price = problem?.price || 0;
+            if (await PaymentOrderModel.countValidOrder(domainId, this.user._id, type, id)) {
+                throw new OrderError('已购买，请勿重复操作');
+            } else if (price <= 0) {
+                throw new OrderError('该订单价格异常');
+            }
+            const orderId = await PaymentOrderModel.addMeiValueOp(domainId, this.user._id, `购买${type}`, `魅值消耗： ${price}`, -price, {
+                type,
+                id,
+                validUntil: new Date(new Date().getTime() + 30 * 24 * 3600 * 1000),
+            });
+            await checkAndRefreshCharge(domainId, orderId, 'MeiValue', this);
+            this.response.body = {
+                data: {
+                    success: true,
+                    message: '购买成功',
+                    data: await PaymentOrderModel.get(domainId, orderId),
+                },
+            };
+        } else {
+            this.response.body = {
+                data: {
+                    success: false,
+                    message: '未上线此增值服务',
+                },
+            };
+        }
+    }
 }
 
 class MeiValuePayHandler extends Handler {
@@ -282,6 +349,7 @@ class MeiValueNotifierWxpayHandler extends Handler {
 
 export async function apply(ctx: Context) {
     ctx.Route('mei_value', '/mei_value', MeiValueHandler);
+    ctx.Route('mei_value_consume', '/mei_value/consume', MeiValueConsumeHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('mei_value_operations', '/mei_value/operations', MeiValueOperationHandler);
     ctx.Route('mei_value_order', '/mei_value/order', MeiValueOrderHandler);
     ctx.Route('mei_value_pay', '/mei_value/pay', MeiValuePayHandler);

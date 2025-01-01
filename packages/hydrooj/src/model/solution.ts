@@ -4,8 +4,12 @@ import * as bus from '../service/bus';
 import * as document from './document';
 
 class SolutionModel {
-    static add(domainId: string, pid: number, owner: number, content: string) {
-        return document.add(domainId, content, owner, document.TYPE_PROBLEM_SOLUTION, null, document.TYPE_PROBLEM, pid, { reply: [], vote: 0 });
+    static add(domainId: string, pid: number, owner: number, content: string, price: number = 0) {
+        return document.add(domainId, content, owner, document.TYPE_PROBLEM_SOLUTION, null, document.TYPE_PROBLEM, pid, {
+            reply: [],
+            vote: 0,
+            price,
+        });
     }
 
     static async get(domainId: string, psid: ObjectId) {
@@ -23,8 +27,8 @@ class SolutionModel {
             .toArray();
     }
 
-    static edit(domainId: string, psid: ObjectId, content: string) {
-        return document.set(domainId, document.TYPE_PROBLEM_SOLUTION, psid, { content });
+    static edit(domainId: string, psid: ObjectId, content: string, price: number = 0) {
+        return document.set(domainId, document.TYPE_PROBLEM_SOLUTION, psid, { content, price });
     }
 
     static async del(domainId: string, psid: ObjectId) {

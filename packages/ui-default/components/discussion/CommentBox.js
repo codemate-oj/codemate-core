@@ -44,6 +44,7 @@ export default class CommentBox extends DOMAttachedObject {
       mode: null,
       form: null,
       onCancel: () => null,
+      onGet: () => ({}),
       ...options,
     };
     if (this.options.initialText) this.setText(this.options.initialText);
@@ -87,6 +88,7 @@ export default class CommentBox extends DOMAttachedObject {
   async onSubmit() {
     try {
       await request.post('', {
+        ...this.options.onGet(),
         ...this.options.form,
         content: this.getText(),
       });

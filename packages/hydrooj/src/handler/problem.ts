@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import { plist } from 'codemate-plugin/api';
+import { meiValue, plist } from 'codemate-plugin/api';
 import { readFile, statSync } from 'fs-extra';
 import { escapeRegExp, flattenDeep, intersection, pick, uniqBy } from 'lodash';
 import { Filter, ObjectId } from 'mongodb';
@@ -633,6 +633,10 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         if (this.pdoc.assign && this.pdoc.assign.length) {
             ways.push('group');
             this.response.body.assign = this.pdoc.assign;
+        } else if (this.pdoc?.price > 0) {
+            ways.push('point');
+            this.response.body.price = this.pdoc.price;
+            this.response.body._id = this.pdoc._id;
         }
         // 如果没有权限则提供激活途径
         if (!hasPerm) this.response.body.activation = ways;
@@ -806,6 +810,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('tag', Types.Content, true, null, parseCategory)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('approved', Types.Boolean)
+    @post('price', Types.Float, (i) => +i >= 0, true)
     async post(
         domainId: string,
         pid: string | number,
@@ -816,6 +821,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
         tag: string[] = [],
         difficulty = 0,
         approved?: boolean,
+        price = 0,
     ) {
         if (typeof newPid !== 'string') newPid = `P${newPid}`;
         if (newPid !== this.pdoc.pid && (await problem.get(domainId, newPid))) throw new ProblemAlreadyExistError(pid);
@@ -832,6 +838,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
             difficulty,
             html: false,
             approved,
+            price,
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
@@ -1058,6 +1065,23 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
         }
         const udict = await user.getList(domainId, uids);
         const pssdict = await solution.getListStatus(domainId, docids, this.user._id);
+        await Promise.all(
+            psdocs.map(async (s) => {
+                const hasVideo = s.content.match(/@\[video\]\((\/[^\\)]+)\)/);
+                const type = `名师${hasVideo ? '视频' : '文字'}题解`;
+                if (s.price) {
+                    if (
+                        !(
+                            this.user.own(s) ||
+                            this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION) ||
+                            (await meiValue.PaymentOrderModel.countValidOrder(domainId, this.user._id, type, s.docId))
+                        )
+                    ) {
+                        s.content = type;
+                    }
+                }
+            }),
+        );
         this.response.body = {
             psdocs,
             page,
@@ -1071,19 +1095,21 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     }
 
     @param('content', Types.Content)
-    async postSubmit(domainId: string, content: string) {
+    @param('price', Types.UnsignedInt, true)
+    async postSubmit(domainId: string, content: string, price: number = 0) {
         this.checkPerm(PERM.PERM_CREATE_PROBLEM_SOLUTION);
-        const psid = await solution.add(domainId, this.pdoc.docId, this.user._id, content);
+        const psid = await solution.add(domainId, this.pdoc.docId, this.user._id, content, price);
         this.back({ psid });
     }
 
     @param('content', Types.Content)
     @param('psid', Types.ObjectId)
-    async postEditSolution(domainId: string, content: string, psid: ObjectId) {
+    @param('price', Types.UnsignedInt, true)
+    async postEditSolution(domainId: string, content: string, psid: ObjectId, price: number = 0) {
         let psdoc = await solution.get(domainId, psid);
         if (!this.user.own(psdoc)) this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION);
         else this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_SELF);
-        psdoc = await solution.edit(domainId, psdoc.docId, content);
+        psdoc = await solution.edit(domainId, psdoc.docId, content, price);
         this.back({ psdoc });
     }
 
@@ -1180,10 +1206,20 @@ export class ProblemCreateHandler extends Handler {
     @post('hidden', Types.Boolean)
     @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
     @post('tag', Types.Content, true, null, parseCategory)
-    async post(domainId: string, title: string, content: string, pid: string | number = '', hidden = false, difficulty = 0, tag: string[] = []) {
+    @post('price', Types.Float, (i) => +i >= 0, true)
+    async post(
+        domainId: string,
+        title: string,
+        content: string,
+        pid: string | number = '',
+        hidden = false,
+        difficulty = 0,
+        tag: string[] = [],
+        price = 0,
+    ) {
         if (typeof pid !== 'string') pid = `P${pid}`;
         if (pid && (await problem.get(domainId, pid))) throw new ProblemAlreadyExistError(pid);
-        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty });
+        const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty, price });
         const files = new Set(Array.from(content.matchAll(/file:\/\/([a-zA-Z0-9_-]+\.[a-zA-Z0-9]+)/g)).map((i) => i[1]));
         const tasks = [];
         for (const file of files) {
