@@ -106,9 +106,19 @@ export class GroupCodeExportHandler extends Handler {
         this.checkPerm(PERM.PERM_EDIT_DOMAIN);
     }
 
-    async get() {
-        const gdocs = await GroupModel.list(this.domain._id);
-        const codes = gdocs.map((i) => i.activation).flat();
+    @param('names', Types.CommaSeperatedArray, true)
+    async get(domainId: string, names: string[] = []) {
+        const filter = {
+            domainId,
+            name: {
+                $in: names,
+            },
+        };
+        if (!(names && names.length)) {
+            delete filter.name;
+        }
+        const gdocs = await GroupModel.coll.find(filter).toArray();
+        const codes = gdocs.map((i) => i.activation || []).flat();
         const tdict = await TokenModel.getMulti(TokenModel.TYPE_ACTIVATION, { _id: { $in: codes } }).toArray();
         this.response.body = { groups: gdocs, tokens: tdict };
     }

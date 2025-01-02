@@ -212,7 +212,10 @@ const page = new NamedPage('domain_group', () => {
   }
 
   async function handleClickExportCode() {
-    const { groups, tokens, error } = await request.get('/domain/group/code');
+    const selectedGroups = ensureAndGetSelectedGroups();
+    const { groups, tokens, error } = await request.get('/domain/group/code', {
+      names: (selectedGroups || []).join(','),
+    });
     if (!groups || !tokens) {
       Notification.error(error?.message || '获取激活码信息失败，请稍后重试');
       return;
@@ -220,7 +223,7 @@ const page = new NamedPage('domain_group', () => {
     const data = groups
       .map(
         (group) =>
-          group.activation.map((code) => ({
+          group.activation?.map((code) => ({
             code,
             group: group.name,
           })) || [],
