@@ -1,4 +1,5 @@
-import { db, GDoc, ObjectId } from 'hydrooj';
+import { pick, xor } from 'lodash';
+import { db, GDoc, ObjectId, UserModel } from 'hydrooj';
 import { GroupNotFoundError } from './lib';
 
 export const collGroup = db.collection('user.group');
@@ -49,8 +50,19 @@ export class GroupModel {
         if (!gdoc) throw new GroupNotFoundError(name);
         await Promise.all((gdoc.children || []).map((child) => this.coll.updateOne({ _id: child }, { $unset: { parent: 1 } })));
         if (gdoc.parent) await this.coll.updateOne({ _id: gdoc.parent }, { $pull: { children: gdoc._id } });
-        await app.parallel('user/delcache', domainId);
+        await this.clearCacheUsers(gdoc.uids);
         return await this.coll.deleteOne({ domainId, name });
+    }
+
+    static async clearCacheUsers(uids: number[]) {
+        const users = await UserModel.coll
+            .find({
+                _id: {
+                    $in: uids,
+                },
+            })
+            .toArray();
+        return await Promise.allSettled(users.map((u) => app.parallel('user/delcache', JSON.stringify(pick(u, ['uname', 'mail', '_id'])))));
     }
 
     /**
@@ -114,6 +126,7 @@ export class GroupModel {
      */
     static async insertOrUpdate(domainId: string, name: string, uids: number[], parent?: ObjectId): ReturnType<(typeof collGroup)['updateOne']> {
         const gdoc = await this.coll.findOne({ domainId, name });
+        await this.clearCacheUsers(xor(uids || [], gdoc?.uids || []));
         if (!gdoc) {
             await this.add(domainId, name, parent);
             return await this.insertOrUpdate(domainId, name, uids, parent);
