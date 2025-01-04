@@ -12,3 +12,18 @@
     color: #FFF
     background: lighten(saturate($primary-color, 70%), 30%)
     border-top: 2px solid $primary-color
+  
+  @media only screen and (min-width: 1400px) {
+    .main>.row {
+      max-width: 1400px
+    }
+  }
+
+  @media only screen and (min-width: 1900px) {
+    .main>.row {
+      max-width: 1800px
+    }
+    .main .col--p {
+      width: 100px
+    }
+  }
