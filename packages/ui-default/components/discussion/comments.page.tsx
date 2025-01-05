@@ -1,12 +1,55 @@
 import 'jquery.easing';
 
 import $ from 'jquery';
+import { groupBy } from 'lodash';
 import { ConfirmDialog } from 'vj/components/dialog';
 import CommentBox from 'vj/components/discussion/CommentBox';
 import { AutoloadPage } from 'vj/misc/Page';
 import { delay, i18n, request, slideDown, slideUp, tpl } from 'vj/utils';
 
 const $replyTemplate = $('.commentbox-container').eq(0).clone();
+let priceGroup = {};
+
+function setForLabel($obj) {
+  $obj.find('[for-next-label]').each((i, v) => {
+    const time = new Date().getTime();
+    const $input = $(v);
+    const $label = $input.next();
+    const id = $input.attr('id') || `forlabel-${time}-${i}`;
+    $input.attr('id', id);
+    $label.attr('for', id);
+  });
+}
+
+function getPriceForm($obj) {
+  return {
+    price: $obj.find('[name="price"]').eq(-1).val(),
+    isPaid: !!$obj.find('[name="isPaid"]:checked').eq(-1).length,
+    hasVideo: +$obj.find('[name="hasVideo"]:checked').eq(-1).val(),
+  };
+}
+
+function setPrice($obj) {
+  const form = getPriceForm($obj);
+  const priceTags = $('#raw-price-tags')[0].innerText.split(',');
+  let price = 0;
+  if (form.isPaid) {
+    if (form.hasVideo) {
+      priceTags.push(form.hasVideo ? '名师视频题解' : '名师文字题解');
+    }
+    price = Object.keys(priceGroup).reduce((total, cur) => total * (priceGroup[cur].find((v) => priceTags.includes(v.value))?.ratio || 1), 1);
+  }
+  price /= 10;
+  $obj
+    .find('[name="price"]')
+    .eq(-1)
+    .val(`${price || ''}`);
+}
+
+function onPaidOp($obj) {
+  $obj.on('change', '[name="isPaid"]', () => setPrice($obj));
+  $obj.on('change', '[name="hasVideo"]', () => setPrice($obj));
+}
 
 function createReplyContainer($parent) {
   const $container = $replyTemplate.clone().hide().prependTo($parent.find('.commentbox-reply-target').eq(0)).trigger('vjContentNew');
@@ -51,11 +94,7 @@ function onClickDummyBox(ev) {
   const opt = {
     form: JSON.parse($evTarget.attr('data-form')),
     mode: 'comment',
-    onGet: () => {
-      return {
-        price: $mediaBody.find('[name="price"]').eq(-1).val(),
-      };
-    },
+    onGet: () => getPriceForm($mediaBody),
     onCancel: () => {
       $mediaBody.removeClass('is-editing');
     },
@@ -64,6 +103,8 @@ function onClickDummyBox(ev) {
   $mediaBody.addClass('is-editing');
 
   CommentBox.getOrConstruct($evTarget, opt).appendTo($mediaBody.find('.commentbox-placeholder').eq(0)).focus();
+  setForLabel($mediaBody);
+  onPaidOp($mediaBody);
 }
 
 async function onCommentClickReplyComment(ev, options: any = {}) {
@@ -125,11 +166,7 @@ async function onCommentClickEdit(mode, ev) {
     initialText: raw,
     form: JSON.parse($evTarget.attr('data-form')),
     mode,
-    onGet: () => {
-      return {
-        price: $mediaBody.find('[name="price"]').eq(-1).val(),
-      };
-    },
+    onGet: () => getPriceForm($mediaBody),
     onCancel: () => {
       $mediaBody.removeClass('is-editing');
     },
@@ -138,7 +175,13 @@ async function onCommentClickEdit(mode, ev) {
   $mediaBody.addClass('is-editing');
 
   CommentBox.getOrConstruct($evTarget, opt).appendTo($mediaBody.find('.commentbox-edit-target').eq(0)).focus();
-  $mediaBody.find('[name="price"]').val(`${$mediaBody.find('[data-price]').data('price') || ''}`);
+  const price = `${$mediaBody.find('[data-price]').data('price') || ''}`;
+  const hasVideo = `${$mediaBody.find('[data-has-video]').data('has-video') || ''}`;
+  $mediaBody.find('[name="price"]').val(price);
+  $mediaBody.find('[name="isPaid"]').prop('checked', !!price);
+  $mediaBody.find(`[name="hasVideo"][value="${hasVideo}"]`).prop('checked', true);
+  setForLabel($mediaBody);
+  onPaidOp($mediaBody);
 }
 
 function onCommentClickEditComment(ev) {
@@ -171,7 +214,17 @@ function onCommentClickDeleteReply(ev) {
   onCommentClickDelete('reply', ev);
 }
 
+async function initPricingRules() {
+  if ($('#raw-price-tags').length) {
+    await request.get('/problem-tags/pricing').then((res) => {
+      priceGroup = groupBy(res.data.data, 'category');
+    });
+  }
+}
+
 const commentsPage = new AutoloadPage('commentsPage', () => {
+  initPricingRules();
+
   $(document).on('click', '[name="dczcomments__dummy-box"]', onClickDummyBox);
   $(document).on('click', '[data-op="reply"][data-type="comment"]', onCommentClickReplyComment);
   $(document).on('click', '[data-op="reply"][data-type="reply"]', onCommentClickReplyReply);

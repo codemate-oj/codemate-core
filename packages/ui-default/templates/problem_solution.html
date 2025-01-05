@@ -3,6 +3,7 @@
 {% block content %}
 <div class="row">
   <div class="medium-9 columns">
+    <div id="raw-price-tags" style="display: none;">{{ ptags | join(',') }},{{ pdoc.difficulty }},{{ UserContext.role }}</div>
     <div class="section">
       <div class="section__header">
         <h1 class="section__title">{{ _('{0} solutions').format(pscount) }}</h1>

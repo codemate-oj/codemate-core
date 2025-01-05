@@ -1083,6 +1083,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
             }),
         );
         this.response.body = {
+            ptags: this.pdoc.tag,
             psdocs,
             page,
             pcount,

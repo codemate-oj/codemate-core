@@ -1,5 +1,5 @@
 import { Context, Handler, PRIV } from 'hydrooj';
-import { ProblemTagsModel } from './model';
+import { PricingRulesModel, ProblemTagsModel } from './model';
 
 // 分类函数
 function getCategorizeData(data) {
@@ -20,7 +20,19 @@ function getCategorizeData(data) {
     }, {});
 }
 
-class ProblemTagsHandler extends Handler {
+class PricingRulesHandler extends Handler {
+    async get() {
+        const cursor = PricingRulesModel.list();
+        const data = await cursor.toArray();
+        this.response.body = {
+            data: {
+                data,
+            },
+        };
+    }
+}
+
+class ProblemFormTagsHandler extends Handler {
     async get() {
         const cursor = ProblemTagsModel.list();
         const data = await cursor.toArray();
@@ -111,7 +123,8 @@ class ProblemTagsOptionsHandler extends Handler {
 }
 
 export async function apply(ctx: Context) {
-    ctx.Route('problem_tags', '/problem-tags', ProblemTagsHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('problem_tags_price', '/problem-tags/pricing', PricingRulesHandler, PRIV.PRIV_USER_PROFILE);
+    ctx.Route('problem_form_tags', '/problem-tags', ProblemFormTagsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('problem_tags_category', '/problem-tags/category', ProblemCategoryTagsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('problem_tags_category', '/problem-tags/stat', ProblemStatTagsHandler, PRIV.PRIV_USER_PROFILE);
     ctx.Route('problem_tags_category_yaml', '/problem-tags/category/yaml', ProblemYamlTagsHandler, PRIV.PRIV_USER_PROFILE);

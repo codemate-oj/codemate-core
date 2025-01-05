@@ -2,10 +2,12 @@ import { db, ObjectId } from 'hydrooj';
 
 export const collTag = db.collection('categoryChapter');
 export const collDoc = db.collection('document');
+export const collPrice = db.collection('pricingRules');
 
 declare module 'hydrooj' {
     interface Collections {
         categoryChapter: ProblemTagsModel;
+        pricingRules: PricingRules;
     }
     interface ProblemTagsModel {
         category: string;
@@ -17,8 +19,26 @@ declare module 'hydrooj' {
         createdAt?: Date;
         updatedAt?: Date;
     }
+    interface PricingRules {
+        category: string; // 增值服务 语言 难度 题型 命题者级别
+        value: string;
+        ratio: number;
+    }
     interface Model {
         problemTags: ProblemTagsModel;
+        pricingRules: PricingRulesModel;
+    }
+}
+
+export class PricingRulesModel {
+    static coll = collPrice;
+
+    static get(_id: ObjectId) {
+        return this.coll.findOne({ _id });
+    }
+
+    static list() {
+        return this.coll.find({});
     }
 }
 

@@ -49,13 +49,24 @@
         <form method="post" class="dczcomments__box" name="dczcomments__box__form" data-hotkey="ctrl+enter:submit,esc:vjCommentBoxCancel">
           <div>
             <textarea name="content" class="textbox" data-markdown required></textarea>
-            <div>
-              {% if set_price_op == 'input' %}
-                <input name="price" value="{{ price }}" placeholder="题解价格" class="textbox" style="width: 200px; min-height: unset;">
-              {% endif %}
-            </div>
           </div>
           <div>
+            <div class="paid-form-container">
+              {% if set_price_op == 'input' %}
+              <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 1rem;">
+                <input type="radio" name="hasVideo" value="0" checked for-next-label>
+                <label style="margin-right: 8px;">文字题解</label>
+                
+                <input type="radio" name="hasVideo" value="1" for-next-label>
+                <label style="margin-right: 8px;">视频题解</label>
+
+                <input type="checkbox" name="isPaid" for-next-label>
+                <label style="margin-right: 4px;">付费</label>
+
+                <input readonly name="price" value="{{ price }}" placeholder="题解价格" class="textbox" style="width: 200px; min-height: unset; margin-bottom: 0;">
+              </div>
+              {% endif %}
+            </div>
             <input type="submit" class="rounded primary button dczcomments__box__submit" value="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-reply="{{ _(reply_post_text) }} (Ctrl+Enter)" data-value-comment="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-comment-update="{{ _(comment_edit_text) }} (Ctrl+Enter)" data-value-reply-update="{{ _(reply_edit_text) }} (Ctrl+Enter)">
             <input type="button" class="rounded button nojs--hide" name="dczcomments__box__cancel" value="{{ _('Cancel') }} (Esc)">
           </div>
@@ -111,6 +122,7 @@
         {% if doc.price > 0 %}
         <span class="badge--lv8 user-profile-badge" data-tooltip="魅值 {{ doc.price }}" data-price="{{ doc.price }}">付费题解</span>
         {% endif %}
+        <span style="display: none;" data-has-video="{% if doc.hasVideo %}1{% else %}0{% endif %}"></span>
         <a href="javascript:;" data-tooltip="{{ _('Copy Link') }}" data-copylink="{{ url('problem_solution_detail', pid=pdoc.pid|default(pdoc.docId), sid=doc._id) }}">
           <span class="icon icon-link"></span>
         </a>
