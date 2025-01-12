@@ -1070,6 +1070,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
             psdocs.map(async (s) => {
                 const hasVideo = s.content.match(/@\[video\]\((\/[^\\)]+)\)/);
                 const type = `名师${hasVideo ? '视频' : '文字'}题解`;
+                s.hasVideo = hasVideo;
                 if (s.price) {
                     if (
                         !(
