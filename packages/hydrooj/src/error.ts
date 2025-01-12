@@ -115,6 +115,7 @@ export const InvalidJoinInvitationCodeError = Err('InvalidJoinInvitationCodeErro
 export const CurrentPasswordError = Err('CurrentPasswordError', ForbiddenError, "Current password doesn't match.");
 export const DiscussionLockedError = Err('DiscussionLockedError', ForbiddenError, 'The discussion is locked, you can not reply anymore.');
 export const NotAssignedError = Err('NotAssignedError', ForbiddenError, 'You are not assigned to this {0}.');
+export const FileSizeExceededError = Err('FileSizeExceededError', ForbiddenError, 'The file size exceeds {0}, please optimize and submit again.');
 export const FileLimitExceededError = Err('FileLimitExceededError', ForbiddenError, 'File {0} limit exceeded.');
 export const FileUploadError = Err('FileUploadError', ForbiddenError, 'File upload failed.');
 export const FileExistsError = Err('FileExistsError', ForbiddenError, 'File {0} already exists.');

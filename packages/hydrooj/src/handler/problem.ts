@@ -15,6 +15,7 @@ import {
     ContestNotFoundError,
     ContestNotLiveError,
     FileLimitExceededError,
+    FileSizeExceededError,
     HackFailedError,
     NoProblemError,
     NotFoundError,
@@ -697,8 +698,8 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
         if (!code) {
             const file = this.request.files?.file;
             if (!file || file.size === 0) throw new ValidationError('code');
-            const sizeLimit = config.type === 'submit_answer' ? 128 * 1024 * 1024 : 640 * 1024;
-            if (file.size > sizeLimit) throw new ValidationError('file');
+            const sizeLimit = config.type === 'submit_answer' ? 128 * 1024 * 1024 : 2 * 1024 * 1024;
+            if (file.size > sizeLimit) throw new FileSizeExceededError(`${sizeLimit / 1024}KB`);
             if (file.size < 65535 && !file.filepath.endsWith('.zip')) {
                 // TODO auto detect & convert encoding
                 // TODO submission file shape
