@@ -545,6 +545,17 @@ export class ContestEditHandler extends Handler {
     @param('checkinEndAtDate', Types.Date)
     @param('checkinEndAtTime', Types.Time)
     @param('title', Types.Title)
+    @param('languageSubject', Types.String, true)
+    @param('category', Types.String, true)
+    @param('organizer', Types.String, true)
+    @param('stage', Types.String, true)
+    @param('totalScore', Types.Float, true)
+    @param('problemCategoryConfig', Types.String, true)
+    @param('judgementPrice', Types.Float, true)
+    @param('attendPrice', Types.Float, true)
+    @param('evalutionPrice', Types.Float, true)
+    @param('contestMode', Types.String, true)
+    @param('hasMonitor', Types.Boolean, true)
     @param('content', Types.Content)
     @param('rule', Types.Range(Object.keys(contest.RULES).filter((i) => !contest.RULES[i].hidden)))
     @param('pids', Types.Content)
@@ -570,6 +581,17 @@ export class ContestEditHandler extends Handler {
         checkinEndAtDate: string,
         checkinEndAtTime: string,
         title: string,
+        languageSubject: string,
+        category: string,
+        organizer: string,
+        stage: string,
+        totalScore: number,
+        problemCategoryConfig: string,
+        judgementPrice: number,
+        attendPrice: number,
+        evalutionPrice: number,
+        contestMode: string,
+        hasMonitor: boolean = false,
         content: string,
         rule: string,
         _pids: string,
@@ -613,6 +635,17 @@ export class ContestEditHandler extends Handler {
         if (tid) {
             await contest.edit(domainId, tid, {
                 title,
+                languageSubject,
+                category,
+                organizer,
+                stage,
+                totalScore,
+                problemCategoryConfig,
+                judgementPrice,
+                attendPrice,
+                evalutionPrice,
+                contestMode,
+                hasMonitor,
                 content,
                 rule,
                 beginAt,
@@ -637,6 +670,17 @@ export class ContestEditHandler extends Handler {
             }
         } else {
             tid = await contest.add(domainId, title, content, this.user._id, rule, beginAt, endAt, pids, rated, {
+                languageSubject,
+                category,
+                organizer,
+                stage,
+                totalScore,
+                problemCategoryConfig,
+                judgementPrice,
+                attendPrice,
+                evalutionPrice,
+                contestMode,
+                hasMonitor,
                 duration: contestDuration,
                 tag,
                 checkinBeginAt,

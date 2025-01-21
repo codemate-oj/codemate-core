@@ -1,13 +1,83 @@
 import $ from 'jquery';
 import moment from 'moment';
-import ProblemSelectAutoComplete from 'vj/components/autocomplete/ProblemSelectAutoComplete';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+// import ProblemSelectAutoComplete from 'vj/components/autocomplete/ProblemSelectAutoComplete';
 import UserSelectAutoComplete from 'vj/components/autocomplete/UserSelectAutoComplete';
 import { ConfirmDialog } from 'vj/components/dialog';
+import ConfigProblems from 'vj/components/organizedProblems';
 import { NamedPage } from 'vj/misc/Page';
-import { i18n, request, tpl } from 'vj/utils';
+import { api, gql, i18n, request, tpl } from 'vj/utils';
+
+const renderProblemsConfig = () => {
+  const container = document.getElementById('problems-config-container');
+  ReactDOM.createRoot(container).render(
+    React.createElement(ConfigProblems, {
+      fetchProblem: (pid: string) =>
+        api(
+          gql`
+      problem(pid: ${pid}) {
+        docId
+        pid
+        title
+      }
+    `,
+          ['data', 'problem'],
+        ),
+      fetchAll: (ids: number[]) =>
+        api(
+          gql`
+        problems(ids: ${ids}) {
+          docId
+          pid
+          title
+        }
+      `,
+          ['data', 'problems'],
+        ),
+      onProblemChange: (pids: string) => {
+        $('[name="pids"]').val(pids);
+      },
+      defaultValue:
+        container.dataset.init ||
+        JSON.stringify([
+          {
+            name: '未分类',
+            problems: `${$('[name="pids"]').val()}`.split(',').map((docId) => ({
+              docId: +docId,
+            })),
+          },
+        ]),
+    }),
+  );
+};
 
 const page = new NamedPage(['contest_edit', 'contest_create', 'homework_create', 'homework_edit', 'plist_edit'], (pagename) => {
-  ProblemSelectAutoComplete.getOrConstruct($('[name="pids"]'), { multi: true, clearDefaultValue: false });
+  renderProblemsConfig();
+  $(document).on('change', '[name="paidJudgement"], [name="paidAttend"], [name="paidEvalution"]', function () {
+    const target = $(this)[0];
+    $(`[name=${target.name.replace('paid', '').toLowerCase()}Price]`).val(target.checked ? '1' : '');
+  });
+  $(document).on('change', '[name="judgementPrice"], [name="attendPrice"], [name="evalutionPrice"]', function () {
+    const target = $(this)[0];
+    target.value = `${+target.value || ''}`;
+    const name = target.name.replace('Price', '');
+    $(`[name=paid${name.charAt(0).toUpperCase()}${name.slice(1)}]`).prop('checked', !!target.value);
+  });
+  $(document).on('change', '[name=contestMode]', function () {
+    const target = $(this)[0];
+    const monitor = $('[name=hasMonitor]')[0] as HTMLInputElement;
+    if (target.value === 'regular' && target.checked && monitor.checked) {
+      monitor.checked = false;
+    }
+  });
+  $(document).on('change', '[name=hasMonitor]', function () {
+    const target = $(this)[0];
+    if (target.checked) {
+      ($('[name=contestMode][value=defined]')[0] as HTMLInputElement).checked = true;
+    }
+  });
+  // ProblemSelectAutoComplete.getOrConstruct($('[name="pids"]'), { multi: true, clearDefaultValue: false });
   UserSelectAutoComplete.getOrConstruct<true>($('[name="maintainer"]'), { multi: true, clearDefaultValue: false });
   $('[name="rule"]')
     .on('change', () => {
