@@ -15,12 +15,13 @@ export function apply(ctx: Context) {
         const udoc = await UserModel.getById(that.args['domainId'], that.session.uid);
         if (udoc.hasPriv(PRIV.PRIV_UNLIMITED_ACCESS)) return; // bypass admin
         const userIp = that.request.ip;
+        const createHost = that.request.host;
         // 处理IP白名单逻辑，以适应SSR
         const whiteListSetting: string = SystemModel.get('loginlimit.whitelist') ?? '';
         const ipWhiteList = whiteListSetting.split(',');
         if (ipWhiteList.includes(userIp)) return; // bypass server
-        // 踢掉所有其他IP
-        const tdocs = await TokenModel.getMulti(TokenModel.TYPE_SESSION, { uid: udoc._id }).toArray();
+        // 踢掉所有其他同域IP
+        const tdocs = await TokenModel.getMulti(TokenModel.TYPE_SESSION, { uid: udoc._id, createHost }).toArray();
         await Promise.all(tdocs.map(async (tdoc) => TokenModel.del(tdoc._id, TokenModel.TYPE_SESSION)));
         if (tdocs.length > 0) {
             logger.info(`User ${udoc._id} login at ${userIp}. ${tdocs.length} sessions expired.`);

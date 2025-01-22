@@ -1,0 +1,15 @@
+.defined-problem-category button {
+    min-width: 3rem;
+    border: 1px solid #e8e8e8;
+    padding: .5rem 1rem;
+    color: #555;
+}
+.defined-problem-category input.textbox, .defined-problem-category select.select {
+    margin-bottom: 0;
+}
+.defined-problem-category .flex-gap-align-bottom {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: .5rem;
+}

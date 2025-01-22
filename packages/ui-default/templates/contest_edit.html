@@ -1,5 +1,8 @@
 {% extends "layout/basic.html" %}
 {% block content %}
+{% set langOptions = ['无', '图形化', 'Python', 'C++'] %}
+{% set categoryOptions = ['无', 'AIOJ争霸赛', '神犇邀请赛', '诸侯赛', '模拟测试', '专项赛'] %}
+{% set stageOptions = ['无', '赛前模拟', '初赛', '区赛', '市赛', '复赛', '省赛', '国赛', '总决赛'] %}
 <div class="row">
   <div class="medium-9 columns">
     <div class="section">
@@ -24,6 +27,39 @@
               placeholder:_('title'),
               value:tdoc.title|default(''),
               autofocus:true,
+              row:false
+            }) }}
+          </div>
+          <div class="row">
+            {{ form.form_select({
+              columns:3,
+              label:'语言',
+              name:'languageSubject',
+              options:langOptions | defaultOptions,
+              value:tdoc['languageSubject']|default(''),
+              row:false
+            }) }}
+            {{ form.form_select({
+              columns:3,
+              label:'比赛类别',
+              name:'category',
+              options:categoryOptions | defaultOptions,
+              value:tdoc['category']|default(''),
+              row:false
+            }) }}
+            {{ form.form_text({
+              columns:3,
+              label:'主办方',
+              name:'organizer',
+              value:tdoc['organizer']|default(''),
+              row:false
+            }) }}
+            {{ form.form_select({
+              columns:3,
+              label:'比赛阶段',
+              name:'stage',
+              options:stageOptions | defaultOptions,
+              value:tdoc['stage']|default(''),
               row:false
             }) }}
           </div>
@@ -118,14 +154,17 @@
             value:tdoc['tag']|default([])|join(', '),
             row:true
           }) }}
-          {{ form.form_text({
-            columns:12,
-            label:'Problems',
-            name:'pids',
-            value:pids,
-            placeholder:_("Seperated with ','"),
-            row:true
-          }) }}
+          <div style="display: none;">
+            {{ form.form_text({
+              columns:12,
+              label:'Problems',
+              name:'pids',
+              value:pids,
+              placeholder:_("Seperated with ','"),
+              row:true
+            }) }}
+          </div>
+          <div id="problems-config-container" class="row" data-init="{{tdoc.problemCategoryConfig | default('')}}"></div>
           {{ form.form_textarea({
             columns:null,
             label:'Description',
@@ -195,6 +234,40 @@
           <h2 class="section__title">{{ _('Contest Settings') }}</h2>
         </div>
         <div class="section__body">
+
+          <div style="display: flex; gap: 2rem;">
+            <label class="checkbox">
+              <input class="checkbox" type="radio" name="contestMode" value="regular" checked>
+              常规模式
+            </label>
+            <label class="checkbox">
+              <input class="checkbox" type="radio" name="contestMode" value="defined">
+              定制模式
+            </label>
+            <label class="checkbox">
+              <input class="checkbox" type="checkbox" name="hasMonitor" {% if tdoc.hasMonitor %}checked{% endif %}>
+              加载防作弊系统
+            </label>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label class="checkbox">
+              <input class="checkbox" type="checkbox" name="paidJudgement" {% if tdoc.judgementPrice %}checked{% endif %}>
+              付费评测
+            </label>
+            <input class="textbox" type="number" name="judgementPrice" value="{{ tdoc['judgementPrice']|default('') }}" placeholder="魅值数量" style="width: 90px; min-height: unset; margin-right: 2rem;">
+            
+            <label class="checkbox">
+              <input class="checkbox" type="checkbox" name="paidAttend" {% if tdoc.attendPrice %}checked{% endif %}>
+              付费参赛
+            </label>
+            <input class="textbox" type="number" name="attendPrice" value="{{ tdoc['attendPrice']|default('') }}" placeholder="魅值数量" style="width: 90px; min-height: unset; margin-right: 2rem;">
+
+            <label class="checkbox">
+              <input class="checkbox" type="checkbox" name="paidEvalution" {% if tdoc.evalutionPrice %} checked{% endif %}>
+              付费评估
+            </label>
+            <input class="textbox" type="number" name="evalutionPrice" value="{{ tdoc['evalutionPrice']|default('') }}" placeholder="魅值数量" style="width: 90px; min-height: unset;">
+          </div>
           <div class="row">
             {{ form.form_checkbox({
               columns:2,

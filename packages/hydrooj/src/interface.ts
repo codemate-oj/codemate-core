@@ -433,6 +433,18 @@ export interface Tdoc extends Document {
     imageURL?: string; // 比赛封面图
     needRealName?: boolean; // 是否需要实名
 
+    languageSubject?: string; // 语言
+    category?: string; // 比赛类别
+    organizer?: string; // 主办方
+    stage?: string; // 比赛阶段
+    totalScore?: number; // 比赛折算总分
+    problemCategoryConfig?: string; // 题目排版配置及折算分数
+    judgementPrice?: number; // 付费评测
+    attendPrice?: number; // 付费参赛
+    evalutionPrice?: number; // 付费评估
+    contestMode?: string; // 比赛题目排版模式
+    hasMonitor?: boolean; // 加载防作弊系统
+
     /**
      * In hours
      * 在比赛有效时间内选择特定的 X 小时参加比赛（从首次打开比赛算起）
