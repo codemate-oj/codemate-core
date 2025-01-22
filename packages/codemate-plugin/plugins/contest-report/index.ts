@@ -129,7 +129,6 @@ class ContestReportHandler extends Handler {
             for (const i of psdocs) this.response.body.rdict[i.rid] = { _id: i.rid };
         }
 
-        // TODO: export contest ranklist
         const [, rows] = await Hydro.model.contest.getScoreboard.call(this, domainId, tid, { isExport: true, lockAt: this.tdoc.lockAt });
         const row = rows.find((r) => r.find((c) => c.type === 'user' && c.raw === this.user._id));
 
