@@ -2,7 +2,7 @@ import $ from 'jquery';
 import moment from 'moment';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// import ProblemSelectAutoComplete from 'vj/components/autocomplete/ProblemSelectAutoComplete';
+import ProblemSelectAutoComplete from 'vj/components/autocomplete/ProblemSelectAutoComplete';
 import UserSelectAutoComplete from 'vj/components/autocomplete/UserSelectAutoComplete';
 import { ConfirmDialog } from 'vj/components/dialog';
 import ConfigProblems from 'vj/components/organizedProblems';
@@ -53,7 +53,12 @@ const renderProblemsConfig = () => {
 };
 
 const page = new NamedPage(['contest_edit', 'contest_create', 'homework_create', 'homework_edit', 'plist_edit'], (pagename) => {
-  renderProblemsConfig();
+  if (pagename.startsWith('contest_')) {
+    renderProblemsConfig();
+  } else {
+    ProblemSelectAutoComplete.getOrConstruct($('[name="pids"]'), { multi: true, clearDefaultValue: false });
+  }
+
   $(document).on('change', '[name="paidJudgement"], [name="paidAttend"], [name="paidEvalution"]', function () {
     const target = $(this)[0];
     $(`[name=${target.name.replace('paid', '').toLowerCase()}Price]`).val(target.checked ? '1' : '');
