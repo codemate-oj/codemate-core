@@ -12,6 +12,7 @@ export interface ProblemList extends Document {
     // 题单功能
     pids: number[];
     assign?: string[];
+    hidden?: boolean; // 是否将题单隐藏, 避免题单在配置过程中出现泄题
     visibility: 'private' | 'public' | 'system'; // 控制题单可见性：该doc用于个人题单和系统题单
     // 树状题单功能
     parent: ObjectId | null;

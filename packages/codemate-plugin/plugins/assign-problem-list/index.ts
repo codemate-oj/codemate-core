@@ -27,7 +27,9 @@ import * as plist from './model';
 // 只获取系统题单
 export class SystemProblemListMainHandler extends Handler {
     async get() {
-        const tdocs = await plist.getMulti(this.domain._id, { visibility: 'system' }, ['docId', 'title', 'content', 'parent', 'children']).toArray();
+        const tdocs = await plist
+            .getMulti(this.domain._id, { visibility: 'system' }, ['docId', 'title', 'content', 'parent', 'children', 'hidden'])
+            .toArray();
 
         const enableHidden = this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM);
 
