@@ -16,6 +16,7 @@ import {
 } from 'hydrooj';
 import {
     NotAllowedToVisitPrivateListError,
+    ProblemListHiddenError,
     ProblemListNotFountError,
     ProblemNoNextError,
     ProblemNoPreviousError,
@@ -28,21 +29,28 @@ export class SystemProblemListMainHandler extends Handler {
     async get() {
         const tdocs = await plist.getMulti(this.domain._id, { visibility: 'system' }, ['docId', 'title', 'content', 'parent', 'children']).toArray();
 
+        const enableHidden = this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM);
+
         const extractChildren = (tdoc: plist.ProblemList) => {
             if (!tdoc) throw new Error();
             if (tdoc.children?.length) {
                 return {
                     ...tdoc,
-                    children: tdoc.children.map((id) => {
-                        const _tdoc = tdocs.find((doc) => doc.docId.equals(id));
-                        return extractChildren(_tdoc);
-                    }),
+                    children: tdoc.children
+                        .map((id) => {
+                            const _tdoc = tdocs.find((doc) => doc.docId.equals(id));
+                            if (enableHidden || !_tdoc?.hidden) {
+                                return extractChildren(_tdoc);
+                            }
+                            return false;
+                        })
+                        .filter((v) => v),
                 };
             }
             return { ...tdoc, children: [] };
         };
 
-        const roots = tdocs.filter((item) => !item.parent).map(extractChildren);
+        const roots = tdocs.filter((item) => !item.parent && (enableHidden || !item.hidden)).map(extractChildren);
         this.response.body = { roots };
         this.response.template = 'system_plist_main.html';
     }
@@ -62,6 +70,8 @@ export class ProblemListDetailHandler extends Handler {
         // 检查权限（bypass超管）
         if (!this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) && tdoc.visibility === 'private' && !this.user.own(tdoc)) {
             throw new NotAllowedToVisitPrivateListError(tid);
+        } else if (tdoc.hidden && !this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
+            throw new ProblemListHiddenError(tid);
         }
 
         this.allPids = tdoc.pids;
@@ -145,6 +155,7 @@ export class SystemProblemListEditHandler extends Handler {
     @param('content', Types.Content)
     @param('pids', Types.Content)
     @param('tid', Types.ObjectId, true)
+    @param('hidden', Types.Boolean, true)
     @param('maintainer', Types.NumericArray, true)
     @param('assign', Types.CommaSeperatedArray, true)
     @param('parent', Types.ObjectId, true)
@@ -154,6 +165,7 @@ export class SystemProblemListEditHandler extends Handler {
         content: string,
         _pids: string,
         _tid: ObjectId = null,
+        hidden: boolean = false,
         maintainer: number[] = [],
         assign: string[] = [],
         parent: ObjectId = null,
@@ -176,6 +188,7 @@ export class SystemProblemListEditHandler extends Handler {
                 {
                     maintainer,
                     assign,
+                    hidden,
                 },
                 parent,
             );
@@ -186,6 +199,7 @@ export class SystemProblemListEditHandler extends Handler {
                 pids,
                 maintainer,
                 assign,
+                hidden,
                 parent,
             });
         }
