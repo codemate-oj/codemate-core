@@ -41,7 +41,7 @@ export class SystemProblemListMainHandler extends Handler {
                     children: tdoc.children
                         .map((id) => {
                             const _tdoc = tdocs.find((doc) => doc.docId.equals(id));
-                            if (enableHidden || !_tdoc?.hidden) {
+                            if (_tdoc && (enableHidden || !_tdoc.hidden)) {
                                 return extractChildren(_tdoc);
                             }
                             return false;
@@ -67,12 +67,13 @@ export class ProblemListDetailHandler extends Handler {
     @param('page', Types.PositiveInt, true)
     @param('pageSize', Types.PositiveInt, true)
     async prepare(domainId: string, tid: ObjectId, page = 1, pageSize = 15) {
-        const tdoc = await plist.getWithChildren(domainId, tid);
+        const enableHidden = this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM);
+        const tdoc = await plist.getWithChildren(domainId, tid, null, enableHidden);
 
         // 检查权限（bypass超管）
         if (!this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) && tdoc.visibility === 'private' && !this.user.own(tdoc)) {
             throw new NotAllowedToVisitPrivateListError(tid);
-        } else if (tdoc.hidden && !this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM)) {
+        } else if (tdoc.hidden && !enableHidden) {
             throw new ProblemListHiddenError(tid);
         }
 

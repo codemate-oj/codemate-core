@@ -29,10 +29,15 @@ export function getMulti(domainId: string, query: Filter<ProblemList> = {}, proj
     return document.getMulti(domainId, TYPE_PROBLEM_LIST, query, projection);
 }
 
-export async function getWithChildren(domainId: string, tid: ObjectId, projection?: Projection<ProblemList>): Promise<ProblemList> {
+export async function getWithChildren(
+    domainId: string,
+    tid: ObjectId,
+    projection?: Projection<ProblemList>,
+    enableHidden?: boolean,
+): Promise<ProblemList> {
     const root = await get(domainId, tid, projection);
-    if (root.children?.length) {
-        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c)).pids));
+    if (root.children?.length && (enableHidden || !root.hidden)) {
+        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c, projection, enableHidden)).pids));
         root.pids.push(...Array.from(new Set(subPids.flat())));
     }
     return root;
