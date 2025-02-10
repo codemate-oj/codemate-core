@@ -29,6 +29,7 @@ export class SystemProblemListMainHandler extends Handler {
     async get() {
         const tdocs = await plist
             .getMulti(this.domain._id, { visibility: 'system' }, ['docId', 'title', 'content', 'parent', 'children', 'hidden'])
+            .sort({ _id: 1 })
             .toArray();
 
         const enableHidden = this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM);
