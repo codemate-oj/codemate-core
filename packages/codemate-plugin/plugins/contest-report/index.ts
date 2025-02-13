@@ -62,12 +62,6 @@ class ContestReportHandler extends Handler {
 
         // Check permission
         if (!this.tsdoc?.attend) throw new ContestNotAttendedError(domainId, tid);
-        // if (!Hydro.model.contest.isDone(this.tdoc, this.tsdoc)) {
-        //     throw new ContestNotEndedError('contest', tid);
-        // }
-        if (!Hydro.model.contest.canShowScoreboard.call(this, this.tdoc, true)) {
-            throw new ContestScoreboardHiddenError(tid);
-        }
     }
 
     @param('tid', Types.ObjectId)
@@ -128,17 +122,57 @@ class ContestReportHandler extends Handler {
         } else {
             for (const i of psdocs) this.response.body.rdict[i.rid] = { _id: i.rid };
         }
+    }
+}
 
-        const [, rows] = await Hydro.model.contest.getScoreboard.call(this, domainId, tid, { isExport: true, lockAt: this.tdoc.lockAt });
-        const row = rows.find((r) => r.find((c) => c.type === 'user' && c.raw === this.user._id));
+class ContestRankHandler extends Handler {
+    tdoc?: Tdoc;
+    tsdoc?: any;
 
-        this.response.body.rankdata = {
-            rank: row.find((c) => c.type === 'rank').value || '(不详)',
-            total: rows.length - 1,
+    @param('tid', Types.ObjectId, true)
+    async prepare(domainId: string, tid: ObjectId) {
+        // Init contest data
+        [this.tdoc, this.tsdoc] = await Promise.all([
+            Hydro.model.contest.get(domainId, tid),
+            Hydro.model.contest.getStatus(domainId, tid, this.user._id),
+        ]);
+        if (this.tdoc.assign?.length && !this.user.own(this.tdoc) && !this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST)) {
+            const groups = await GroupModel.list(domainId, this.user._id);
+            if (
+                !Set.intersection(
+                    this.tdoc.assign,
+                    groups.map((i) => i.name),
+                ).size
+            ) {
+                throw new NotAssignedError('contest', tid);
+            }
+        }
+        if (this.tdoc.duration && this.tsdoc?.startAt) {
+            this.tsdoc.endAt = moment(this.tsdoc.startAt).add(this.tdoc.duration, 'hours').toDate();
+        }
+
+        // Check permission
+        if (!this.tsdoc?.attend) throw new ContestNotAttendedError(domainId, tid);
+        if (!Hydro.model.contest.canShowScoreboard.call(this, this.tdoc, true)) {
+            throw new ContestScoreboardHiddenError(tid);
+        }
+    }
+
+    @param('tid', Types.ObjectId)
+    async get(domainId: string, tid: ObjectId) {
+        const tsdocsCursor = Hydro.model.contest.getMultiStatus(domainId, { docId: tid }).sort({ score: -1 });
+        const rankedTsdocs = await Hydro.lib.rank(tsdocsCursor, (a, b) => a.score === b.score);
+        const rows = [...(await Promise.all(rankedTsdocs.map(([rank, tsdoc]) => [rank, tsdoc.uid])))];
+        const row = rows.find((r) => r[1] === this.user._id);
+
+        this.response.body = {
+            rank: row ? row[0].toString() : '-1',
+            total: rows.length,
         };
     }
 }
 
 export async function apply(ctx: Context) {
     ctx.Route('contest_report', '/contest/:tid/report', ContestReportHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_rank', '/contest/:tid/rank', ContestRankHandler, PERM.PERM_VIEW_CONTEST);
 }
