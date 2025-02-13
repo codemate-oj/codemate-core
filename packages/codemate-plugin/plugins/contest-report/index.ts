@@ -62,9 +62,9 @@ class ContestReportHandler extends Handler {
 
         // Check permission
         if (!this.tsdoc?.attend) throw new ContestNotAttendedError(domainId, tid);
-        if (!Hydro.model.contest.isDone(this.tdoc, this.tsdoc)) {
-            throw new ContestNotEndedError('contest', tid);
-        }
+        // if (!Hydro.model.contest.isDone(this.tdoc, this.tsdoc)) {
+        //     throw new ContestNotEndedError('contest', tid);
+        // }
         if (!Hydro.model.contest.canShowScoreboard.call(this, this.tdoc, true)) {
             throw new ContestScoreboardHiddenError(tid);
         }
