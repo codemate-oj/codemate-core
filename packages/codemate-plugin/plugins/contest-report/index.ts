@@ -100,6 +100,9 @@ class ContestReportHandler extends Handler {
             for (const p of cur) acc[p.docId] = p.score;
             return acc;
         }, {});
+        const categoriesFullScores = Object.fromEntries(
+            Object.keys(categories).map((c) => [c, categories[c].reduce((acc: number, cur: any) => acc + (cur.score || 0), 0)]),
+        );
 
         this.response.body = {
             report_id: `${doc.date}-${doc.idByDate}`,
@@ -111,6 +114,7 @@ class ContestReportHandler extends Handler {
             tsdoc: this.tsdoc,
             categories,
             problemFullScores,
+            categoriesFullScores,
         };
 
         this.response.body.psdict = this.tsdoc.detail || {};
@@ -139,15 +143,14 @@ class ContestReportHandler extends Handler {
             for (const i of psdocs) this.response.body.rdict[i.rid] = { _id: i.rid };
         }
 
+        this.response.body.problemScores = Object.fromEntries(
+            Object.entries(this.response.body.psdict).map(([, psdoc]: any) => [psdoc.pid, ((psdoc.score || 0) * problemFullScores[psdoc.pid]) / 100]),
+        );
         this.response.body.categoriesScores = Object.fromEntries(
             Object.keys(categories).map((c) => [
                 c,
-                categories[c].reduce((acc: number, cur: any) => acc + (this.response.body.psdict[cur.docId]?.score || 0), 0),
+                categories[c].reduce((acc: number, cur: any) => acc + (this.response.body.problemScores[cur.docId] || 0), 0),
             ]),
-        );
-
-        this.response.body.problemScores = Object.fromEntries(
-            Object.entries(this.response.body.psdict).map(([, psdoc]: any) => [psdoc.pid, ((psdoc.score || 0) * problemFullScores[psdoc.pid]) / 100]),
         );
     }
 }
