@@ -1,6 +1,5 @@
 import {
     ContestNotAttendedError,
-    ContestNotEndedError,
     ContestScoreboardHiddenError,
     type Context,
     db,
