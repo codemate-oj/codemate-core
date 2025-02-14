@@ -12,6 +12,7 @@ export interface ProblemList extends Document {
     // 题单功能
     pids: number[];
     assign?: string[];
+    hidden?: boolean; // 是否将题单隐藏, 避免题单在配置过程中出现泄题
     visibility: 'private' | 'public' | 'system'; // 控制题单可见性：该doc用于个人题单和系统题单
     // 树状题单功能
     parent: ObjectId | null;
@@ -28,10 +29,19 @@ export function getMulti(domainId: string, query: Filter<ProblemList> = {}, proj
     return document.getMulti(domainId, TYPE_PROBLEM_LIST, query, projection);
 }
 
-export async function getWithChildren(domainId: string, tid: ObjectId, projection?: Projection<ProblemList>): Promise<ProblemList> {
+export async function getWithChildren(
+    domainId: string,
+    tid: ObjectId,
+    projection?: Projection<ProblemList>,
+    enableHidden?: boolean,
+): Promise<ProblemList> {
     const root = await get(domainId, tid, projection);
+    if (!(enableHidden || !root.hidden)) {
+        root.pids = [];
+        return root;
+    }
     if (root.children?.length) {
-        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c)).pids));
+        const subPids = await Promise.all(root.children.map(async (c) => (await getWithChildren(domainId, c, projection, enableHidden)).pids));
         root.pids.push(...Array.from(new Set(subPids.flat())));
     }
     return root;

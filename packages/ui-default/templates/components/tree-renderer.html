@@ -5,7 +5,7 @@
     <div>
     <a target="_blank" href="/p-list/{{ node.docId }}/edit">
       <span>{{ node.title }}</span>
-      <span style="font-size: 12px; color: gray; margin-left: 10px">{{ node.content }}</span>
+      <span style="font-size: 12px; color: gray; margin-left: 10px">{{ node.content }}{% if node.hidden %}🔒{% endif %}</span>
     </a>
 
     {% if node.children and node.children.length > 0 %}

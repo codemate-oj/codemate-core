@@ -433,7 +433,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     psdoc: ProblemStatusDoc;
 
     @route('pid', Types.ProblemId, true)
-    @query('tid', Types.ObjectId, true)
+    @param('tid', Types.ObjectId, true)
     async _prepare(domainId: string, pid: number | string, tid?: ObjectId) {
         this.pdoc = await problem.get(domainId, pid);
         if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);
@@ -618,7 +618,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     }
 
     async postDelete() {
-        if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
+        if (!this.user.own(this.pdoc, PERM.PERM_DELETE_PROBLEM_SELF)) this.checkPerm(PERM.PERM_DELETE_PROBLEM);
         const tdocs = await contest.getRelated(this.args.domainId, this.pdoc.docId);
         if (tdocs.length) throw new ProblemAlreadyUsedByContestError(this.pdoc.docId, tdocs[0]._id);
         await problem.del(this.pdoc.domainId, this.pdoc.docId);

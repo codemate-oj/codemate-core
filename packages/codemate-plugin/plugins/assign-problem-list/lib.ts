@@ -2,6 +2,8 @@ import { Err, ForbiddenError, NotFoundError, PermissionError } from 'hydrooj';
 
 export const ProblemListNotFountError = Err('ProblemListNotFountError', NotFoundError, 'Problem list {0} not found.');
 
+export const ProblemListHiddenError = Err('ProblemListHiddenError', NotFoundError, 'Problem list {0} is hidden.');
+
 export const NotAllowedToVisitPrivateListError = Err(
     'NotAllowedToVisitPrivateListError',
     ForbiddenError,

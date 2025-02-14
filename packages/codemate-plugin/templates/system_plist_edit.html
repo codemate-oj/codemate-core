@@ -31,6 +31,14 @@
                 placeholder:_('Group / UID'),
                 value:tdoc.assign|default('')
             }) }}
+            {{ form.form_checkbox({
+              columns:6,
+              label:'Hidden',
+              name:'hidden',
+              placeholder:_('除了拥有系统修改权限(PRIV_EDIT_SYSTEM)的人, 其他人不可见'),
+              value:tdoc.hidden|default(false),
+              row:false
+            }) }}
           </div>
           {{ form.form_text({
               columns:null,
