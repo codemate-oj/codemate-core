@@ -96,6 +96,11 @@ class ContestReportHandler extends Handler {
             categories['未分类'] = pdocidsDontHasCategory.map((pid) => ({ docId: pid, score: 100 }));
         }
 
+        const problemFullScores = Object.values(categories).reduce((acc: any, cur: any) => {
+            for (const p of cur) acc[p.docId] = p.score;
+            return acc;
+        }, {});
+
         this.response.body = {
             report_id: `${doc.date}-${doc.idByDate}`,
             uname: this.user.uname,
@@ -105,6 +110,7 @@ class ContestReportHandler extends Handler {
             tdoc: this.tdoc,
             tsdoc: this.tsdoc,
             categories,
+            problemFullScores,
         };
 
         this.response.body.psdict = this.tsdoc.detail || {};
@@ -138,6 +144,10 @@ class ContestReportHandler extends Handler {
                 c,
                 categories[c].reduce((acc: number, cur: any) => acc + (this.response.body.psdict[cur.docId]?.score || 0), 0),
             ]),
+        );
+
+        this.response.body.problemScores = Object.fromEntries(
+            Object.entries(this.response.body.psdict).map(([, psdoc]: any) => [psdoc.pid, ((psdoc.score || 0) * problemFullScores[psdoc.pid]) / 100]),
         );
     }
 }
@@ -177,13 +187,53 @@ class ContestRankHandler extends Handler {
 
     @param('tid', Types.ObjectId)
     async get(domainId: string, tid: ObjectId) {
-        const tsdocsCursor = Hydro.model.contest.getMultiStatus(domainId, { docId: tid }).sort({ score: -1 });
-        const rankedTsdocs = await Hydro.lib.rank(tsdocsCursor, (a, b) => a.score === b.score);
-        const rows = [...(await Promise.all(rankedTsdocs.map(([rank, tsdoc]) => [rank, tsdoc.uid])))];
-        const row = rows.find((r) => r[1] === this.user._id);
+        const tdocProblemCategoryConfig = JSON.parse(this.tdoc.problemCategoryConfig || '[]');
+        const pdocidsHasCategory = tdocProblemCategoryConfig.reduce((acc: number[], cur: any) => acc.concat(cur.problems.map((p) => p.docId)), []);
+        const pdocidsDontHasCategory = this.tdoc.pids.filter((pid) => !pdocidsHasCategory.includes(pid));
+        const categories = Object.fromEntries(tdocProblemCategoryConfig.map((c) => [c.name, c.problems]));
+
+        if ('未分类' in categories) {
+            categories['未分类'] = categories['未分类'].concat(pdocidsDontHasCategory.map((pid) => ({ docId: pid, score: 100 })));
+        } else {
+            categories['未分类'] = pdocidsDontHasCategory.map((pid) => ({ docId: pid, score: 100 }));
+        }
+
+        const problemFullScores = Object.values(categories).reduce((acc: any, cur: any) => {
+            for (const p of cur) acc[p.docId] = p.score;
+            return acc;
+        }, {});
+
+        const tsdocs = await Hydro.model.contest.getMultiStatus(domainId, { docId: tid }).toArray();
+        const scoredTsdocs = tsdocs
+            .map((tsdoc) => ({
+                uid: tsdoc.uid,
+                unrank: tsdoc.unrank ?? false,
+                score: Object.values(tsdoc.detail || {})
+                    .map((psdoc: any) => ((psdoc.score || 0) * problemFullScores[psdoc.pid]) / 100)
+                    .reduce((acc: number, cur: number) => acc + cur, 0),
+            }))
+            .sort((a, b) => b.score - a.score);
+
+        let last = null;
+        let r = 0;
+        let count = 0;
+        const rows = [];
+
+        for (const tsdoc of scoredTsdocs) {
+            if (tsdoc.unrank) {
+                rows.push([0, tsdoc.uid]);
+                continue;
+            }
+            count++;
+            if (!last || last.score !== tsdoc.score) r = count;
+            last = tsdoc;
+            rows.push([r, tsdoc.uid]);
+        }
+
+        const row = rows.find((row) => row[1] === this.user._id);
 
         this.response.body = {
-            rank: row ? row[0].toString() : '-1',
+            rank: row ? row[0] : -1,
             total: rows.length,
         };
     }
