@@ -86,6 +86,16 @@ class ContestReportHandler extends Handler {
         }
 
         const pdict = await Hydro.model.problem.getList(domainId, this.tdoc.pids, true, true, Hydro.model.problem.PROJECTION_LIST);
+        const tdocProblemCategoryConfig = JSON.parse(this.tdoc.problemCategoryConfig || '[]');
+        const pdocidsHasCategory = tdocProblemCategoryConfig.reduce((acc: number[], cur: any) => acc.concat(cur.problems.map((p) => p.docId)), []);
+        const pdocidsDontHasCategory = this.tdoc.pids.filter((pid) => !pdocidsHasCategory.includes(pid));
+        const categories = Object.fromEntries(tdocProblemCategoryConfig.map((c) => [c.name, c.problems]));
+
+        if ('未分类' in categories) {
+            categories['未分类'] = categories['未分类'].concat(pdocidsDontHasCategory.map((pid) => ({ docId: pid, score: 100 })));
+        } else {
+            categories['未分类'] = pdocidsDontHasCategory.map((pid) => ({ docId: pid, score: 100 }));
+        }
 
         this.response.body = {
             report_id: `${doc.date}-${doc.idByDate}`,
@@ -95,6 +105,7 @@ class ContestReportHandler extends Handler {
             rdict: {},
             tdoc: this.tdoc,
             tsdoc: this.tsdoc,
+            categories,
         };
 
         this.response.body.psdict = this.tsdoc.detail || {};
@@ -122,6 +133,13 @@ class ContestReportHandler extends Handler {
         } else {
             for (const i of psdocs) this.response.body.rdict[i.rid] = { _id: i.rid };
         }
+
+        this.response.body.categoriesScores = Object.fromEntries(
+            Object.keys(categories).map((c) => [
+                c,
+                categories[c].reduce((acc: number, cur: any) => acc + (this.response.body.psdict[cur.docId]?.score || 0), 0),
+            ]),
+        );
     }
 }
 
