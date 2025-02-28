@@ -54,7 +54,7 @@ export class SendSMSCodeHandler extends SendTokenBaseHandler {
         if (await UserModel.getByPhone(domainId, phoneNumber)) throw new UserAlreadyExistError(phoneNumber);
 
         const _code = this.generateCode();
-        const sendResult = await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${_code}，600s内有效`, phoneNumber);
+        const sendResult = await global.Hydro.lib.sms(`【AIOJ编程题库官方】您的验证码是${_code}，600s内有效`, phoneNumber);
         if (!sendResult) throw new SendSMSFailedError();
 
         await Promise.all([this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
@@ -85,7 +85,7 @@ export class SendEmailCodeHandler extends SendTokenBaseHandler {
         const html = await this.renderHTML('user_register_mail.html', {
             verifyCode: _code,
         });
-        await global.Hydro.lib.mail.sendMail(mail, 'Codemate 注册验证码', 'Codemate 注册验证码', html);
+        await global.Hydro.lib.mail.sendMail(mail, '【AIOJ编程题库官方】 注册验证码', '【AIOJ编程题库官方】 注册验证码', html);
 
         const id = await this.generateToken({ mail }, _code);
 
@@ -182,7 +182,7 @@ export class SendTOTPCodeHandler extends SendTokenBaseHandler {
         if (!phoneNumber) throw new ValidationError('phoneNumber');
 
         const _code = this.generateCode();
-        const sendResult = await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${_code}，600s内有效`, phoneNumber);
+        const sendResult = await global.Hydro.lib.sms(`【AIOJ编程题库官方】您的验证码是${_code}，600s内有效`, phoneNumber);
         if (!sendResult) throw new SendSMSFailedError();
 
         await Promise.all([this.limitRate(`send_message_code_${phoneNumber}`, 60, 1, false)]);
