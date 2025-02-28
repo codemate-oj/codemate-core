@@ -16,9 +16,9 @@ class LostpassHandler extends Handler {
             const html = await this.renderHTML('user_lostpass_mail.html', {
                 verifyCode: code,
             });
-            await global.Hydro.lib.mail.sendMail(emailOrPhone, 'Codemate 找回密码', 'Codemate 找回密码', html);
+            await global.Hydro.lib.mail.sendMail(emailOrPhone, '【AIOJ编程题库官方】 找回密码', '【AIOJ编程题库官方】 找回密码', html);
         } else {
-            await global.Hydro.lib.sms(`【CODEMATE】您的验证码是${code}，600s内有效`, emailOrPhone);
+            await global.Hydro.lib.sms(`【AIOJ编程题库官方】您的验证码是${code}，600s内有效`, emailOrPhone);
         }
         await TokenModel.add(
             TokenModel.TYPE_LOSTPASS,
