@@ -204,7 +204,19 @@ export class ProblemMainHandler extends Handler {
         }
         if (category.length > 0) {
             query.$and ||= [];
-            query.$and.push(...category.map((tag) => ({ tag })));
+            if (category.includes('隐藏题目')) {
+                query.$and.push({
+                    hidden: true,
+                });
+            }
+            if (category.includes('未审核题目')) {
+                query.$and.push({
+                    approved: {
+                        $ne: true,
+                    },
+                });
+            }
+            query.$and.push(...category.filter((v) => !['隐藏题目', '未审核题目'].includes(v)).map((tag) => ({ tag })));
         }
 
         if (tags.length > 0) {
