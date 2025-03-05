@@ -305,7 +305,7 @@ const page = new NamedPage(['problem_main'], () => {
   $(document).on('click', '[name="enter-edit-mode"]', () => {
     $body.removeClass('display-mode').addClass('edit-mode');
   });
-  for (const op of ['delete', 'hide', 'unhide', 'copy']) {
+  for (const op of ['delete', 'hide', 'unhide', 'copy', 'approval', 'unapproval']) {
     $(document).on('click', `[name="${op}_selected_problems"]`, () => handleOperation(op));
   }
   $(document).on('click', '[name="download_selected_problems"]', handleDownload);

@@ -418,6 +418,26 @@ export class ProblemMainHandler extends Handler {
         }
         this.back();
     }
+
+    @param('pids', Types.NumericArray)
+    async postApproval(domainId: string, pids: number[]) {
+        this.checkPerm(PERM.PERM_REVIEW_PROBLEM);
+        for (const pid of pids) {
+            // eslint-disable-next-line no-await-in-loop
+            await problem.edit(domainId, pid, { approved: true });
+        }
+        this.back();
+    }
+
+    @param('pids', Types.NumericArray)
+    async postUnapproval(domainId: string, pids: number[]) {
+        this.checkPerm(PERM.PERM_REVIEW_PROBLEM);
+        for (const pid of pids) {
+            // eslint-disable-next-line no-await-in-loop
+            await problem.edit(domainId, pid, { approved: false });
+        }
+        this.back();
+    }
 }
 
 export class ProblemRandomHandler extends Handler {
