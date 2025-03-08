@@ -10,6 +10,7 @@
         "lru-cache": "^10.2.0",
         "nanoid": "^5.0.6",
         "tencentcloud-sdk-nodejs-captcha": "^4.0.850",
+        "tencentcloud-sdk-nodejs-tts": "^4.0.1003",
         "wechatpay-node-v3": "2.1.8"
     },
     "module": "api.ts",
