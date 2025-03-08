@@ -57,6 +57,8 @@ class TtsHandler extends Handler {
             return;
         }
 
+        await this.limitRate('tts.generate', 15, 3, true);
+
         const fileId = nanoid();
 
         const res = await global.Hydro.lib.tts.TextToVoice({
