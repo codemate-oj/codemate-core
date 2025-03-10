@@ -4,6 +4,7 @@ import type { Client as TtsClientType } from 'tencentcloud-sdk-nodejs-tts/tencen
 import { Context, db, Handler, md5, nanoid, ObjectId, param, SettingModel, SystemModel, Types } from 'hydrooj';
 
 const TYPE_TTS_DATA = 110;
+const VOICE_TYPE = 601009;
 
 export interface TtsDataDoc {
     docType: 110;
@@ -12,6 +13,7 @@ export interface TtsDataDoc {
     fileId: string;
     text: string;
     textHash: string;
+    voiceType: number;
 }
 
 declare module 'hydrooj' {
@@ -65,7 +67,7 @@ class TtsHandler extends Handler {
             Text: text,
             SessionId: fileId,
             Codec: 'mp3',
-            VoiceType: 601009,
+            VoiceType: VOICE_TYPE,
         });
 
         const buffer = Buffer.from(res.Audio, 'base64');
@@ -88,6 +90,7 @@ class TtsHandler extends Handler {
             fileId,
             text,
             textHash: textMd5,
+            voiceType: VOICE_TYPE,
         });
 
         const url = await new Promise((resolve, reject) => {
