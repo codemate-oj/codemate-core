@@ -3,6 +3,7 @@
     "packageManager": "yarn@4.0.2",
     "dependencies": {
         "alipay-sdk": "^4.11.0",
+        "cos-nodejs-sdk-v5": "^2.14.6",
         "crypto-js": "^4.2.0",
         "fs-extra": "^11.2.0",
         "hydrooj": "workspace:^",
@@ -10,6 +11,7 @@
         "lru-cache": "^10.2.0",
         "nanoid": "^5.0.6",
         "tencentcloud-sdk-nodejs-captcha": "^4.0.850",
+        "tencentcloud-sdk-nodejs-tts": "^4.0.1003",
         "wechatpay-node-v3": "2.1.8"
     },
     "module": "api.ts",
