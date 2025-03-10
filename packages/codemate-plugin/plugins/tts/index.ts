@@ -25,9 +25,13 @@ declare module 'hydrooj' {
         tts: TtsClientType;
         tts_cos: COS;
     }
+
+    interface Collections {
+        tts: TtsDataDoc;
+    }
 }
 
-const coll = db.collection('document');
+const coll = db.collection('tts');
 
 const getFileKey = (fileId: string) => `${fileId}.mp3`;
 
