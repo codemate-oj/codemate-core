@@ -485,7 +485,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         } else if (
             !problem.canViewBy(this.pdoc, this.user) &&
             this.request.body.operation !== 'check' &&
-            !/\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(this.request.path)
+            !/\.(jpg|jpeg|png|gif|bmp|webp|mp4)$/i.test(this.request.path)
         ) {
             // 在`postCehck`时不抛出错误
             throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
