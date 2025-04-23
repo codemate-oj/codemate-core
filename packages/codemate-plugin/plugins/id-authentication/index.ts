@@ -1,5 +1,5 @@
 import CryptoJS from 'crypto-js';
-import { Context, Handler, param, SettingModel, superagent, SystemModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
+import { Context, Handler, param, PRIV, SettingModel, superagent, SystemModel, Types, Udoc, UserModel, UserNotFoundError } from 'hydrooj';
 import {
     AlreadyVerifiedError,
     DuplicatedIDNumberError,
@@ -40,11 +40,11 @@ export class IDVerifyHandler extends Handler {
         if (this.udoc.verifyPassed) throw new AlreadyVerifiedError(); // 不允许重复提交认证
 
         // 禁止重复注册（非当前用户）
-        const dupNum = (await UserModel.getMulti({ idNumber }).toArray()).filter((i) => i._id !== this.user._id).length;
+        const dupNum = await UserModel.coll.countDocuments({ idNumber, verifyPassed: true, _id: { $ne: this.user._id } });
         if (dupNum > 0) throw new DuplicatedIDNumberError(idNumber);
 
         // 先写入实名信息到数据库
-        if (this.udoc.realName || this.udoc.idNumber) {
+        if (this.udoc.realName && this.udoc.idNumber && this.udoc.verifyPassed) {
             logger.warn(
                 `User ${this.user._id} already have real name ${this.udoc.realName} and id number ${this.udoc.idNumber}, which will be overwritten.`,
             );
@@ -58,7 +58,7 @@ export class IDVerifyHandler extends Handler {
         // 调用API校验
         // TODO: 在写入数据库后发起校验任务就返回 使用schedule.slowRequest和GET接口查询
         const verifyResult = await global.Hydro.lib.idVerifyV2(realName, idNumber);
-        if (!verifyResult.success) throw new VerifyNotPassError();
+        if (!verifyResult.success || verifyResult.result !== RealnameVerifyStatus.MATCH) throw new VerifyNotPassError();
         const { result, sex, success, ...infos } = verifyResult;
         await UserModel.setById(this.user._id, {
             verifyPassed: result === RealnameVerifyStatus.MATCH,
@@ -75,8 +75,42 @@ export class IDVerifyHandler extends Handler {
     }
 }
 
+export class IDVerifyTestHandler extends Handler {
+    @param('idNumber', Types.String)
+    @param('realName', Types.String)
+    async get(_: string, idNumber: string, realName: string) {
+        this.response.body = {
+            data: await global.Hydro.lib.idVerifyV2(realName, idNumber),
+        };
+    }
+}
+
+export class IDVerifyAdminHandler extends Handler {
+    @param('idNumber', Types.String)
+    async get(_: string, idNumber: string) {
+        this.response.body = {
+            data: await UserModel.getMulti({ idNumber, verifyPassed: true }).toArray(),
+        };
+    }
+
+    @param('idNumber', Types.String)
+    async delete(_: string, idNumber: string) {
+        this.response.body = {
+            data: await UserModel.coll.updateMany(
+                {
+                    idNumber,
+                    verifyPassed: true,
+                },
+                { $unset: { sex: '', birthday: '', address: '', description: '', verifyPassed: '' } },
+            ),
+        };
+    }
+}
+
 export function apply(ctx: Context) {
     ctx.Route('id_verify', '/user/verify', IDVerifyHandler);
+    ctx.Route('id_verify_test', '/user/verify/test', IDVerifyTestHandler, PRIV.PRIV_EDIT_SYSTEM);
+    ctx.Route('id_verify_admin', '/user/verify/admin', IDVerifyTestHandler, PRIV.PRIV_EDIT_SYSTEM);
     ctx.inject(['setting'], (c) => {
         c.setting.SystemSetting(SettingModel.Setting('setting_secrets', 'idVerify.appCode', '', 'text', 'idVerify AppCode (LEGACY)'));
         c.setting.SystemSetting(SettingModel.Setting('setting_secrets', 'idVerify.appSecretId', '', 'text', 'idVerify SecretId'));
@@ -93,28 +127,18 @@ export function apply(ctx: Context) {
             '2': RealnameVerifyStatus.NOT_MATCH,
             '3': RealnameVerifyStatus.NOT_FOUND,
         };
-        response.body.result ||= response.body.data; // don't be lazy as me
+        const { result, sex, birthday, address, message: description } = response.body.data;
+        const status = matchResult[result as '1' | '2' | '3'];
         return {
             success: true,
-            result: matchResult[response.body.result.res as '1' | '2' | '3'],
-            sex: response.body.result.sex,
-            birthday: response.body.result.birthday,
-            address: response.body.result.address,
-            description: response.body.result.description,
+            result: status,
+            sex,
+            birthday,
+            address,
+            description,
         };
     };
-    global.Hydro.lib.idVerify = async (name: string, idCard: string): Promise<RealnameVerifyResult> => {
-        const appCode = await SystemModel.get('idVerify.appCode');
-        const response = await superagent
-            .post('https://eid.shumaidata.com/eid/check')
-            .query({
-                idcard: idCard,
-                name,
-            })
-            .set('Authorization', `APPCODE ${appCode}`)
-            .send();
-        return processResponse(response);
-    };
+
     global.Hydro.lib.idVerifyV2 = async (name: string, idCard: string): Promise<RealnameVerifyResult> => {
         function getSign(secretId: string, secretKey: string) {
             // this is a piece of shit from the document

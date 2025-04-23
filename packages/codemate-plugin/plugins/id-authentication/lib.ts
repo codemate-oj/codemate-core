@@ -60,8 +60,6 @@ export const validateIDNumber = (idNumber: string) => {
 
 declare module 'hydrooj' {
     interface Lib {
-        /** @deprecated */
-        idVerify: (name: string, idCard: string) => Promise<RealnameVerifyResult>;
         idVerifyV2: (name: string, idCard: string) => Promise<RealnameVerifyResult>;
     }
 
