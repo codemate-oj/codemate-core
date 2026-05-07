@@ -5,14 +5,15 @@ import { FormatError } from '../error';
 import { Context } from './interface';
 
 export async function judge({ next, end, config, code }: Context) {
-    next({ status: STATUS.STATUS_JUDGING, progress: 0 });
+    await next({ status: STATUS.STATUS_JUDGING, progress: 0 });
     const answer = 'src' in code ? await fs.readFile(code.src, 'utf-8') : 'content' in code ? code.content.toString().replace(/\r/g, '') : '';
     let answers: { [x: string]: string | string[] } = {};
     try {
-        answers = yaml.load(answer) as any;
-        assert(typeof answers === 'object');
+        const parsed = yaml.load(answer);
+        assert(parsed && typeof parsed === 'object' && !Array.isArray(parsed));
+        answers = parsed as { [x: string]: string | string[] };
     } catch (e) {
-        end({
+        await end({
             status: STATUS.STATUS_WRONG_ANSWER,
             score: 0,
             message: 'Unable to parse answer.',
@@ -25,6 +26,7 @@ export async function judge({ next, end, config, code }: Context) {
     let totalStatus = 0;
     const subtasks = {};
     if (!Object.keys(config.answers).length) throw new FormatError('Invalid standard answer.');
+    let reportQueue = Promise.resolve();
     for (const key in config.answers) {
         const ansInfo = config.answers[key] as [string | string[], number] | Record<string, number>;
         // eslint-disable-next-line @typescript-eslint/no-loop-func
@@ -37,19 +39,21 @@ export async function judge({ next, end, config, code }: Context) {
                 subtasks[subtaskId].score += score;
                 subtasks[subtaskId].status = Math.max(subtasks[subtaskId].status, status);
             }
-            next({
-                case: {
-                    subtaskId,
-                    id: caseId,
-                    time: 0,
-                    memory: 0,
-                    status,
-                    score,
-                    message,
-                },
-            });
+            reportQueue = reportQueue.then(() =>
+                next({
+                    case: {
+                        subtaskId,
+                        id: caseId,
+                        time: 0,
+                        memory: 0,
+                        status,
+                        score,
+                        message,
+                    },
+                }),
+            );
         };
-        if (!answers[key]) {
+        if (answers[key] === undefined || answers[key] === null || answers[key] === '') {
             report(STATUS.STATUS_WRONG_ANSWER, 0, 'No answer');
             continue;
         }
@@ -68,7 +72,8 @@ export async function judge({ next, end, config, code }: Context) {
         } else if (!ansInfo[usrAns]) report(STATUS.STATUS_WRONG_ANSWER, 0, 'Incorrect');
         else report(STATUS.STATUS_ACCEPTED, +ansInfo[usrAns] || 0, 'Correct');
     }
-    end({
+    await reportQueue;
+    await end({
         status: totalStatus,
         score: totalScore,
         time: 0,
